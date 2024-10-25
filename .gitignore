@@ -19,3 +19,4 @@ VM/
 .vs/
 CMakeBuilds/
 bin/
+tools/q3lcc/build--

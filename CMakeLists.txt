@@ -29,6 +29,8 @@ set( SOURCE_LIB
     "${DIR_SRC}/admin_cmd.c"
     "${DIR_SRC}/arena.c"
     "${DIR_SRC}/buttons.c"
+    "${DIR_SRC}/koth.c"
+    "${DIR_SRC}/custom_entities.c"
     "${DIR_SRC}/clan.c"
     "${DIR_SRC}/client.c"
     "${DIR_SRC}/combat.c"

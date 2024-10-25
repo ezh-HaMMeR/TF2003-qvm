@@ -13,6 +13,8 @@ sources = [
     'src/admin_cmd.c',
     'src/arena.c',
     'src/buttons.c',
+    'src/koth.c',
+    'src/custom_entities.c',
     'src/clan.c',
     'src/client.c',
     'src/combat.c',
