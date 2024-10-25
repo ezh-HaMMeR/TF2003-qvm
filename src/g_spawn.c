@@ -431,6 +431,9 @@ void            SP_func_rotatable();
 void            SP_point_ambient_generic();
 void            SP_point_ambient();
 
+void SP_capture_point();
+void SP_capture_point_endarea();
+
 void            SP_trigger_multiple();
 void            SP_trigger_once();
 void            SP_trigger_relay();
@@ -619,6 +622,8 @@ Used as a positional target for spotlights, etc.
 	{"item_flag_team2",         	SP_item_flag_team2},
 	{"item_flag_team1",         	SP_item_flag_team1},
         {"func_rotatable",              SP_func_rotatable},
+        {"point_kotharea_start",              SP_capture_point},
+        {"point_kotharea_end",              SP_capture_point_endarea},
         {"point_ambient_generic",       SP_point_ambient_generic},
         {"point_ambient_generic",       SP_point_ambient},
 	{0, 0}
