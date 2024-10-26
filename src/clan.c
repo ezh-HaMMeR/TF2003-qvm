@@ -53,6 +53,9 @@ void PreMatch_Think(  )
         self->s.v.nextthink = g_globalvars.time + 20.0;
         return;
     }
+    if (time_left == 10) {
+        StartDemoRecord((ad_roundnum == 0));
+    }
     if ( time_left > 1 )
     {
         UpdateCountdown((int)time_left);
@@ -441,6 +444,8 @@ void PreMatchReady_Think() {
 void AttackDefendSecondRound() {
     gedict_t* ent, *oldself, *owner, *te, *gren, *Goal, *olderself;
 
+    DumpClanScores();
+    StopDemoRecord();
     ad_roundnum++;
 
     ent = spawn();

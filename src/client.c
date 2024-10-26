@@ -312,7 +312,7 @@ void GotoNextMap()
         G_dprintf("nextlevel: %d nextmap: %s, mapname: %s \n", nextlevel, nextmap, mapname);
         nextlevel++;
 
-        localcmd( "serverinfo n %d\n", nextlevel );
+        localcmd( "serverinfo n %d", nextlevel );
         GetSVInfokeyString( "cd", "cycledir", str, sizeof( str ), "qwmcycle" );
         localcmd( "exec %s/map%d.cfg", str, nextlevel );
         tf_data.already_chosen_map = 1;
@@ -350,27 +350,27 @@ void IntermissionThink()
 
     //G_conprintf( "Intermission think.\n" );
     GotoNextMap();
-
     if ( GetSVInfokeyString( "nmap", NULL, sl, sizeof( sl ), "" ) )
     {
         minp = GetSVInfokeyInt( "minp", NULL, 0 );
         maxp = GetSVInfokeyInt( "maxp", NULL, 0 );
         currp = TeamFortress_GetNoPlayers();
-        G_dprintf( "MAP CYCLING: Player Counting... " );
+        G_conprintf("MAP CYCLING: Player Counting... %s %d %d\n", sl, minp, maxp );
         if ( currp >= minp && currp <= maxp )
         {
-            G_dprintf( "within range. Changing maps...\n" );
+            G_conprintf("within range. Changing maps...\n" );
 
             GetSVInfokeyString( "cd", "cycledir", str, sizeof( str ), "qwmcycle" );
-            localcmd( "exec %s/%s.cfg", str, sl );
+            localcmd("exec %s/%s.cfg;\n", str, sl);
+            localcmd("map %s;\n", sl);
         } else
         {
-            G_dprintf( "outside range. Next map.\n" );
+            G_conprintf("outside range. Next map.\n" );
             tf_data.already_chosen_map = 0;
         }
-        localcmd( "localinfo minp \"\"\n" );
-        localcmd( "localinfo maxp \"\"\n" );
-        localcmd( "localinfo nmap \"\"\n" );
+        localcmd( "localinfo minp \"\";\n" );
+        localcmd( "localinfo maxp \"\";\n" );
+        localcmd( "localinfo nmap \"\";\n" );
     }
 }
 
@@ -393,7 +393,6 @@ void execute_changelevel()
 
         G_conprintf( "execute_changelevel()\n" );
     }
-    StopDemoRecord();
 
     intermission_running = 1;
 
@@ -423,11 +422,14 @@ void execute_changelevel()
         other = trap_find( other, FOFS( s.v.classname ), "player" );
     }
 
-    if ( !tf_data.clan_scores_dumped )
-    {
-        DumpClanScores();
-        tf_data.clan_scores_dumped = 1;
-    }
+    //if ( !tf_data.clan_scores_dumped )
+    //{
+    //    DumpClanScores();
+    //    tf_data.clan_scores_dumped = 1;
+    //}
+    DumpClanScores();
+
+    StopDemoRecord();
 }
 
 void changelevel_touch()
@@ -1036,7 +1038,6 @@ void NextLevel()
 {
     gedict_t *o;
 
-    StopDemoRecord();
     if ( already_cycled )
         return;
     already_cycled = 1;
@@ -1720,8 +1721,8 @@ void ClientConnect()
         return;
     }
 
-    if (strnull(cvar_string("serverdemo"))) 
-        StartDemoRecord();
+    //if (strnull(cvar_string("serverdemo"))) 
+    //    StartDemoRecord();
 
 
     self->is_admin = 0;

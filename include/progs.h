@@ -275,10 +275,16 @@ typedef struct gedict_s {
 	char*		flame_id;
 
 // koth
-	int 		cap_progress;
+	float 		cap_progress;
 	int 		cap_team;
 	float 		last_score_think;
-	vec3_t point_abbmin, point_abbmax;
+	vec3_t 		cp_points[16];
+	int 		cp_points_amount;
+	int 		cp_height;
+	int 		cp_cap_time;
+	int 		cp_hold_time;
+	int 		cp_max_cap_mult;
+	string_t 	flag_pos;
 
 //spy
 	int             undercover_team;

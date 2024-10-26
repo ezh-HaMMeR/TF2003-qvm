@@ -595,18 +595,21 @@ void StopDemoRecord()
         localcmd("sv_demostop\n");  // demo is recording, cancel before new one
     }
 }
-void StartDemoRecord()
+void StartDemoRecord(int init)
 {
-    char date[64];
+    static char date[64];
     extern float starttime;
 
+    if (init) {
+	    if (!QVMstrftime (date, sizeof (date), "%Y%m%d-%H%M%S", 0))
+	       _snprintf (date, sizeof (date), "%d", (int)(starttime + i_rnd (0, 9999)));
+	}
 
     //G_dprintf("Start demo record %f\n", cvar("demo_tmp_record"));
 	if ( cvar( "demo_tmp_record" ) )
 	{ 
-        if (!QVMstrftime (date, sizeof (date), "%Y%m%d-%H%M%S", 0))
-            _snprintf (date, sizeof (date), "%d", (int)(starttime + i_rnd (0, 9999)));
-        localcmd("sv_demoeasyrecord \"%s-%s\"\n", date, mapname);
+        
+        localcmd("sv_demoeasyrecord \"%s-%s-round%d\"\n", date, mapname, ad_roundnum + 1);
     }
 }
 

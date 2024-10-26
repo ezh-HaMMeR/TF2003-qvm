@@ -374,6 +374,11 @@ static const field_t         fields[] = {
         {"dmg_take",			FOFS( s.v.dmg_take ),			F_FLOAT},
         {"dmg_save",			FOFS( s.v.dmg_save ),			F_FLOAT},
         {"hook_out",			FOFS( hook_out ),			F_INT},
+        {"cp_height",                   FOFS(cp_height),                        F_INT},
+        {"cp_cap_time",                 FOFS(cp_cap_time),                      F_INT},
+        {"cp_hold_time",                FOFS(cp_hold_time),                     F_INT},
+        {"cp_max_cap_mult",             FOFS(cp_max_cap_mult),                  F_INT},
+        {"flag_pos",                    FOFS(flag_pos),                         F_LSTRING},
         {NULL}
 };
 typedef struct spawn_s{
@@ -622,8 +627,7 @@ Used as a positional target for spotlights, etc.
 	{"item_flag_team2",         	SP_item_flag_team2},
 	{"item_flag_team1",         	SP_item_flag_team1},
         {"func_rotatable",              SP_func_rotatable},
-        {"point_kotharea_start",              SP_capture_point},
-        {"point_kotharea_end",              SP_capture_point_endarea},
+        {"point_koth",              SP_capture_point},
         {"point_ambient_generic",       SP_point_ambient_generic},
         {"point_ambient_generic",       SP_point_ambient},
 	{0, 0}

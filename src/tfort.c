@@ -515,9 +515,8 @@ void TeamFortress_DisplayLegalClasses(  )
 	G_sprint( self, 2, "\n" );
 }
 
-#define KOTH_CAP_TIME 15
-#define KOTH_HOLD_TIME 300
 void TeamFortress_ShowKothStatus() {
+	int cp_cap_time, cp_hold_time;
 	gedict_t* te;
 	te = world;
 	te = trap_find(te, FOFS(s.v.classname), "control_point");
@@ -525,18 +524,20 @@ void TeamFortress_ShowKothStatus() {
 		G_sprint(self, 2, "Not a koth gamemode!\n");
 		return;
 	}
+	cp_cap_time = te->cp_cap_time;
+	cp_hold_time = te->cp_hold_time;
 	G_sprint(self, 2, "KOTH STATUS:\n");
 	switch (te->team_no) {
 	case 1: G_sprint(self, 2, "Point belongs to Blue team\n");  break;
 	case 2: G_sprint(self, 2, "Point belongs to Red team\n");  break;
 	default: G_sprint(self, 2, "Point is neutral\n"); break;
 	}
-	G_sprint(self, 2, "Blue cap progress: %.0f%%\n", (float)teamscores[1] / KOTH_HOLD_TIME * 100);
-	G_sprint(self, 2, "Red cap progress: %.0f%%\n", (float)teamscores[2] / KOTH_HOLD_TIME * 100);
+	G_sprint(self, 2, "Blue cap progress: %.0f%%\n", (float)teamscores[1] / cp_hold_time * 100);
+	G_sprint(self, 2, "Red cap progress: %.0f%%\n", (float)teamscores[2] / cp_hold_time * 100);
 	if (te->cap_progress > 0) {
 		switch (te->cap_team) {
-		case 1: G_sprint(self, 2, "Point is being contested by Blue team. Contest progress: %.0f%%\n", (float)te->cap_progress / KOTH_CAP_TIME * 100);  break;
-		case 2: G_sprint(self, 2, "Point is being contested by Red team. Contest progress: %.0f%%\n", (float)te->cap_progress / KOTH_CAP_TIME * 100);  break;
+		case 1: G_sprint(self, 2, "Point is being contested by Blue team. Contest progress: %.0f%%\n", (float)te->cap_progress / cp_cap_time * 100);  break;
+		case 2: G_sprint(self, 2, "Point is being contested by Red team. Contest progress: %.0f%%\n", (float)te->cap_progress / cp_cap_time * 100);  break;
 		default: break;
 		}
 	} else {
