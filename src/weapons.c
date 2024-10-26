@@ -2369,6 +2369,9 @@ void DeadImpulses() {
   case TF_SHOWLEGALCLASSES:
     TeamFortress_DisplayLegalClasses();
     break;
+  case TF_SHOWKOTHSTATUS:
+    TeamFortress_ShowKothStatus();
+    break;
   case TF_CHANGEPC:
   case TF_CHANGEPC + 1:
   case TF_CHANGEPC + 2:

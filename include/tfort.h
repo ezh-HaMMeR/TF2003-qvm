@@ -52,6 +52,7 @@ int     TeamFortress_TeamGetNoPlayers( int tno );
 int     TeamFortress_TeamGetMaxPlayers( int tno );
 int     TeamFortress_TeamGetLives( int tno );
 void    TeamFortress_DisplayLegalClasses(  );
+void    TeamFortress_ShowKothStatus(  );
 void    TeamFortress_Inventory(  );
 void    TeamFortress_SaveMe(  );
 void    TeamFortress_ID(  );

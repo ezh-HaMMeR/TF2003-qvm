@@ -178,6 +178,8 @@
 #define TF_INVENTORY  135
 #define TF_SHOWTF   136
 #define TF_SHOWLEGALCLASSES 137
+// KOTH
+#define TF_SHOWKOTHSTATUS 138
 
 // Team Impulses
 #define TF_TEAM_1   140   // Join Team 1

@@ -44,12 +44,9 @@ doinclude(Tokenrow *trp)
 {
 	char fname[256], iname[256];
 	Includelist *ip;
-	int angled, len, i; //, origintype, or_lp, or_tp;
+	int angled, len, i;
 	FILE *fd;
 
-	or_lp = trp->lp;
-	or_tp = trp->tp;
-	origintype = trp->tp->type;
 	trp->tp += 1;
 	if (trp->tp>=trp->lp)
 		goto syntax;
@@ -58,6 +55,7 @@ doinclude(Tokenrow *trp)
 		expandrow(trp, "<include>");
 		trp->tp = trp->bp+len;
 	}
+
 	if (trp->tp->type==STRING) {
 		len = trp->tp->len-2;
 		if (len > sizeof(fname) - 1)
@@ -78,12 +76,8 @@ doinclude(Tokenrow *trp)
 	} else
 		goto syntax;
 	trp->tp += 2;
-	if (trp->tp < trp->lp || len==0) {
-		// fprintf(stderr, "or_lp: %d; or_tp: %d\n", or_lp, or_tp);
-		// fprintf(stderr, "TOKEN TYPE!!! : %d was %d  fname: %s angled: %d\n", trp->tp->type, origintype, fname, angled);
-		// error(ERROR, "Syntax error in #include second goto trp->tp: %d; trp->lp: %d; len: %d", trp->tp, trp->lp, len);
-		// goto syntax;
-	}
+	if (trp->tp < trp->lp || len==0)
+		goto syntax;
 	fname[len] = '\0';
 
 	appendDirToIncludeList( basepath( fname ) );

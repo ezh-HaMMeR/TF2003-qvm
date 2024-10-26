@@ -117,6 +117,7 @@ void TeamFortress_MOTD(  )
         TeamFortress_Alias( "+grenade1", TF_GRENADE_1_PTH, 0 );
         TeamFortress_Alias( "+grenade2", TF_GRENADE_2_PTH, 0 );
         TeamFortress_Alias( "showscores", TF_TEAM_SCORES, 0 );
+        TeamFortress_Alias( "showkothstatus", TF_SHOWKOTHSTATUS, 0 );
         TeamFortress_Alias( "showclasses", TF_TEAM_CLASSES, 0 );
         TeamFortress_Alias( "query", TF_STATUS_QUERY, 0 );
         return;
