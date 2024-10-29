@@ -589,6 +589,10 @@ void cvar_fset( const char *var, float val )
 	trap_cvar_set_float(var, val);
 }
 
+intptr_t setuserinfo(gedict_t* ed, const char* varname, const char* value, intptr_t flags) {
+	return trap_SetUserInfo(NUM_FOR_EDICT(ed), varname, value, 0);
+}
+
 void StopDemoRecord()
 {
     if (!strnull(cvar_string("serverdemo"))) {

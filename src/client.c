@@ -305,7 +305,7 @@ void GotoNextMap()
         tf_data.already_chosen_map = 1;
         return;
     }
-
+    
     if ( !tf_data.already_chosen_map )
     {
         nextlevel = GetSVInfokeyInt( "n", NULL, 0 );
@@ -317,8 +317,6 @@ void GotoNextMap()
         localcmd( "exec %s/map%d.cfg", str, nextlevel );
         tf_data.already_chosen_map = 1;
     }
-    if ( GetSVInfokeyInt( "n", NULL, 0 ) == 0 )
-        tf_data.already_chosen_map = 0;
 }
 
 void ExitIntermission()
@@ -347,8 +345,6 @@ void IntermissionThink()
     if ( !self->s.v.button0 && !self->s.v.button1 && !self->s.v.button2 )
         return;
 
-
-    //G_conprintf( "Intermission think.\n" );
     GotoNextMap();
     if ( GetSVInfokeyString( "nmap", NULL, sl, sizeof( sl ), "" ) )
     {
@@ -361,16 +357,16 @@ void IntermissionThink()
             G_conprintf("within range. Changing maps...\n" );
 
             GetSVInfokeyString( "cd", "cycledir", str, sizeof( str ), "qwmcycle" );
-            localcmd("exec %s/%s.cfg;\n", str, sl);
-            localcmd("map %s;\n", sl);
+            localcmd("exec %s/%s.cfg\n", str, sl);
+            localcmd("map %s\n", sl);
         } else
         {
             G_conprintf("outside range. Next map.\n" );
             tf_data.already_chosen_map = 0;
         }
-        localcmd( "localinfo minp \"\";\n" );
-        localcmd( "localinfo maxp \"\";\n" );
-        localcmd( "localinfo nmap \"\";\n" );
+        localcmd( "serverinfo minp \"\"\n" );
+        localcmd( "serverinfo maxp \"\"\n" );
+        localcmd( "serverinfo nmap \"\"\n" );
     }
 }
 
@@ -395,6 +391,7 @@ void execute_changelevel()
     }
 
     intermission_running = 1;
+    tf_data.already_chosen_map = 0;
 
     // enforce a wait time before allowing changelevel
     intermission_exittime = g_globalvars.time + 5;

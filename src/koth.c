@@ -65,6 +65,11 @@ void SP_capture_point_think() {
 	int blue, red;
 	blue = red = 0;
 
+	if (g_globalvars.time < tf_data.cb_prematch_time) {
+		self->s.v.nextthink = tf_data.cb_prematch_time;
+		return;
+	}
+
 	for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
 		if (te->s.v.deadflag || !te->playerclass) continue;
     if (boxvsprism(te->s.v.absmin, te->s.v.absmax, self->cp_points, self->cp_points_amount, self->cp_height)) {

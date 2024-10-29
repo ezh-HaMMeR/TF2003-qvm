@@ -37,7 +37,7 @@ void SpectatorConnect(  )
 
 	self->s.v.goalentity = EDICT_TO_PROG( world );	// used for impulse 1 below
 	self->s.v.classname = "spectator";
-
+	stuffcmd(self, "team spectator\n");
 }
 
 ////////////////
