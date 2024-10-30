@@ -593,6 +593,7 @@ void player_assaultcannondown1(  )
 			self->last_weapon = self->current_weapon;
 			self->last_weaponmode = self->weaponmode;
 			self->current_weapon = W_BestWeapon(  );
+			self->s.v.currentclip = GetClipSize(self);
 			W_SetCurrentAmmo(  );
 			W_PrintWeaponMessage(  );
 			return;

@@ -43,6 +43,7 @@ void TeamFortress_SniperWeapon(  )
 		self->current_weapon = WEAP_AUTO_RIFLE;
 	else
 		self->current_weapon = WEAP_SNIPER_RIFLE;
+	self->s.v.currentclip = GetClipSize(self);
 	W_SetCurrentAmmo(  );
 }
 

@@ -593,6 +593,10 @@ intptr_t setuserinfo(gedict_t* ed, const char* varname, const char* value, intpt
 	return trap_SetUserInfo(NUM_FOR_EDICT(ed), varname, value, 0);
 }
 
+intptr_t numgrens(gedict_t* ed, int num) {
+	return trap_numgrens(NUM_FOR_EDICT(ed), num);
+}
+
 void StopDemoRecord()
 {
     if (!strnull(cvar_string("serverdemo"))) {

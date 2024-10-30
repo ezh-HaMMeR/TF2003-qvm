@@ -847,6 +847,7 @@ void TeamFortress_SpyFeignDeath( int issilent )
         self->s.v.movetype = MOVETYPE_WALK;
         self->is_feigning = 0;
         self->current_weapon = self->s.v.weapon;
+        self->s.v.currentclip = GetClipSize(self);
         W_SetCurrentAmmo(  );
         self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_CANT_MOVE );
         TeamFortress_SetSpeed( self );
@@ -887,6 +888,7 @@ void TeamFortress_SpyFeignDeath( int issilent )
         self->s.v.modelindex = modelindex_player;
         self->s.v.weapon = self->current_weapon;
         self->current_weapon = 0;
+        self->s.v.currentclip = GetClipSize(self);
         self->s.v.weaponmodel = "";
         self->s.v.weaponframe = 0;
         setsize( self, -16, -16, -24, 16, 16, -16 );

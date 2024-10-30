@@ -139,11 +139,13 @@ typedef enum
 	g_strlcat,
 	G_MAKEVECTORS,
 	G_NEXTCLIENT,
-    G_PRECACHE_VWEP_MODEL,
-    G_SETPAUSE,
-    G_SETUSERINFO,
-    G_MOVETOGOAL,
-    _G__LASTAPI
+	G_PRECACHE_VWEP_MODEL,
+	G_SETPAUSE,
+	G_SETUSERINFO,
+	G_MOVETOGOAL,
+	G_VISIBLETO,
+	G_NUMGRENS,
+	_G__LASTAPI
 } gameImport_t;
 
 // !!! new things comes to end of list !!!

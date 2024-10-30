@@ -612,22 +612,22 @@ void bound_other_ammo( gedict_t * p )
 	if ( p->ammo_detpack > p->maxammo_detpack )
 		p->ammo_detpack = p->maxammo_detpack;
 
-	if ( p->no_grenades_1 > 4 )
-		p->no_grenades_1 = 4;
-	if ( p->no_grenades_2 > 4 )
-		p->no_grenades_2 = 4;
-	if ( p->tp_grenades_1 == GR_TYPE_NAIL && p->no_grenades_1 > 2 )
-		p->no_grenades_1 = 2;
-	if ( p->tp_grenades_2 == GR_TYPE_NAIL && p->no_grenades_2 > 2 )
-		p->no_grenades_2 = 2;
-	if ( p->tp_grenades_1 == GR_TYPE_CONCUSSION && p->no_grenades_1 > 3 )
-		p->no_grenades_1 = 3;
-	if ( p->tp_grenades_2 == GR_TYPE_CONCUSSION && p->no_grenades_2 > 3 )
-		p->no_grenades_2 = 3;
-	if ( p->tp_grenades_1 == GR_TYPE_CALTROPS && p->no_grenades_1 > 3 )
-		p->no_grenades_1 = 3;
-	if ( p->tp_grenades_2 == GR_TYPE_CALTROPS && p->no_grenades_2 > 3 )
-		p->no_grenades_2 = 3;
+	if ( p->s.v.numgren1 > 4 )
+		p->s.v.numgren1 = 4;
+	if ( p->s.v.numgren2 > 4 )
+		p->s.v.numgren2 = 4;
+	if ( p->s.v.tpgren1 == GR_TYPE_NAIL && p->s.v.numgren1 > 2 )
+		p->s.v.numgren1 = 2;
+	if ( p->s.v.tpgren2 == GR_TYPE_NAIL && p->s.v.numgren2 > 2 )
+		p->s.v.numgren2 = 2;
+	if ( p->s.v.tpgren1 == GR_TYPE_CONCUSSION && p->s.v.numgren1 > 3 )
+		p->s.v.numgren1 = 3;
+	if ( p->s.v.tpgren2 == GR_TYPE_CONCUSSION && p->s.v.numgren2 > 3 )
+		p->s.v.numgren2 = 3;
+	if ( p->s.v.tpgren1 == GR_TYPE_CALTROPS && p->s.v.numgren1 > 3 )
+		p->s.v.numgren1 = 3;
+	if ( p->s.v.tpgren2 == GR_TYPE_CALTROPS && p->s.v.numgren2 > 3 )
+		p->s.v.numgren2 = 3;
 }
 
 float RankForWeapon( float w )
@@ -928,15 +928,15 @@ int GetGrenadePossibility(  )
 	maxg = 4;
 	if ( g_random(  ) < 0.5 )
 	{
-		if ( other->tp_grenades_1 == GR_TYPE_NAIL )
+		if ( other->s.v.tpgren1 == GR_TYPE_NAIL )
 			maxg = 2;
-		if ( other->tp_grenades_1 == GR_TYPE_CALTROPS )
+		if ( other->s.v.tpgren1 == GR_TYPE_CALTROPS )
 			maxg = 3;
-		if ( other->tp_grenades_1 && other->no_grenades_1 < maxg )
+		if ( other->s.v.tpgren1 && other->s.v.numgren1 < maxg )
 		{
-			other->no_grenades_1 += 1;
-			G_sprint( other, 2, "You found a %s", GrenadeNames[other->tp_grenades_1] );
-			if ( other->tp_grenades_1 == GR_TYPE_CALTROPS )
+			other->s.v.numgren1 += 1;
+			G_sprint( other, 2, "You found a %s", GrenadeNames[(int)other->s.v.tpgren1] );
+			if ( other->s.v.tpgren1 == GR_TYPE_CALTROPS )
 				G_sprint( other, 2, " canister\n" );
 			else
 				G_sprint( other, 2, " grenade\n" );
@@ -944,14 +944,14 @@ int GetGrenadePossibility(  )
 		}
 	} else
 	{
-		if ( other->tp_grenades_2 == GR_TYPE_NAIL )
+		if ( other->s.v.tpgren2 == GR_TYPE_NAIL )
 			maxg = 2;
-		if ( other->tp_grenades_2 == GR_TYPE_CONCUSSION )
+		if ( other->s.v.tpgren2 == GR_TYPE_CONCUSSION )
 			maxg = 3;
-		if ( other->tp_grenades_2 && other->no_grenades_2 < maxg )
+		if ( other->s.v.tpgren2 && other->s.v.numgren2 < maxg )
 		{
-			other->no_grenades_2 += 1;
-			G_sprint( other, 2, "You found a %s grenade\n", GrenadeNames[other->tp_grenades_2] );
+			other->s.v.numgren2 += 1;
+			G_sprint( other, 2, "You found a %s grenade\n", GrenadeNames[(int)other->s.v.tpgren2] );
 			return 1;
 		}
 	}
@@ -1689,20 +1689,20 @@ void BackpackTouch(  )
 		}
 	if ( tfset_gren2box & BP_GREN_BYTYPE )
 	{
-		if ( self->tp_grenades_1 == other->tp_grenades_1 )
+		if ( self->s.v.tpgren1 == other->s.v.tpgren1 )
 		{
-			other->no_grenades_1 = other->no_grenades_1 + self->no_grenades_1;
+			other->s.v.numgren1 = other->s.v.numgren1 + self->s.v.numgren1;
 			gotgren1 = 1;
 		}
-		if ( self->tp_grenades_2 == other->tp_grenades_2 )
+		if ( self->s.v.tpgren2 == other->s.v.tpgren2 )
 		{
-			other->no_grenades_2 = other->no_grenades_2 + self->no_grenades_2;
+			other->s.v.numgren2 = other->s.v.numgren2 + self->s.v.numgren2;
 			gotgren2 = 1;
 		}
 	} else if ( tfset_gren2box & BP_GREN )
 	{
-		other->no_grenades_1 = other->no_grenades_1 + self->no_grenades_1;
-		other->no_grenades_2 = other->no_grenades_2 + self->no_grenades_2;
+		other->s.v.numgren1 = other->s.v.numgren1 + self->s.v.numgren1;
+		other->s.v.numgren2 = other->s.v.numgren2 + self->s.v.numgren2;
 		gotgren1 = 1;
 		gotgren2 = 1;
 	}
@@ -1740,20 +1740,20 @@ void BackpackTouch(  )
 	}
 
 
-	if ( self->no_grenades_1 && gotgren1 )
+	if ( self->s.v.numgren1 && gotgren1 )
 	{
-		G_sprint( other, 0, "%d %s", self->no_grenades_1,
-			  GrenadePrimeName[( self->tp_grenades_1 > 11 ) ? 0 : self->tp_grenades_1] );
-		if ( self->no_grenades_1 != 1 )
+		G_sprint( other, 0, "%d %s", self->s.v.numgren1,
+			  GrenadePrimeName[( self->s.v.tpgren1 > 11 ) ? 0 : (int)self->s.v.tpgren1] );
+		if ( self->s.v.numgren1 != 1 )
 			G_sprint( other, 0, "s" );
 		G_sprint( other, 0, "  " );
 	}
-	if ( self->no_grenades_2 && gotgren2 )
+	if ( self->s.v.numgren2 && gotgren2 )
 	{
-		G_sprint( other, 0, "%d %s", self->no_grenades_2,
-			  GrenadePrimeName[( self->tp_grenades_2 > 11 ) ? 0 : self->tp_grenades_2] );
+		G_sprint( other, 0, "%d %s", self->s.v.numgren2,
+			  GrenadePrimeName[( self->s.v.tpgren2 > 11 ) ? 0 : (int)self->s.v.tpgren2] );
 
-		if ( self->no_grenades_2 != 1 )
+		if ( self->s.v.numgren2 != 1 )
 			G_sprint( other, 0, "s" );
 		G_sprint( other, 0, "  " );
 	}
@@ -1788,10 +1788,10 @@ void DropBackpack(  )
 	newmis->s.v.armortype = self->s.v.armortype;
 	newmis->ammo_detpack = self->ammo_detpack;
 	newmis->ammo_medikit = self->ammo_medikit;
-	newmis->no_grenades_1 = self->no_grenades_1;
-	newmis->no_grenades_2 = self->no_grenades_2;
-	newmis->tp_grenades_1 = self->tp_grenades_1;
-	newmis->tp_grenades_2 = self->tp_grenades_2;
+	newmis->s.v.numgren1 = self->s.v.numgren1;
+	newmis->s.v.numgren2 = self->s.v.numgren2;
+	newmis->s.v.tpgren1 = self->s.v.tpgren1;
+	newmis->s.v.tpgren2 = self->s.v.tpgren2;
 
 	newmis->s.v.velocity[2] = 300;
 	newmis->s.v.velocity[0] = -100 + ( g_random(  ) * 200 );

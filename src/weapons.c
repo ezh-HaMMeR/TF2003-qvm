@@ -1056,6 +1056,7 @@ void W_FireLightning() {
     self->last_weapon = self->current_weapon;
     self->last_weaponmode = self->weaponmode;
     self->current_weapon = W_BestWeapon();
+    self->s.v.currentclip = GetClipSize(self);
     W_SetCurrentAmmo();
     W_PrintWeaponMessage();
     return;
@@ -1339,6 +1340,7 @@ void W_FireSpikes(float ox) {
     self->last_weapon = self->current_weapon;
     self->last_weaponmode = self->weaponmode;
     self->current_weapon = W_BestWeapon();
+    self->s.v.currentclip = GetClipSize(self);
     W_SetCurrentAmmo();
     W_PrintWeaponMessage();
     return;
@@ -1527,6 +1529,7 @@ int W_CheckNoAmmo() {
     return 1;
 
   self->current_weapon = W_BestWeapon();
+  self->s.v.currentclip = GetClipSize(self);
   W_SetCurrentAmmo();
   W_PrintWeaponMessage();
   return 0;
@@ -1535,6 +1538,7 @@ int W_CheckNoAmmo() {
 void W_Reload_shotgun() {
   gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
 
+  owner->s.v.currentclip = GetClipSize(owner);
   owner->tfstate -= (owner->tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_shot.mdl";
   G_sprint(owner, 0, "finished reloading\n");
@@ -1545,6 +1549,7 @@ void W_Reload_shotgun() {
 void W_Reload_super_shotgun() {
   gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
 
+  owner->s.v.currentclip = GetClipSize(owner);
   owner->tfstate -= (owner->tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_shot2.mdl";
   G_sprint(owner, 0, "finished reloading\n");
@@ -1555,6 +1560,7 @@ void W_Reload_super_shotgun() {
 void W_Reload_grenade_launcher() {
   gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
 
+  owner->s.v.currentclip = GetClipSize(owner);
   owner->tfstate -= (owner->tfstate & TFSTATE_RELOADING);
   if (owner->weaponmode == GL_NORMAL)
     owner->s.v.weaponmodel = "progs/v_rock.mdl";
@@ -1568,6 +1574,7 @@ void W_Reload_grenade_launcher() {
 void W_Reload_rocket_launcher() {
   gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
 
+  owner->s.v.currentclip = GetClipSize(owner);
   owner->tfstate -= (owner->tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_rock2.mdl";
   G_sprint(owner, 0, "finished reloading\n");
@@ -1577,6 +1584,7 @@ void W_Reload_rocket_launcher() {
 
 int _weapon_reload(void (*f)(), int tm) {
   gedict_t *tWeapon;
+
   G_sprint(self, 2, "reloading...\n");
   self->tfstate = self->tfstate | TFSTATE_RELOADING;
   tWeapon = spawn();
@@ -1685,6 +1693,7 @@ void W_Attack() {
     player_shot(113);
     W_FireShotgun();
     self->reload_shotgun += 1;
+    self->s.v.currentclip = GetClipSize(self);
     self->StatusRefreshTime = g_globalvars.time + 0.1;
     CheckForReload();
     Attack_Finished(0.5);
@@ -1695,6 +1704,7 @@ void W_Attack() {
     player_shot(113);
     W_FireSuperShotgun();
     self->reload_super_shotgun += 2;
+    self->s.v.currentclip = GetClipSize(self);
     self->StatusRefreshTime = g_globalvars.time + 0.1;
     CheckForReload();
     Attack_Finished(0.7);
@@ -1709,6 +1719,7 @@ void W_Attack() {
     player_shot(107);
     W_FireGrenade();
     self->reload_grenade_launcher += 1;
+    self->s.v.currentclip = GetClipSize(self);
     self->StatusRefreshTime = g_globalvars.time + 0.1;
     CheckForReload();
     Attack_Finished(0.6);
@@ -1719,6 +1730,7 @@ void W_Attack() {
     player_shot(107);
     W_FireRocket();
     self->reload_rocket_launcher += 1;
+    self->s.v.currentclip = GetClipSize(self);
     self->StatusRefreshTime = g_globalvars.time + 0.1;
     CheckForReload();
     Attack_Finished(0.8);
@@ -1940,6 +1952,7 @@ void W_SetWeapon(int fl, int wm, int am) {
   self->last_weaponmode = self->weaponmode;
   self->last_weapon = self->current_weapon;
   self->current_weapon = fl;
+  self->s.v.currentclip = GetClipSize(self);
   self->weaponmode = wm;
   W_SetCurrentAmmo();
   W_PrintWeaponMessage();
@@ -2091,6 +2104,7 @@ void CycleWeaponCommand(int prev) {
     if (!am) {
       self->weaponmode = wp->mode;
       self->current_weapon = wp->w;
+      self->s.v.currentclip = GetClipSize(self);
       self->last_weapon = lw;
       self->last_weaponmode = wm;
       W_SetCurrentAmmo();

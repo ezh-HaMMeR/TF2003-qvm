@@ -141,10 +141,6 @@ typedef struct gedict_s {
 	int             playerclass, nextpc;
 	int             armorclass;
 	int             tf_items, tf_items_flags;
-	int             no_grenades_1;
-	int             no_grenades_2;
-	int             tp_grenades_1;
-	int             tp_grenades_2;
 	int             got_aliases;
 	int             cheat_check;
 	int             is_removed;

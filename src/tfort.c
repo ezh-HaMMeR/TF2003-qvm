@@ -561,19 +561,19 @@ void TeamFortress_Inventory(  )
 			G_sprint( self, 2, "You've got %d lifes.\n", self->lives );
 	}
 
-	if ( self->no_grenades_1 > 0 )
+	if ( self->s.v.numgren1 > 0 )
 	{
-		grentype = self->tp_grenades_1;
+		grentype = self->s.v.tpgren1;
 		if ( grentype < 0 || grentype > 10 )
 			grentype = 0;
-		G_sprint( self, 2, "Gren.Type 1 :  %s(%d)\n", GrenadeNames[grentype], self->no_grenades_1 );
+		G_sprint( self, 2, "Gren.Type 1 :  %s(%d)\n", GrenadeNames[grentype], (int)self->s.v.numgren1 );
 	}
-	if ( self->no_grenades_2 > 0 )
+	if ( self->s.v.numgren2 > 0 )
 	{
-		grentype = self->tp_grenades_2;
+		grentype = self->s.v.tpgren2;
 		if ( grentype < 0 || grentype > 10 )
 			grentype = 0;
-		G_sprint( self, 2, "Gren.Type 2 :  %s(%d)\n", GrenadeNames[grentype], self->no_grenades_2 );
+		G_sprint( self, 2, "Gren.Type 2 :  %s(%d)\n", GrenadeNames[grentype], (int)self->s.v.numgren2 );
 	}
 
 	if ( self->tf_items & 1 )
@@ -963,20 +963,21 @@ void TeamFortress_PrimeGrenade(int useprimetothrow)
 		}
 		return;
 	}
+	// numgrens(self, 1);
 	if ( self->s.v.impulse == TF_GRENADE_1 )
 	{
 
-		gtype = self->tp_grenades_1;
+		gtype = self->s.v.tpgren1;
 		if ( gtype < 0 || gtype > 10 )
 			gtype = 0;
 
 		if ( tfset_disable_grens & ( 1 << gtype ) )
 			return;
 
-		if ( self->no_grenades_1 > 0 || tg_data.unlimit_grens )
+		if ( self->s.v.numgren1 > 0 || tg_data.unlimit_grens )
 		{
 			if ( !tg_data.unlimit_grens )
-				self->no_grenades_1--;
+				self->s.v.numgren1--;
 
             if( primeGrenade( gtype ) )
                 return;
@@ -989,17 +990,17 @@ void TeamFortress_PrimeGrenade(int useprimetothrow)
 	if ( self->s.v.impulse == TF_GRENADE_2 )
 	{
 
-		gtype = self->tp_grenades_2;
+		gtype = self->s.v.tpgren2;
 		if ( gtype < 0 || gtype > 10 )
 			gtype = 0;
 
 		if ( tfset_disable_grens & ( 1 << gtype ) )
 			return;
 
-		if ( self->no_grenades_2 > 0 || tg_data.unlimit_grens )
+		if ( self->s.v.numgren2 > 0 || tg_data.unlimit_grens )
 		{
 			if ( !tg_data.unlimit_grens )
-				self->no_grenades_2--;
+				self->s.v.numgren2--;
 
             if( primeGrenade( gtype ) )
                 return;
@@ -1519,16 +1520,16 @@ void TeamFortress_SetEquipment(  )
 	self->maxammo_detpack = class_set[pc].maxammo_detpack;
 	self->maxammo_medikit = class_set[pc].maxammo_medikit;
 
-	self->no_grenades_1 = class_set[pc].no_grenades_1;
-	self->no_grenades_2 = class_set[pc].no_grenades_2;
+	self->s.v.numgren1 = class_set[pc].no_grenades_1;
+	self->s.v.numgren2 = class_set[pc].no_grenades_2;
 	if ( tfset(old_grens) )
 	{
-		self->tp_grenades_1 = class_set[pc].og_tp_grenades_1;
-		self->tp_grenades_2 = class_set[pc].og_tp_grenades_2;
+		self->s.v.tpgren1 = class_set[pc].og_tp_grenades_1;
+		self->s.v.tpgren2 = class_set[pc].og_tp_grenades_2;
 	} else
 	{
-		self->tp_grenades_1 = class_set[pc].tp_grenades_1;
-		self->tp_grenades_2 = class_set[pc].tp_grenades_2;
+		self->s.v.tpgren1 = class_set[pc].tp_grenades_1;
+		self->s.v.tpgren2 = class_set[pc].tp_grenades_2;
 	}
 	self->tf_items = class_set[pc].tf_items;
 	self->tf_items_flags |= class_set[pc].tf_items_flags;
@@ -1539,6 +1540,7 @@ void TeamFortress_SetEquipment(  )
 	self->armor_allowed = class_set[pc].armor_allowed;
 	self->maxarmor = class_set[pc].maxarmor;
 	self->current_weapon = class_set[pc].current_weapon;
+	self->s.v.currentclip = GetClipSize(self);
 	self->items_allowed = class_set[pc].items_allowed;
 	self->s.v.items = ( int ) self->s.v.items | class_set[pc].items;
 
@@ -1839,10 +1841,10 @@ void TeamFortress_CheckClassStats(  )
 		self->ammo_detpack = TeamFortress_GetMaxAmmo( self, WEAP_DETPACK );
 	if ( self->ammo_detpack < 0 )
 		self->ammo_detpack = 0;
-	if ( self->no_grenades_1 < 0 )
-		self->no_grenades_1 = 0;
-	if ( self->no_grenades_2 < 0 )
-		self->no_grenades_2 = 0;
+	if ( self->s.v.numgren1 < 0 )
+		self->s.v.numgren1 = 0;
+	if ( self->s.v.numgren2 < 0 )
+		self->s.v.numgren2 = 0;
 
 	if ( self->s.v.health > self->s.v.max_health && !( ( int ) ( self->s.v.items ) & IT_SUPERHEALTH ) )
 		TF_T_Damage( self, world, world, self->s.v.max_health, 0, TF_TD_NOSOUND );
@@ -2173,6 +2175,7 @@ void TeamFortress_AssaultWeapon(  )
 		return;
 	}
 	self->current_weapon = WEAP_ASSAULT_CANNON;
+	self->s.v.currentclip = GetClipSize(self);
 	W_SetCurrentAmmo(  );
 }
 
@@ -2574,8 +2577,8 @@ void TeamFortress_PrepareForArenaRespawn(  )
     self->s.v.armortype = self->armor_allowed;
     self->s.v.armorvalue =self->maxarmor;
 
-    self->no_grenades_1 = 4;
-    self->no_grenades_2 = 4;
+    self->s.v.numgren1 = 4;
+    self->s.v.numgren2 = 4;
     bound_other_ammo( self );
     W_SetCurrentAmmo(  );
 }

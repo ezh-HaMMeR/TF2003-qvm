@@ -470,3 +470,7 @@ intptr_t 	trap_SetUserInfo( intptr_t edn, const char* varname, const char* value
 {
         return syscall( G_SETUSERINFO, edn, (intptr_t)varname, (intptr_t)value, flags );
 }
+
+intptr_t trap_numgrens(intptr_t edn, int num) {
+	return syscall( G_NUMGRENS, edn, num );
+}

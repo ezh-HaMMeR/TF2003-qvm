@@ -330,6 +330,7 @@ void TeamFortress_EngineerBuild(  )
         }
         self->is_building = 0;
         self->current_weapon = self->s.v.weapon;
+        self->s.v.currentclip = GetClipSize(self);
         W_SetCurrentAmmo(  );
         //	}
     }
@@ -490,6 +491,7 @@ void TeamFortress_Build( int objtobuild )
     // Save the current weapon and remove it
     self->s.v.weapon = self->current_weapon;
     self->current_weapon = 0;
+    self->s.v.currentclip = GetClipSize(self);
     self->s.v.weaponmodel = "";
     self->s.v.weaponframe = 0;
 
@@ -584,6 +586,7 @@ void TeamFortress_FinishedBuilding(  )
     self->is_building = 0;
     self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_CANT_MOVE );
     self->current_weapon = self->s.v.weapon;
+    self->s.v.currentclip = GetClipSize(self);
     self->StatusRefreshTime = g_globalvars.time + 0.1;
     TeamFortress_SetSpeed( self );
     if ( oldself->s.v.weapon == BUILD_DISPENSER )

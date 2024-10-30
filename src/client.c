@@ -840,6 +840,7 @@ void PutClientInServer()
     self->reload_super_shotgun = 0;
     self->reload_grenade_launcher = 0;
     self->reload_rocket_launcher = 0;
+    self->s.v.currentclip = 0;
     self->immune_to_check = g_globalvars.time + tfset_cheat_pause;
     self->on_hook = 0;
     self->hook_out = 0;

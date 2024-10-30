@@ -607,10 +607,10 @@ void Apply_Results( gedict_t * Goal, gedict_t * Player, gedict_t * AP, float add
 			Player->s.v.ammo_cells = Player->s.v.ammo_cells + Goal->s.v.ammo_cells;
 			Player->ammo_medikit = Player->ammo_medikit + Goal->ammo_medikit;
 			Player->ammo_detpack = Player->ammo_detpack + Goal->ammo_detpack;
-			Player->no_grenades_1 = Player->no_grenades_1 + Goal->no_grenades_1;
-			Player->no_grenades_2 = Player->no_grenades_2 + Goal->no_grenades_2;
+			Player->s.v.numgren1 = Player->s.v.numgren1 + Goal->s.v.numgren1;
+			Player->s.v.numgren2 = Player->s.v.numgren2 + Goal->s.v.numgren2;
 			bound_other_ammo( Player );
-            boundPlayerPrimedGrenades( Player, Goal->no_grenades_1, Goal->no_grenades_2  );
+            boundPlayerPrimedGrenades( Player, Goal->s.v.numgren1, Goal->s.v.numgren2  );
 
 			if ( !tfset(disable_powerups) && ( Goal->invincible_finished > 0 ) )
 			{
@@ -789,10 +789,10 @@ void RemoveResults( gedict_t * Goal, gedict_t * Player )
 	Player->s.v.ammo_cells = Player->s.v.ammo_cells - Goal->s.v.ammo_cells;
 	Player->ammo_medikit = Player->ammo_medikit - Goal->ammo_medikit;
 	Player->ammo_detpack = Player->ammo_detpack - Goal->ammo_detpack;
-	Player->no_grenades_1 = Player->no_grenades_1 - Goal->no_grenades_1;
-	Player->no_grenades_2 = Player->no_grenades_2 - Goal->no_grenades_2;
+	Player->s.v.numgren1 = Player->s.v.numgren1 - Goal->s.v.numgren1;
+	Player->s.v.numgren2 = Player->s.v.numgren2 - Goal->s.v.numgren2;
 	bound_other_ammo( Player );
-    boundPlayerPrimedGrenades( Player, -Goal->no_grenades_1, -Goal->no_grenades_2  );
+    boundPlayerPrimedGrenades( Player, -Goal->s.v.numgren1, -Goal->s.v.numgren2  );
 
 	puinvin = 0;
 	puinvis = 0;

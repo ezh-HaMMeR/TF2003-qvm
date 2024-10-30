@@ -267,6 +267,7 @@ void TeamFortress_SetDetpack( float timer )
 	// Save the current weapon and remove it
 	self->s.v.weapon = self->current_weapon;
 	self->current_weapon = 0;
+	self->s.v.currentclip = GetClipSize(self);
 	self->s.v.weaponmodel = "";
 	self->s.v.weaponframe = 0;
 
@@ -305,6 +306,7 @@ void TeamFortress_DetpackStop(  )
 	self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_CANT_MOVE );
 	self->is_detpacking = 0;
 	self->current_weapon = self->s.v.weapon;
+	self->s.v.currentclip = GetClipSize(self);
 	W_SetCurrentAmmo(  );
 	TeamFortress_SetSpeed( self );
 	self->pausetime = g_globalvars.time;
@@ -326,6 +328,7 @@ void TeamFortress_DetpackSet(  )
 	self = owner;
 	self->is_detpacking = 0;
 	self->current_weapon = self->s.v.weapon;
+	self->s.v.currentclip = GetClipSize(self);
 	W_SetCurrentAmmo(  );
 	self = oldself;
 	newmis = spawn(  );

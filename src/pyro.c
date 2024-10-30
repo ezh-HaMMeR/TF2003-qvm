@@ -766,6 +766,7 @@ void TeamFortress_IncendiaryCannon(  )
 		return;
 	}
 	self->current_weapon = WEAP_INCENDIARY;
+    self->s.v.currentclip = GetClipSize(self);
 	W_SetCurrentAmmo(  );
 }
 
@@ -780,5 +781,6 @@ void TeamFortress_FlameThrower(  )
 		return;
 	}
 	self->current_weapon = WEAP_FLAMETHROWER;
+    self->s.v.currentclip = GetClipSize(self);
 	W_SetCurrentAmmo(  );
 }
