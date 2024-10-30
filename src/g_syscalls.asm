@@ -105,4 +105,4 @@ equ		trap_setpause -91
 equ		trap_SetUserInfo -92
 equ		trap_movetogoal -93
 equ		trap_visibleto -94
-equ		trap_numgrens -95
+equ		trap_updatetimer -95

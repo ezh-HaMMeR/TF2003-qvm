@@ -562,16 +562,17 @@ void RoundTimerThink() {
     if (tf_data.cb_prematch_time > g_globalvars.time) {
         self->heat = 0;
         for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
-            stuffcmd(te, "set roundtimer \"00:00\";\n");
+            // stuffcmd(te, "set roundtimer \"00:00\";\n");
         }
         self->s.v.nextthink = g_globalvars.time + 60;
         return;
     }
 
+    trap_updatetimer((int)self->heat);
     minutes = (int)self->heat / 60;
     seconds = (int)self->heat % 60;
     for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
-        stuffcmd(te, "set roundtimer \"%d%d:%d%d\";\n", minutes / 10, minutes % 10, seconds / 10, seconds % 10);
+        //stuffcmd(te, "set roundtimer \"%d%d:%d%d\";\n", minutes / 10, minutes % 10, seconds / 10, seconds % 10);
         if (seconds == 0) {
             if (tfset_roundtime - minutes == 1) {
                 stuffcmd(te, "play announcer/1_minute.wav\n");
