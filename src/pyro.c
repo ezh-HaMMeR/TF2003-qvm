@@ -93,7 +93,11 @@ gedict_t *FlameSpawn( int type, gedict_t * p_owner )
 // destroy a given flame, maintaining counters and links in the queue
 void FlameDestroy( gedict_t * this )
 {
+    gedict_t *enemy = PROG_TO_EDICT( this->s.v.enemy );
     num_world_flames = num_world_flames - 1;
+    if (enemy->numflames == 0) {
+        enemy->s.v.tfstate = (int)enemy->s.v.tfstate & ~TFSTATE_BURNING;
+    }
     dremove( this );
 }
 
@@ -326,10 +330,10 @@ void FlameFollow(  )
     if ( ( enemy->armorclass & AT_SAVEFIRE ) && enemy->s.v.armorvalue > 0 )
         self->s.v.health = 0;
 
-    if ( enemy->tfstate & TFSTATE_MAX_FLAMES )
+    if ( enemy->s.v.tfstate & TFSTATE_MAX_FLAMES )
     {
         self->s.v.health = FLAME_PLYRMAXTIME;
-        enemy->tfstate = enemy->tfstate - ( enemy->tfstate & TFSTATE_MAX_FLAMES );
+        enemy->s.v.tfstate = enemy->s.v.tfstate - ( enemy->s.v.tfstate & TFSTATE_MAX_FLAMES );
     }
     if ( self->s.v.health < 1 )
     {
@@ -395,7 +399,7 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
         return NULL;
     if ( other->numflames >= 4 )
     {
-        other->tfstate = other->tfstate | TFSTATE_MAX_FLAMES;
+        other->s.v.tfstate = other->s.v.tfstate | TFSTATE_MAX_FLAMES;
         return NULL;
     }
     if ( ( other->armorclass & AT_SAVEFIRE ) && other->s.v.armorvalue > 0 )
@@ -406,6 +410,7 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
         if ( ( teamplay & TEAMPLAY_NOEXPLOSIVE ) && other->team_no > 0
                 && other->team_no == PROG_TO_EDICT( self->s.v.owner )->team_no )
             return NULL;
+        other->s.v.tfstate = (int)other->s.v.tfstate | TFSTATE_BURNING;
         CenterPrint( other, "You are on fire!\n" );
         stuffcmd( other, "bf\n" );
     }

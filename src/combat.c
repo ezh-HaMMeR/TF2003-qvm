@@ -488,7 +488,7 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 	damage_inflictor = inflictor;
 
 	// figure momentum add
-	if ( inflictor != world && targ->s.v.movetype == MOVETYPE_WALK && !( targ->tfstate & TFSTATE_CANT_MOVE ) )
+	if ( inflictor != world && targ->s.v.movetype == MOVETYPE_WALK && !( targ->s.v.tfstate & TFSTATE_CANT_MOVE ) )
 	{
 	        // Nail Gren doesn't knock ppl
 		if ( tf_data.deathmsg != DMSG_GREN_NAIL )

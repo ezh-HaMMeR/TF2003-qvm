@@ -499,7 +499,7 @@ void TeamFortress_TeamShowMemberClasses( gedict_t * Player )
 					G_sprint( Player, 2, "The other members of your team are:\n" );
 				}
 				G_sprint( Player, 2, "%s : ", e->s.v.netname );
-				TeamFortress_PrintClassName( Player, e->playerclass, e->tfstate & TFSTATE_RANDOMPC );
+				TeamFortress_PrintClassName( Player, e->playerclass, e->s.v.tfstate & TFSTATE_RANDOMPC );
 			}
 		}
 	}
@@ -526,7 +526,7 @@ void TeamFortress_TeamShowMemberClasses_New( gedict_t * Player )
 				}
 				G_sprint( Player, 2, "%s : %s", e->s.v.netname, TeamFortress_GetClassName(e->playerclass) );
 
-				if ( e->tfstate & TFSTATE_RANDOMPC)
+				if ( e->s.v.tfstate & TFSTATE_RANDOMPC)
 					G_sprint(Player, 2, " (Random)");
 				if( !e->playerclass)
 				{
@@ -825,13 +825,13 @@ int ClassIsRestricted( int tno, int pc )
 			{
 				if ( pc == 10 )
 				{
-					if ( te->tfstate & TFSTATE_RANDOMPC )
+					if ( te->s.v.tfstate & TFSTATE_RANDOMPC )
 						num++;
 				} else
 				{
 					if ( te->playerclass == pc || te->nextpc == pc )
 					{
-						if ( !( te->tfstate & TFSTATE_RANDOMPC ) )
+						if ( !( te->s.v.tfstate & TFSTATE_RANDOMPC ) )
 							num++;
 					}
 				}

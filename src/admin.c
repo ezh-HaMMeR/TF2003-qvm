@@ -92,7 +92,7 @@ void CeaseFire_think(  )
 		for ( te = world; (te = trap_find( te, FOFS( s.v.classname ), "player" )); )
 		{
 			G_centerprint( te, "RESUME FIRE\n" );
-			te->tfstate = te->tfstate - ( te->tfstate & TFSTATE_CANT_MOVE );
+			te->s.v.tfstate = te->s.v.tfstate - ( te->s.v.tfstate & TFSTATE_CANT_MOVE );
 			TeamFortress_SetSpeed( te );
 		}
 		dremove( self );
@@ -121,7 +121,7 @@ void Admin_CeaseFire(  )
 		for ( te = world; (te = trap_find( te, FOFS( s.v.classname ), "player" )); )
 		{
 			G_centerprint( te, "CEASE FIRE\n" );
-			te->tfstate = te->tfstate | TFSTATE_CANT_MOVE;
+			te->s.v.tfstate = te->s.v.tfstate | TFSTATE_CANT_MOVE;
 			TeamFortress_SetSpeed( te );
 		}
 		te = spawn(  );
@@ -139,7 +139,7 @@ void Admin_CeaseFire(  )
 		{
 
 			G_centerprint( te, "RESUME FIRE\n" );
-			te->tfstate = te->tfstate - ( te->tfstate & TFSTATE_CANT_MOVE );
+			te->s.v.tfstate = te->s.v.tfstate - ( te->s.v.tfstate & TFSTATE_CANT_MOVE );
 			TeamFortress_SetSpeed( te );
 		}
 	}

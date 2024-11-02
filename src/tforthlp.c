@@ -35,7 +35,7 @@ void TeamFortress_MOTD(  )
     if ( self->motd == 21 )
     {
         if ( !0 )
-            self->tfstate |= TFSTATE_ZOOMOFF;
+            self->s.v.tfstate |= TFSTATE_ZOOMOFF;
 
         if ( teamplay && !self->team_no )
         {

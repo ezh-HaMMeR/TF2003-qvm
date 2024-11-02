@@ -104,11 +104,11 @@ void player_touch(  )
 			te = NULL;
 		}
 	}
-	if ( ( self->tfstate & TFSTATE_INFECTED ) && tf_data.cb_prematch_time < g_globalvars.time )
+	if ( ( self->s.v.tfstate & TFSTATE_INFECTED ) && tf_data.cb_prematch_time < g_globalvars.time )
 	{
 		if ( streq( other->s.v.classname, "player" ) && other->playerclass )
 		{
-			if ( !( other->tfstate & TFSTATE_INFECTED ) )
+			if ( !( other->s.v.tfstate & TFSTATE_INFECTED ) )
 			{
 				if ( other->playerclass != PC_MEDIC )
 				{
@@ -142,7 +142,7 @@ void player_touch(  )
 						Bio->s.v.owner = EDICT_TO_PROG( other );
 						Bio->s.v.classname = "timer";
 						Bio->s.v.enemy = te->s.v.enemy;
-						other->tfstate = other->tfstate | TFSTATE_INFECTED;
+						other->s.v.tfstate = other->s.v.tfstate | TFSTATE_INFECTED;
 						other->infection_team_no = self->infection_team_no;
 						G_sprint( other, 1, "You have been infected by %s!\n", self->s.v.netname );
 						G_sprint( self, 1, "You have infected %s!\n", other->s.v.netname );
@@ -428,7 +428,7 @@ void player_assaultcannonup1(  )
 
 	if ( !self->s.v.button0 || self->s.v.ammo_shells <= self->assault_min_shells || intermission_running )
 	{
-		self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_AIMING );
+		self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_AIMING );
 		TeamFortress_SetSpeed( self );
 		self->count = 1;
 		self->heat = 0;
@@ -463,7 +463,7 @@ void player_assaultcannonup2(  )
 
 	if ( !self->s.v.button0 || self->s.v.ammo_shells <= self->assault_min_shells || intermission_running )
 	{
-		self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_AIMING );
+		self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_AIMING );
 		TeamFortress_SetSpeed( self );
 		self->count = 1;
 		self->heat = 0;
@@ -546,7 +546,7 @@ static void player_assaultcannon( gedict_t* self,  int frame )
 #ifndef  NEWHWGUY
 		stuffcmd( self, "v_idlescale 0\n" );
 #endif
-		self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_AIMING );
+		self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_AIMING );
 		TeamFortress_SetSpeed( self );
 		self->s.v.weaponframe = 0;
 		self->count = 1;
@@ -586,7 +586,7 @@ void player_assaultcannondown1(  )
 	{
 		self->heat = 0;
 		self->fire_held_down = 0;
-		self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_AIMING );
+		self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_AIMING );
 		TeamFortress_SetSpeed( self );
 		if ( self->s.v.ammo_shells <= self->assault_min_shells || self->s.v.ammo_cells < 4 )
 		{
@@ -1072,7 +1072,7 @@ void PlayerDie(  )
 	self->super_damage_finished = 0;
 	self->radsuit_finished = 0;
 	self->s.v.modelindex = modelindex_player;
-	if ( ( self->tfstate & TFSTATE_INFECTED ) && self == PROG_TO_EDICT( self->s.v.enemy ) )
+	if ( ( self->s.v.tfstate & TFSTATE_INFECTED ) && self == PROG_TO_EDICT( self->s.v.enemy ) )
 	{
 		te = trap_find( world, FOFS( s.v.classname ), "timer" );
 		while ( te )

@@ -24,7 +24,7 @@
 
 void ReloadWeapons(  )
 {
-	if ( ( self->tfstate & TFSTATE_GRENPRIMED ) || ( self->tfstate & TFSTATE_GRENTHROWING ) )
+	if ( ( self->s.v.tfstate & TFSTATE_GRENPRIMED ) || ( self->s.v.tfstate & TFSTATE_GRENTHROWING ) )
 		return;
 
 	if ( ( self->weapons_carried & WEAP_ROCKET_LAUNCHER ) && self->reload_rocket_launcher != 0 )

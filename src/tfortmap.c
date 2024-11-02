@@ -536,7 +536,7 @@ int IsAffectedBy( gedict_t * Goal, gedict_t * Player, gedict_t * AP )
 void boundPlayerPrimedGrenades( gedict_t *Player, int no_grenades_1, int no_grenades_2)
 {
     gedict_t *te;
-    if ( Player->tfstate & TFSTATE_GRENPRIMED )
+    if ( Player->s.v.tfstate & TFSTATE_GRENPRIMED )
     {
         for( te = world; ( te = trap_find( te, FOFS( s.v.classname ), "primer" )); )
         {
@@ -544,7 +544,7 @@ void boundPlayerPrimedGrenades( gedict_t *Player, int no_grenades_1, int no_gren
             {
                 if (( te->s.v.impulse == 151 && no_grenades_2 < 0 ) || ( te->s.v.impulse == 150 && no_grenades_1 < 0 ) )
                 {
-                    Player->tfstate -= ( Player->tfstate & ( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING) );
+                    Player->s.v.tfstate -= ( Player->s.v.tfstate & ( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING) );
                     dremove( te );
                 } 
                 break;
@@ -619,7 +619,7 @@ void Apply_Results( gedict_t * Goal, gedict_t * Player, gedict_t * AP, float add
 				Player->invincible_finished = g_globalvars.time + Goal->invincible_finished;
 				if ( streq( Goal->s.v.classname, "item_tfgoal" ) )
 				{
-					Player->tfstate = Player->tfstate | TFSTATE_INVINCIBLE;
+					Player->s.v.tfstate = Player->s.v.tfstate | TFSTATE_INVINCIBLE;
 					Player->invincible_finished = g_globalvars.time + 666;
 				}
 			}
@@ -630,7 +630,7 @@ void Apply_Results( gedict_t * Goal, gedict_t * Player, gedict_t * AP, float add
 				Player->invisible_finished = g_globalvars.time + Goal->invisible_finished;
 				if ( streq( Goal->s.v.classname, "item_tfgoal" ) )
 				{
-					Player->tfstate = Player->tfstate | TFSTATE_INVISIBLE;
+					Player->s.v.tfstate = Player->s.v.tfstate | TFSTATE_INVISIBLE;
 					Player->invisible_finished = g_globalvars.time + 666;
 				}
 			}
@@ -641,7 +641,7 @@ void Apply_Results( gedict_t * Goal, gedict_t * Player, gedict_t * AP, float add
 				Player->super_damage_finished = g_globalvars.time + Goal->super_damage_finished;
 				if ( streq( Goal->s.v.classname, "item_tfgoal" ) )
 				{
-					Player->tfstate = Player->tfstate | TFSTATE_QUAD;
+					Player->s.v.tfstate = Player->s.v.tfstate | TFSTATE_QUAD;
 					Player->super_damage_finished = g_globalvars.time + 666;
 				}
 			}
@@ -652,7 +652,7 @@ void Apply_Results( gedict_t * Goal, gedict_t * Player, gedict_t * AP, float add
 				Player->radsuit_finished = g_globalvars.time + Goal->radsuit_finished;
 				if ( streq( Goal->s.v.classname, "item_tfgoal" ) )
 				{
-					Player->tfstate = Player->tfstate | TFSTATE_RADSUIT;
+					Player->s.v.tfstate = Player->s.v.tfstate | TFSTATE_RADSUIT;
 					Player->radsuit_finished = g_globalvars.time + 666;
 				}
 			}
@@ -816,28 +816,28 @@ void RemoveResults( gedict_t * Goal, gedict_t * Player )
 	}
 	if ( !tfset(disable_powerups) && Goal->invincible_finished > 0 && !puinvin )
 	{
-		Player->tfstate = Player->tfstate - ( Player->tfstate & TFSTATE_INVINCIBLE );
+		Player->s.v.tfstate = Player->s.v.tfstate - ( Player->s.v.tfstate & TFSTATE_INVINCIBLE );
 		Player->s.v.items = ( int ) Player->s.v.items | IT_INVULNERABILITY;
 		Player->invincible_time = 1;
 		Player->invincible_finished = g_globalvars.time + Goal->invincible_finished;
 	}
 	if ( !tfset(disable_powerups) && Goal->invisible_finished > 0 && !puinvis )
 	{
-		Player->tfstate = Player->tfstate - ( Player->tfstate & TFSTATE_INVISIBLE );
+		Player->s.v.tfstate = Player->s.v.tfstate - ( Player->s.v.tfstate & TFSTATE_INVISIBLE );
 		Player->s.v.items = ( int ) Player->s.v.items | IT_INVISIBILITY;
 		Player->invisible_time = 1;
 		Player->invisible_finished = g_globalvars.time + Goal->invisible_finished;
 	}
 	if ( !tfset(disable_powerups) && Goal->super_damage_finished > 0 && !puquad )
 	{
-		Player->tfstate = Player->tfstate - ( Player->tfstate & TFSTATE_QUAD );
+		Player->s.v.tfstate = Player->s.v.tfstate - ( Player->s.v.tfstate & TFSTATE_QUAD );
 		Player->s.v.items = ( int ) Player->s.v.items | IT_QUAD;
 		Player->super_time = 1;
 		Player->super_damage_finished = g_globalvars.time + Goal->super_damage_finished;
 	}
 	if ( !tfset(disable_powerups) && Goal->radsuit_finished > 0 && !purad )
 	{
-		Player->tfstate = Player->tfstate - ( Player->tfstate & TFSTATE_RADSUIT );
+		Player->s.v.tfstate = Player->s.v.tfstate - ( Player->s.v.tfstate & TFSTATE_RADSUIT );
 		Player->s.v.items = ( int ) Player->s.v.items | IT_SUIT;
 		Player->rad_time = 1;
 		Player->radsuit_finished = g_globalvars.time + Goal->radsuit_finished;

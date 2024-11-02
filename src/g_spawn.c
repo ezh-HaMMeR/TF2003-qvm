@@ -195,7 +195,7 @@ static const field_t         fields[] = {
         {"is_feigning",			FOFS( is_feigning ),			F_INT},
         {"is_unabletospy",		FOFS( is_unabletospy ),			F_INT},
         {"has_disconnected",		FOFS( has_disconnected ),		F_INT},
-        {"tfstate",			FOFS( tfstate ),			F_INT},
+        {"s.v.tfstate",			FOFS( s.v.tfstate ),			F_INT},
         {"maxammo_shells",		FOFS( maxammo_shells ),			F_INT},
         {"maxammo_nails",		FOFS( maxammo_nails ),			F_INT},
         {"maxammo_cells",		FOFS( maxammo_cells ),			F_INT},

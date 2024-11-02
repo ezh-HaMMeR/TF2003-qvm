@@ -260,14 +260,14 @@ void TG_Eff_Remove(gedict_t *pl) {
     dremove(te);
     break;
   }
-  if (pl->tfstate & TFSTATE_HALLUCINATING) {
+  if (pl->s.v.tfstate & TFSTATE_HALLUCINATING) {
     for (te = world; (te = trap_find(te, FOFS(s.v.classname), "timer"));) {
       if (te->s.v.owner != EDICT_TO_PROG(pl))
         continue;
       if (te->s.v.think != (func_t)HallucinationTimer)
         continue;
 
-      pl->tfstate -= (pl->tfstate & TFSTATE_HALLUCINATING);
+      pl->s.v.tfstate -= (pl->s.v.tfstate & TFSTATE_HALLUCINATING);
 
       ResetGasSkins(pl);
 
@@ -279,14 +279,14 @@ void TG_Eff_Remove(gedict_t *pl) {
     if (!te)
       G_conprintf("Warning: Error in Hallucination Timer logic.\n");
   }
-  if (pl->tfstate & TFSTATE_TRANQUILISED) {
+  if (pl->s.v.tfstate & TFSTATE_TRANQUILISED) {
     for (te = world; (te = trap_find(te, FOFS(s.v.classname), "timer"));) {
       if (te->s.v.owner != EDICT_TO_PROG(pl))
         continue;
       if (te->s.v.think != (func_t)TranquiliserTimer)
         continue;
 
-      pl->tfstate -= (pl->tfstate & TFSTATE_TRANQUILISED);
+      pl->s.v.tfstate -= (pl->s.v.tfstate & TFSTATE_TRANQUILISED);
       TeamFortress_SetSpeed(pl);
       dremove(te);
       break;
@@ -311,9 +311,9 @@ void TG_Eff_Remove(gedict_t *pl) {
       pl->FlashTime = 0;
     }
   }
-  if (pl->tfstate & TFSTATE_INFECTED) {
+  if (pl->s.v.tfstate & TFSTATE_INFECTED) {
     healam = Q_rint(pl->s.v.health / 2);
-    pl->tfstate -= (pl->tfstate & TFSTATE_INFECTED);
+    pl->s.v.tfstate -= (pl->s.v.tfstate & TFSTATE_INFECTED);
     tf_data.deathmsg = DMSG_MEDIKIT;
     T_Damage(pl, self, self, healam);
     return;

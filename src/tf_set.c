@@ -558,7 +558,7 @@ void   TF_FinalizeSettings( )
                while ( te )
                {
                CenterPrint( te, "CEASE FIRE\n" );
-               te->tfstate = te->tfstate | TFSTATE_CANT_MOVE;
+               te->s.v.tfstate = te->s.v.tfstate | TFSTATE_CANT_MOVE;
                TeamFortress_SetSpeed( te );
                te = trap_find( te, FOFS( s.v.classname ), "player" );
                }*/

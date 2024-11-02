@@ -236,7 +236,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 	float   rt;
 	gedict_t *tWeapon;
 
-	if ( self->tfstate & TFSTATE_RELOADING )
+	if ( self->s.v.tfstate & TFSTATE_RELOADING )
 		return;
 	if ( self->current_weapon == WEAP_SHOTGUN )
 	{
@@ -264,7 +264,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 			if ( self->s.v.ammo_shells < 8 )
 				self->reload_shotgun = 8 - self->s.v.ammo_shells;
 			G_sprint( self, 2, "reloading...\n" );
-			self->tfstate = self->tfstate | TFSTATE_RELOADING;
+			self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
 			tWeapon = spawn(  );
 			tWeapon->s.v.owner = EDICT_TO_PROG(self);
 			tWeapon->s.v.classname = "timer";
@@ -301,7 +301,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 			if ( self->s.v.ammo_shells < 16 )
 				self->reload_super_shotgun = 16 - self->s.v.ammo_shells;
 			G_sprint( self, 2, "reloading...\n" );
-			self->tfstate = self->tfstate | TFSTATE_RELOADING;
+			self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
 			tWeapon = spawn(  );
 			tWeapon->s.v.owner = EDICT_TO_PROG(self);
 			tWeapon->s.v.classname = "timer";
@@ -338,7 +338,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 			if ( self->s.v.ammo_rockets < 6 )
 				self->reload_grenade_launcher = 6 - self->s.v.ammo_rockets;
 			G_sprint( self, 2, "reloading...\n" );
-			self->tfstate = self->tfstate | TFSTATE_RELOADING;
+			self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
 			tWeapon = spawn(  );
 			tWeapon->s.v.owner = EDICT_TO_PROG(self);
 			tWeapon->s.v.classname = "timer";
@@ -375,7 +375,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 			if ( self->s.v.ammo_rockets < 4 )
 				self->reload_rocket_launcher = 4 - self->s.v.ammo_rockets;
 			G_sprint( self, 2, "reloading...\n" );
-			self->tfstate = self->tfstate | TFSTATE_RELOADING;
+			self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
 			tWeapon = spawn(  );
 			tWeapon->s.v.owner = EDICT_TO_PROG(self);
 			tWeapon->s.v.classname = "timer";
@@ -512,7 +512,7 @@ void TeamFortress_ID(  )
 	if ( tfset(new_flash) && ( self->FlashTime >= ( 24 - NEW_FLASH_START_TIME ) ) )
 		return;
 
-	if((self->tfstate & TFSTATE_HALLUCINATING) && (tfset_new_gas & GAS_MASK_DISABLE_ID) )
+	if((self->s.v.tfstate & TFSTATE_HALLUCINATING) && (tfset_new_gas & GAS_MASK_DISABLE_ID) )
 		return;
 
 	if( self->current_menu > MENU_DEFAULT)

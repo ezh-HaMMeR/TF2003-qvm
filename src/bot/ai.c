@@ -29,7 +29,7 @@ qboolean ThrowGrenade(  )
 	gedict_t *eTemp;
 	gedict_t *eGren;
 
-	if ( !( self->tfstate & TFSTATE_GRENPRIMED ) )
+	if ( !( self->s.v.tfstate & TFSTATE_GRENPRIMED ) )
 	{
 		return false;
 	}

@@ -849,7 +849,7 @@ void TeamFortress_SpyFeignDeath( int issilent )
         self->current_weapon = self->s.v.weapon;
         self->s.v.currentclip = GetClipSize(self);
         W_SetCurrentAmmo(  );
-        self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_CANT_MOVE );
+        self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_CANT_MOVE );
         TeamFortress_SetSpeed( self );
         SpyUpFrames();
         return;
@@ -880,7 +880,7 @@ void TeamFortress_SpyFeignDeath( int issilent )
                 return;
             }
         }
-        self->tfstate = self->tfstate | TFSTATE_CANT_MOVE;
+        self->s.v.tfstate = self->s.v.tfstate | TFSTATE_CANT_MOVE;
         TeamFortress_SetSpeed( self );
         self->is_feigning = 1;
         Attack_Finished( 0.8 );
@@ -1193,7 +1193,7 @@ void GasGrenadeMakeGas(  )
         {
             tf_data.deathmsg = DMSG_GREN_GAS;
             TF_T_Damage( te, world, PROG_TO_EDICT( self->s.v.owner ), 10, TF_TD_IGNOREARMOUR | TF_TD_NOTTEAM, 0 );
-            if ( te->tfstate & TFSTATE_HALLUCINATING )
+            if ( te->s.v.tfstate & TFSTATE_HALLUCINATING )
             {
                 for ( timer = world; (timer = trap_find( timer, FOFS( s.v.classname ), "timer" )); )
                 {
@@ -1229,7 +1229,7 @@ void GasGrenadeMakeGas(  )
                     G_sprint( te, 2, "Far out man!\n" );
                 } else
                     G_sprint( te, 2, "Run for cover! They're everywhere!\n" );
-                te->tfstate = te->tfstate | TFSTATE_HALLUCINATING;
+                te->s.v.tfstate = te->s.v.tfstate | TFSTATE_HALLUCINATING;
                 timer = spawn(  );
                 if( !(tfset_new_gas & GAS_MASK_NEWGREN_TIMES))
                     timer->s.v.nextthink = g_globalvars.time + 0.5;
@@ -1383,14 +1383,14 @@ void HallucinationTimer(  )
     if ( owner->playerclass == PC_MEDIC )
         self->s.v.health = self->s.v.health - 2.5;
     if ( self->s.v.health <= 0 || owner->s.v.deadflag || owner->has_disconnected == 1 )
-        owner->tfstate = owner->tfstate - ( owner->tfstate & TFSTATE_HALLUCINATING );
+        owner->s.v.tfstate = owner->s.v.tfstate - ( owner->s.v.tfstate & TFSTATE_HALLUCINATING );
     if ( owner->s.v.deadflag || owner->has_disconnected == 1 )
     {
         ResetGasSkins( owner );
         dremove( self );
         return;
     }
-    if ( !( owner->tfstate & TFSTATE_HALLUCINATING ) )
+    if ( !( owner->s.v.tfstate & TFSTATE_HALLUCINATING ) )
     {
         ResetGasSkins( owner );
 
@@ -1480,7 +1480,7 @@ void T_TranqDartTouch(  )
         if ( streq( other->s.v.classname, "player" ) &&
                 !( other->team_no == PROG_TO_EDICT( self->s.v.owner )->team_no && ( teamplay & ( TEAMPLAY_HALFARMOR_DIRECT | TEAMPLAY_NODIRECT ) ) ) )
         {
-            if ( other->tfstate & TFSTATE_TRANQUILISED )
+            if ( other->s.v.tfstate & TFSTATE_TRANQUILISED )
             {
 
                 for ( timer = world; (timer = trap_find( timer, FOFS( s.v.classname ), "timer" )); )
@@ -1496,7 +1496,7 @@ void T_TranqDartTouch(  )
             } else
             {
                 G_sprint( other, 2, "You feel tired...\n" );
-                other->tfstate = other->tfstate | TFSTATE_TRANQUILISED;
+                other->s.v.tfstate = other->s.v.tfstate | TFSTATE_TRANQUILISED;
                 timer = spawn(  );
                 timer->s.v.nextthink = g_globalvars.time + TRANQ_TIME;
                 timer->s.v.think = ( func_t ) TranquiliserTimer;
@@ -1533,7 +1533,7 @@ void TranquiliserTimer(  )
 {
     gedict_t *owner = PROG_TO_EDICT( self->s.v.owner );
 
-    owner->tfstate -= owner->tfstate & TFSTATE_TRANQUILISED;
+    owner->s.v.tfstate -= owner->s.v.tfstate & TFSTATE_TRANQUILISED;
     TeamFortress_SetSpeed( owner );
     G_sprint( owner, 2, "You feel more alert now\n" );
     dremove( self );

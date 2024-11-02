@@ -30,7 +30,7 @@ void TeamFortress_SniperWeapon(  )
 {
 
 	self->s.v.impulse = 0;
-	if ( self->tfstate & TFSTATE_RELOADING )
+	if ( self->s.v.tfstate & TFSTATE_RELOADING )
 		return;
 	if ( !( ( self->weapons_carried & WEAP_SNIPER_RIFLE ) && ( self->weapons_carried & WEAP_AUTO_RIFLE ) ) )
 		return;
@@ -52,7 +52,7 @@ void TeamFortress_SniperWeapon(  )
 void TF_zoom( int zoom_level )
 {
 
-	if ( self->tfstate & TFSTATE_ZOOMOFF )
+	if ( self->s.v.tfstate & TFSTATE_ZOOMOFF )
 		return;
 	stuffcmd( self, "fov %d\n", zoom_level );
 }
@@ -64,9 +64,9 @@ void SniperSight_Update(  )
 	vec3_t  org, end;
 	gedict_t *owner = PROG_TO_EDICT( self->s.v.owner );
 
-	if ( !( owner->tfstate & TFSTATE_AIMING ) || owner->current_weapon != WEAP_SNIPER_RIFLE )
+	if ( !( owner->s.v.tfstate & TFSTATE_AIMING ) || owner->current_weapon != WEAP_SNIPER_RIFLE )
 	{
-		owner->tfstate -= ( owner->tfstate & TFSTATE_AIMING );
+		owner->s.v.tfstate -= ( owner->s.v.tfstate & TFSTATE_AIMING );
 		TeamFortress_SetSpeed( owner );
 		owner->heat = 0;
 		dremove( self );
@@ -98,7 +98,7 @@ void SniperSight_Create(  )
 
 	if ( self->has_disconnected == 1 )
 		return;
-	self->tfstate |= TFSTATE_AIMING;
+	self->s.v.tfstate |= TFSTATE_AIMING;
 	sight = spawn(  );
 	sight->s.v.owner = EDICT_TO_PROG( self );
 	sight->s.v.movetype = MOVETYPE_NOCLIP;
@@ -113,13 +113,13 @@ void SniperSight_Create(  )
 // this toggles the snipers autozoom on/off
 void TeamFortress_AutoZoomToggle(  )
 {
-	if ( self->tfstate & TFSTATE_ZOOMOFF )
+	if ( self->s.v.tfstate & TFSTATE_ZOOMOFF )
 	{
-		self->tfstate = self->tfstate - TFSTATE_ZOOMOFF;
+		self->s.v.tfstate = self->s.v.tfstate - TFSTATE_ZOOMOFF;
 		G_sprint( self, 2, "autozoom ON\n" );
 	} else
 	{
-		self->tfstate = self->tfstate | TFSTATE_ZOOMOFF;
+		self->s.v.tfstate = self->s.v.tfstate | TFSTATE_ZOOMOFF;
 		G_sprint( self, 2, "autozoom OFF\n" );
 	}
 }

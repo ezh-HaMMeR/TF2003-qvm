@@ -465,6 +465,7 @@ void Sentry_Die(  )
     } else
     {
         self->real_owner->has_sentry -= 1;
+        self->real_owner->sentry = NULL;
 #ifdef HAS_SENTRY_CHECK
         if(!tfset(tg_enabled) && self->real_owner->has_sentry)
         {
@@ -954,6 +955,7 @@ void Eng_StaticSG_Activate(  )
                 G_bprint( 2, "ERROR: Sentry gun felt off the level\n" );
                 failed = 1;
                 ent->real_owner->has_sentry = ent->real_owner->has_sentry - 1;
+                ent->real_owner->sentry = NULL;
                 dremove( ent->trigger_field );
                 dremove( ent );
             }

@@ -163,6 +163,10 @@ typedef struct
 	int tpgren1;
 	int tpgren2;
 	int currentclip;
+	int tfstate;
+	int sentry;
+	int dispenser;
+	int dispenser_add;
 } entvars_t;
 
 #define PROGHEADER_CRC 54730

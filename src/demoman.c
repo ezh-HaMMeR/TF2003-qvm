@@ -263,7 +263,7 @@ void TeamFortress_SetDetpack( float timer )
 	}
 	self->is_detpacking = 1;
 	self->ammo_detpack = self->ammo_detpack - 1;
-	self->tfstate = self->tfstate | TFSTATE_CANT_MOVE;
+	self->s.v.tfstate = self->s.v.tfstate | TFSTATE_CANT_MOVE;
 	// Save the current weapon and remove it
 	self->s.v.weapon = self->current_weapon;
 	self->current_weapon = 0;
@@ -303,7 +303,7 @@ void TeamFortress_DetpackStop(  )
 	G_sprint( self, 2, "Detpack retrieved.\n" );
 	self->ammo_detpack = self->ammo_detpack + 1;
 	dremove( detpack_timer );
-	self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_CANT_MOVE );
+	self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_CANT_MOVE );
 	self->is_detpacking = 0;
 	self->current_weapon = self->s.v.weapon;
 	self->s.v.currentclip = GetClipSize(self);
@@ -321,7 +321,7 @@ void TeamFortress_DetpackSet(  )
 
 	owner = PROG_TO_EDICT( self->s.v.owner );
 	self->is_detpacking = 0;
-	owner->tfstate = owner->tfstate - ( owner->tfstate & TFSTATE_CANT_MOVE );
+	owner->s.v.tfstate = owner->s.v.tfstate - ( owner->s.v.tfstate & TFSTATE_CANT_MOVE );
 	TeamFortress_SetSpeed( owner );
 	sound( owner, 2, "doors/medtry.wav", 1, 1 );
 	oldself = self;
@@ -497,7 +497,7 @@ void TeamFortress_DetpackTouch(  )
 	traceline( PASSVEC3( source ), PASSVEC3( dest ), 0, other );
 	if ( g_globalvars.trace_fraction == 1 || g_globalvars.trace_ent != EDICT_TO_PROG( self ) )
 		return;
-	other->tfstate = other->tfstate | TFSTATE_CANT_MOVE;
+	other->s.v.tfstate = other->s.v.tfstate | TFSTATE_CANT_MOVE;
 	G_sprint( other, 2, "Disarming detpack...\n" );
 	TeamFortress_SetSpeed( other );
 	
@@ -534,7 +534,7 @@ void TeamFortress_DetpackDisarm(  )
 	{
 		G_bprint( 1, "%s's detpack was defused by %s\n", enemy->real_owner->s.v.netname, owner->s.v.netname );
 	}
-	owner->tfstate = owner->tfstate - ( owner->tfstate & TFSTATE_CANT_MOVE );
+	owner->s.v.tfstate = owner->s.v.tfstate - ( owner->s.v.tfstate & TFSTATE_CANT_MOVE );
 	TF_AddFrags( owner, 1 );
 	// Reset speeds of scout
 	TeamFortress_SetSpeed( owner );

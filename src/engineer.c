@@ -317,7 +317,7 @@ void TeamFortress_EngineerBuild(  )
         //	if ( self->is_building == 1 )
         //	{
         G_sprint( self, 2, "You stop building.\n" );
-        self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_CANT_MOVE );
+        self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_CANT_MOVE );
         TeamFortress_SetSpeed( self );
         // Remove the timer
         for ( te = world; (te = trap_find( te, FOFS( s.v.netname ), "build_timer" )); )
@@ -487,7 +487,7 @@ void TeamFortress_Build( int objtobuild )
         return;
     }
     self->is_building = 1;
-    self->tfstate = self->tfstate | TFSTATE_CANT_MOVE;
+    self->s.v.tfstate = self->s.v.tfstate | TFSTATE_CANT_MOVE;
     // Save the current weapon and remove it
     self->s.v.weapon = self->current_weapon;
     self->current_weapon = 0;
@@ -584,7 +584,7 @@ void TeamFortress_FinishedBuilding(  )
     oldself->s.v.owner = 0;
     oldself->real_owner = self;
     self->is_building = 0;
-    self->tfstate = self->tfstate - ( self->tfstate & TFSTATE_CANT_MOVE );
+    self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_CANT_MOVE );
     self->current_weapon = self->s.v.weapon;
     self->s.v.currentclip = GetClipSize(self);
     self->StatusRefreshTime = g_globalvars.time + 0.1;
@@ -640,6 +640,8 @@ void TeamFortress_FinishedBuilding(  )
         setsize( oldself, -8, -8, 0, 8, 8, 24 );
         oldself->s.v.origin[2] += 8;
         setorigin( oldself, PASSVEC3( oldself->s.v.origin ) );
+
+        self->dispenser = oldself;
 
     } else
     {
@@ -709,6 +711,8 @@ void TeamFortress_FinishedBuilding(  )
             newmis->s.v.ammo_shells = 25;
             newmis->maxammo_shells = 100;
             newmis->maxammo_rockets = 20;
+
+            self->sentry = newmis;
         }
     }
     W_SetCurrentAmmo(  );
@@ -771,6 +775,7 @@ void Dispenser_Die(  )
     G_sprint( self->real_owner, 2, "Your dispenser was destroyed.\n" );
 
     self->real_owner->has_dispenser -= 1;
+    self->real_owner->dispenser = NULL;
 
     self->s.v.think = ( func_t ) Dispenser_Explode;
     self->s.v.nextthink = g_globalvars.time + 0.1;
@@ -808,6 +813,7 @@ int Engineer_Dispenser_Dismantle( gedict_t* disp )
     }
     dremove( disp );
     disp->real_owner->has_dispenser -= 1;
+    disp->real_owner->dispenser = NULL;
     return 1;
 }
 //=========================================================================
@@ -956,6 +962,7 @@ int Engineer_SentryGun_Dismantle( gedict_t* gun )
     dremove( gun->trigger_field );
     dremove( gun );
     gun->real_owner->has_sentry -= 1;
+    gun->real_owner->sentry = NULL;
     return 1;
 }
 //=========================================================================
@@ -1212,4 +1219,31 @@ void Eng_SGReload(  )
     G_sprint( self, 2, "no sg to reload\n" );
 }
 
+void UpdateEngData(gedict_t* self) {
+    // SENTRY: UP:0 LVL:00 HEALTH:000000000 SHELLS:00000000 ROCKETS:000000 000000
+    // DISPEN: UP:0 HEALTH:0000000 SHELLS:000000000 NAILS:0000000000 00000
+    // DISPEN_ADD: ROCKETS:000000000 CELLS:000000000 ARMOR:000000000 00000
+    int sentry, dispenser, dispenser_add;
+    sentry = dispenser = dispenser_add = 0;
+    if (self->sentry != NULL) {
+        sentry |= 1 << 0;
+        sentry |= ((int)self->sentry->s.v.weapon & ((1u << 2) - 1)) << 1;
+        sentry |= ((int)self->sentry->s.v.health & ((1u << 9) - 1)) << 3;
+        sentry |= ((int)self->sentry->s.v.ammo_shells & ((1u << 8) - 1)) << 12;
+        sentry |= ((int)self->sentry->s.v.ammo_rockets & ((1u << 6) - 1)) << 20;
+    }
 
+    if (self->dispenser != NULL) {
+        dispenser |= 1 << 0;
+        dispenser |= ((int)self->dispenser->s.v.health & ((1u << 8) - 1)) << 1;
+        dispenser |= ((int)self->dispenser->s.v.ammo_shells & ((1u << 9) - 1)) << 9;
+        dispenser |= ((int)self->dispenser->s.v.ammo_nails & ((1u << 10) - 1)) << 18;
+        dispenser_add |= ((int)self->dispenser->s.v.ammo_rockets & ((1u << 9) - 1)) << 0;
+        dispenser_add |= ((int)self->dispenser->s.v.ammo_cells & ((1u << 9) - 1)) << 9;
+        dispenser_add |= ((int)self->dispenser->s.v.armorvalue & ((1u << 9) - 1)) << 18;
+    }
+
+    self->s.v.sentry = sentry;
+    self->s.v.dispenser = dispenser;
+    self->s.v.dispenser_add = dispenser_add;
+}

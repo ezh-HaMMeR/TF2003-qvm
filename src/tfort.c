@@ -419,7 +419,7 @@ void TeamFortress_ChangeClass(  )
 		}
 		self->nextpc = self->s.v.impulse - TF_CHANGEPC;
 		G_sprint( self, 2, "After dying, you will return as a " );
-		TeamFortress_PrintClassName( self, self->nextpc, self->tfstate & TFSTATE_RANDOMPC );
+		TeamFortress_PrintClassName( self, self->nextpc, self->s.v.tfstate & TFSTATE_RANDOMPC );
 		if ( self->s.v.deadflag )
 			self->immune_to_check = g_globalvars.time + 10;
 		return;
@@ -474,7 +474,7 @@ void TeamFortress_ChangeClass(  )
 	if ( self->playerclass == PC_RANDOM )
 	{
 		G_sprint( self, 2, "Random Playerclass.\n" );
-		self->tfstate |= TFSTATE_RANDOMPC;
+		self->s.v.tfstate |= TFSTATE_RANDOMPC;
 		self->playerclass = 1 + (int)( g_random(  ) * ( 10 - 1 ) );
 	}
 
@@ -485,7 +485,7 @@ void TeamFortress_ChangeClass(  )
 		if ( spot->team_no == self->team_no && spot != self )
 		{
 			G_sprint( spot, 2, "%s is playing as a ", self->s.v.netname );
-			TeamFortress_PrintClassName( spot, self->playerclass, self->tfstate & TFSTATE_RANDOMPC );
+			TeamFortress_PrintClassName( spot, self->playerclass, self->s.v.tfstate & TFSTATE_RANDOMPC );
 		}
 	}
 	TeamFortress_ExecClassScript( self );
@@ -957,7 +957,7 @@ void TeamFortress_PrimeGrenade(int useprimetothrow)
 
 	gedict_t *tGrenade;
 
-	if ( ( self->tfstate & TFSTATE_GRENPRIMED ) || ( self->tfstate & TFSTATE_GRENTHROWING ) ) {
+	if ( ( self->s.v.tfstate & TFSTATE_GRENPRIMED ) || ( self->s.v.tfstate & TFSTATE_GRENTHROWING ) ) {
 		if (useprimetothrow) {
 			TeamFortress_ThrowGrenade();
 		}
@@ -1013,7 +1013,7 @@ void TeamFortress_PrimeGrenade(int useprimetothrow)
 	if( gtype < 0 )
 		return;
 
-	self->tfstate |= TFSTATE_GRENPRIMED;
+	self->s.v.tfstate |= TFSTATE_GRENPRIMED;
 	tGrenade = spawn(  );
 	tGrenade->s.v.owner = EDICT_TO_PROG( self );
 	tGrenade->s.v.weapon = gtype;
@@ -1181,7 +1181,7 @@ void TeamFortress_GrenadePrimed(  )
 	gedict_t *user;
 
 	user = PROG_TO_EDICT( self->s.v.owner );
-	if ( !( user->tfstate & TFSTATE_GRENTHROWING ) && !user->s.v.deadflag )
+	if ( !( user->s.v.tfstate & TFSTATE_GRENTHROWING ) && !user->s.v.deadflag )
 	{
 		self->s.v.nextthink = g_globalvars.time + 0.1;
 		if ( !self->s.v.think )
@@ -1190,10 +1190,10 @@ void TeamFortress_GrenadePrimed(  )
 			TeamFortress_ExplodePerson(  );
 		return;
 	}
-	if ( !( user->tfstate & TFSTATE_GRENPRIMED ) )
+	if ( !( user->s.v.tfstate & TFSTATE_GRENPRIMED ) )
 		G_conprintf( "GrenadePrimed logic error\n" );
-	user->tfstate -= ( user->tfstate & TFSTATE_GRENPRIMED );
-	user->tfstate -= ( user->tfstate & TFSTATE_GRENTHROWING );
+	user->s.v.tfstate -= ( user->s.v.tfstate & TFSTATE_GRENPRIMED );
+	user->s.v.tfstate -= ( user->s.v.tfstate & TFSTATE_GRENTHROWING );
 	sound( user, 1, "weapons/grenade.wav", 1, 1 );
 // sound (user, 1, "weapons/ax1.wav", 1, 1);
 	KickPlayer( -1, user );
@@ -1235,9 +1235,9 @@ void TeamFortress_ThrowGrenade(  )
 {
 	gedict_t *oldself;
 
-	if ( !( self->tfstate & TFSTATE_GRENPRIMED ) )
+	if ( !( self->s.v.tfstate & TFSTATE_GRENPRIMED ) )
 		return;
-	self->tfstate |= TFSTATE_GRENTHROWING;
+	self->s.v.tfstate |= TFSTATE_GRENTHROWING;
 	
 	if (self->primed_grenade != world && self->primed_grenade->respawn_time <= g_globalvars.time) {
 		oldself = self;
@@ -1277,7 +1277,7 @@ void TeamFortress_SetSpeed( gedict_t * p )
 	int     pc;
 
 	stuffcmd( p, "cl_movespeedkey 1\n" );
-	if ( p->tfstate & TFSTATE_CANT_MOVE )
+	if ( p->s.v.tfstate & TFSTATE_CANT_MOVE )
 	{
 		SetVector( p->s.v.velocity, 0, 0, 0 );
 		stuffcmd( p, "cl_backspeed 0\n" );
@@ -1312,7 +1312,7 @@ void TeamFortress_SetSpeed( gedict_t * p )
 			}
 		}
 	}
-	if ( p->tfstate & TFSTATE_TRANQUILISED )
+	if ( p->s.v.tfstate & TFSTATE_TRANQUILISED )
 	{
 		p->maxfbspeed /= 2;
 		p->maxstrafespeed /= 2;
@@ -1324,7 +1324,7 @@ void TeamFortress_SetSpeed( gedict_t * p )
 		p->maxfbspeed *= ( 10 - (float)p->leg_damage ) / 10;
 		p->maxstrafespeed *= ( 10 - (float)p->leg_damage ) / 10;
 	}
-	if ( p->tfstate & TFSTATE_AIMING )
+	if ( p->s.v.tfstate & TFSTATE_AIMING )
 	{
 		if ( p->maxfbspeed > 80 )
 			p->maxfbspeed = 80;
@@ -1479,7 +1479,7 @@ void TeamFortress_SetEquipment(  )
 	self->weaponmode = 0;
 	self->respawn_time = 0;
 	self->heat = 0;
-	self->tfstate -= self->tfstate & TFSTATE_RELOADING;
+	self->s.v.tfstate -= self->s.v.tfstate & TFSTATE_RELOADING;
 	if ( !self->team_no )
 		self->lives = -1;
 	self->s.v.items = ( int ) self->s.v.items | kept_items;
@@ -1583,7 +1583,7 @@ void TeamFortress_SetEquipment(  )
 		self->mdl = "";
 		self->s.v.modelindex = 0;
 		self->s.v.weaponmodel = "";
-		self->tfstate = self->tfstate | TFSTATE_RELOADING;	//?????
+		self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;	//?????
 		setmodel( self, "" );
 	}
 
@@ -1689,17 +1689,17 @@ void TeamFortress_RemoveTimers(  )
 	self->is_undercover = 0;
 	self->is_building = 0;
 	self->building = world;
-	if ( self->tfstate & TFSTATE_AIMING )
+	if ( self->s.v.tfstate & TFSTATE_AIMING )
 	{
-		self->tfstate -= TFSTATE_AIMING;
+		self->s.v.tfstate -= TFSTATE_AIMING;
 		TeamFortress_SetSpeed( self );
 		self->heat = 0;
 	}
-	if ( self->tfstate & TFSTATE_INFECTED )
-		self->tfstate -= TFSTATE_INFECTED;
+	if ( self->s.v.tfstate & TFSTATE_INFECTED )
+		self->s.v.tfstate -= TFSTATE_INFECTED;
 
-	if ( self->tfstate & TFSTATE_HALLUCINATING )
-		self->tfstate -= TFSTATE_HALLUCINATING;
+	if ( self->s.v.tfstate & TFSTATE_HALLUCINATING )
+		self->s.v.tfstate -= TFSTATE_HALLUCINATING;
 
 	ResetGasSkins(self);
 
@@ -1779,7 +1779,7 @@ void TeamFortress_SetupRespawn( int Suicided )
 			{
 				G_sprint( self, 2, "NO lives left, returning to Observer mode.\n" );
 				self->playerclass = 0;
-				self->tfstate -= ( self->tfstate & TFSTATE_RANDOMPC );
+				self->s.v.tfstate -= ( self->s.v.tfstate & TFSTATE_RANDOMPC );
 				self->s.v.movetype = MOVETYPE_NOCLIP;
 				self->s.v.solid = SOLID_NOT;
 				self->s.v.model = "";
@@ -2000,7 +2000,7 @@ void TeamFortress_AmmoboxTouch(  )
 
 	if ( g_globalvars.other == self->s.v.enemy && g_globalvars.time < self->s.v.health + 2 )
 		return;
-	if ( ( other->tfstate & TFSTATE_CANT_MOVE ) || ( other->tfstate & TFSTATE_AIMING ) )
+	if ( ( other->s.v.tfstate & TFSTATE_CANT_MOVE ) || ( other->s.v.tfstate & TFSTATE_AIMING ) )
 		return;
 	if ( strneq( other->s.v.classname, "player" ) )
 		return;
@@ -2155,7 +2155,7 @@ void decrement_team_ammoboxes( int tno )
 void TeamFortress_AssaultWeapon(  )
 {
 	self->s.v.impulse = 0;
-	if ( self->tfstate & TFSTATE_RELOADING )
+	if ( self->s.v.tfstate & TFSTATE_RELOADING )
 		return;
 	if ( !( self->weapons_carried & WEAP_ASSAULT_CANNON ) )
 		return;
@@ -2198,7 +2198,7 @@ void TeamFortress_ExplodePerson(  )
 	gedict_t *te;
 	gedict_t *owner = PROG_TO_EDICT( self->s.v.owner );
 
-	owner->tfstate = owner->tfstate - ( ( int ) owner->tfstate & TFSTATE_GRENPRIMED );
+	owner->s.v.tfstate = owner->s.v.tfstate - ( ( int ) owner->s.v.tfstate & TFSTATE_GRENPRIMED );
 	KickPlayer( -2, owner );
 
 	newmis = spawnGrenade( owner, self->s.v.weapon, false );
@@ -2302,19 +2302,19 @@ void BioInfection_Decay(  )
 
 	if ( ( teamplay & TEAMPLAY_NOEXPLOSIVE ) && owner->team_no == enemy->team_no && owner->team_no )
 	{
-		owner->tfstate = ( int ) owner->tfstate - ( ( int ) owner->tfstate & TFSTATE_INFECTED );
+		owner->s.v.tfstate = ( int ) owner->s.v.tfstate - ( ( int ) owner->s.v.tfstate & TFSTATE_INFECTED );
 		dremove( self );
 		return;
 	} else
 	{
 		if ( self->invincible_finished > g_globalvars.time )
 		{
-			owner->tfstate = ( int ) owner->tfstate - ( ( int ) owner->tfstate & TFSTATE_INFECTED );
+			owner->s.v.tfstate = ( int ) owner->s.v.tfstate - ( ( int ) owner->s.v.tfstate & TFSTATE_INFECTED );
 			dremove( self );
 			return;
 		}
 	}
-	if ( !( owner->tfstate & TFSTATE_INFECTED ) || owner->playerclass == PC_MEDIC )
+	if ( !( owner->s.v.tfstate & TFSTATE_INFECTED ) || owner->playerclass == PC_MEDIC )
 	{
 		dremove( self );
 		return;
@@ -2328,7 +2328,7 @@ void BioInfection_Decay(  )
 			continue;
 		if ( te->s.v.deadflag || !te->playerclass )
 			continue;
-		if ( te->tfstate & TFSTATE_INFECTED )
+		if ( te->s.v.tfstate & TFSTATE_INFECTED )
 			continue;
 		if ( te->playerclass == PC_MEDIC )
 			continue;
@@ -2340,7 +2340,7 @@ void BioInfection_Decay(  )
 		Bio->s.v.owner = EDICT_TO_PROG( te );
 		Bio->s.v.classname = "timer";
 		Bio->s.v.enemy = self->s.v.enemy;
-		te->tfstate |= TFSTATE_INFECTED;
+		te->s.v.tfstate |= TFSTATE_INFECTED;
 		te->infection_team_no = owner->infection_team_no;
 		G_sprint( te, 1, "You have been infected by %s!\n", owner->s.v.netname );
 		G_sprint( owner, 1, "You have infected %s!\n", te->s.v.netname );
@@ -2555,7 +2555,7 @@ void KickCheater( gedict_t * p )
 	p->s.v.touch = ( func_t ) SUB_Null;
 	p->s.v.health = 0;
 	p->s.v.solid = 0;
-	p->tfstate = p->tfstate | TFSTATE_CANT_MOVE;
+	p->s.v.tfstate = p->s.v.tfstate | TFSTATE_CANT_MOVE;
 	TeamFortress_SetSpeed( p );
 	TeamFortress_RemoveTimers(  );
 }

@@ -293,7 +293,7 @@ void health_touch(  )
 
 	if ( other->is_feigning )
 		return;
-	if ( ( other->tfstate & TFSTATE_CANT_MOVE ) || ( other->tfstate & TFSTATE_AIMING ) )
+	if ( ( other->s.v.tfstate & TFSTATE_CANT_MOVE ) || ( other->s.v.tfstate & TFSTATE_AIMING ) )
 		return;
 	if ( tf_data.cb_prematch_time > g_globalvars.time )
 		return;
@@ -301,7 +301,7 @@ void health_touch(  )
 	if ( self->healtype == 2 )	// Megahealth?  Ignore max_health...
 	{
 
-		if ( !( other->tfstate & TFSTATE_INFECTED ) )
+		if ( !( other->s.v.tfstate & TFSTATE_INFECTED ) )
 		{
 			if ( other->s.v.health >= 250 )
 				return;
@@ -341,10 +341,10 @@ void health_touch(  )
 			return;
 		}
 	}
-	if ( ( other->tfstate & TFSTATE_INFECTED ) && self->healamount > 80 )
+	if ( ( other->s.v.tfstate & TFSTATE_INFECTED ) && self->healamount > 80 )
 	{
 		G_sprint( other, 1, "You have been healed of your infection!" );
-		other->tfstate -= ( other->tfstate & TFSTATE_INFECTED );
+		other->s.v.tfstate -= ( other->s.v.tfstate & TFSTATE_INFECTED );
 	} else
 	{
 		G_sprint( other, PRINT_LOW, "You receive %.0f health\n", self->healamount );
@@ -420,7 +420,7 @@ void armor_touch(  )
 		return;
 	if ( other->is_feigning )
 		return;
-	if ( ( other->tfstate & TFSTATE_CANT_MOVE ) || ( other->tfstate & TFSTATE_AIMING ) )
+	if ( ( other->s.v.tfstate & TFSTATE_CANT_MOVE ) || ( other->s.v.tfstate & TFSTATE_AIMING ) )
 		return;
 	if ( tf_data.cb_prematch_time > g_globalvars.time )
 		return;
@@ -695,7 +695,7 @@ void weapon_touch(  )
 		return;
 	if ( other->is_feigning )
 		return;
-	if ( ( other->tfstate & TFSTATE_CANT_MOVE ) || ( other->tfstate & TFSTATE_AIMING ) )
+	if ( ( other->s.v.tfstate & TFSTATE_CANT_MOVE ) || ( other->s.v.tfstate & TFSTATE_AIMING ) )
 		return;
 	if ( tf_data.cb_prematch_time > g_globalvars.time )
 		return;
@@ -980,7 +980,7 @@ void ammo_touch(  )
 	if ( other->s.v.health <= 0 )
 		return;
 
-	if ( ( other->tfstate & TFSTATE_CANT_MOVE ) || ( other->tfstate & TFSTATE_AIMING ) )
+	if ( ( other->s.v.tfstate & TFSTATE_CANT_MOVE ) || ( other->s.v.tfstate & TFSTATE_AIMING ) )
 		return;
 	if ( tf_data.cb_prematch_time > g_globalvars.time )
 		return;
@@ -1267,7 +1267,7 @@ void key_touch(  )
 		return;
 	if ( other->is_feigning )
 		return;
-	if ( ( other->tfstate & TFSTATE_CANT_MOVE ) || ( other->tfstate & TFSTATE_AIMING ) )
+	if ( ( other->s.v.tfstate & TFSTATE_CANT_MOVE ) || ( other->s.v.tfstate & TFSTATE_AIMING ) )
 		return;
 	if ( tf_data.cb_prematch_time > g_globalvars.time )
 		return;
@@ -1390,7 +1390,7 @@ void sigil_touch(  )
 
 	if ( other->is_feigning )
 		return;
-	if ( ( other->tfstate & TFSTATE_CANT_MOVE ) || ( other->tfstate & TFSTATE_AIMING ) )
+	if ( ( other->s.v.tfstate & TFSTATE_CANT_MOVE ) || ( other->s.v.tfstate & TFSTATE_AIMING ) )
 		return;
 	if ( tf_data.cb_prematch_time > g_globalvars.time )
 		return;
@@ -1470,7 +1470,7 @@ void powerup_touch(  )
 		return;
 	if ( other->is_feigning )
 		return;
-	if ( ( other->tfstate & TFSTATE_CANT_MOVE ) || ( other->tfstate & TFSTATE_AIMING ) )
+	if ( ( other->s.v.tfstate & TFSTATE_CANT_MOVE ) || ( other->s.v.tfstate & TFSTATE_AIMING ) )
 		return;
 	if ( tf_data.cb_prematch_time > g_globalvars.time )
 		return;

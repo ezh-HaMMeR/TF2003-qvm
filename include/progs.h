@@ -151,7 +151,6 @@ typedef struct gedict_s {
 	int             is_unabletospy;
 	int             has_disconnected;
 	int 		can_give_goal;
-	int             tfstate;
 	struct gedict_s *linked_list, *observer_list;
 	struct gedict_s* primed_grenade;
 
@@ -173,6 +172,7 @@ typedef struct gedict_s {
 	int             team_no, lives, infection_team_no;
 	struct gedict_s *building, *real_owner,*oldenemy;
 
+	struct gedict_s *sentry, *dispenser;
 	float           building_wait, respawn_time, suicide_time;
 	int             has_dispenser;
 	int             has_sentry;

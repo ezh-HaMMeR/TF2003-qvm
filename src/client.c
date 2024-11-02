@@ -171,7 +171,7 @@ void DecodeLevelParms()
     self->s.v.armortype = g_globalvars.parm9 * 0.01;
 
     if ( g_globalvars.parm11 )
-        self->tfstate = g_globalvars.parm11;
+        self->s.v.tfstate = g_globalvars.parm11;
     if ( !self->playerclass )
         self->playerclass = g_globalvars.parm12;
     if (g_globalvars.parm13) 
@@ -541,7 +541,7 @@ void ClientKill()
     set_suicide_frame();
     self->s.v.modelindex = modelindex_player;
 
-    if ( self->tfstate & TFSTATE_INFECTED )
+    if ( self->s.v.tfstate & TFSTATE_INFECTED )
     {
         te = trap_find( world, FOFS( s.v.classname ), "timer" );
         while ( te )
@@ -565,7 +565,7 @@ void ClientKill()
     self->s.v.health = -1;
     self->th_die();
     self->s.v.deadflag = DEAD_RESPAWNABLE;
-    self->tfstate |= TFSTATE_RESPAWN_READY;
+    self->s.v.tfstate |= TFSTATE_RESPAWN_READY;
     self->s.v.takedamage = 0;
 }
 
@@ -845,6 +845,7 @@ void PutClientInServer()
     self->on_hook = 0;
     self->hook_out = 0;
     self->fire_held_down = 0;
+    self->sentry = self->dispenser = NULL;
     DecodeLevelParms();
     if ( !self->playerclass )
     {
@@ -885,10 +886,10 @@ void PutClientInServer()
         if( self->playerclass )
         {
             if ( self->playerclass == PC_RANDOM )
-                self->tfstate |= TFSTATE_RANDOMPC;
+                self->s.v.tfstate |= TFSTATE_RANDOMPC;
             else
             {
-                self->tfstate -= ( self->tfstate & TFSTATE_RANDOMPC );
+                self->s.v.tfstate -= ( self->s.v.tfstate & TFSTATE_RANDOMPC );
                 TeamFortress_ExecClassScript( self );
             }
         }
@@ -903,22 +904,22 @@ void PutClientInServer()
     }
 
     iszoom = 0;
-    if ( self->tfstate & TFSTATE_ZOOMOFF )
+    if ( self->s.v.tfstate & TFSTATE_ZOOMOFF )
         iszoom = 1;
-    if ( self->tfstate & TFSTATE_RANDOMPC )
+    if ( self->s.v.tfstate & TFSTATE_RANDOMPC )
     {
         int  oldclass = self->playerclass;
         self->playerclass = 1 + ( int ) ( g_random() * ( 9 ) );
         while ( !IsLegalClass( self->playerclass )
                 || self->playerclass == oldclass || ClassIsRestricted( self->team_no, self->playerclass ) )
             self->playerclass = 1 + ( int ) ( g_random() * ( 9 ) );
-        self->tfstate = TFSTATE_RANDOMPC;
+        self->s.v.tfstate = TFSTATE_RANDOMPC;
         TeamFortress_ExecClassScript( self );
     } else
-        self->tfstate = 0;
+        self->s.v.tfstate = 0;
 
     if ( iszoom == 1 )
-        self->tfstate |= TFSTATE_ZOOMOFF;
+        self->s.v.tfstate |= TFSTATE_ZOOMOFF;
     if ( self->playerclass != PC_ENGINEER && !tfset(tg_enabled) )
         Engineer_RemoveBuildings( self );
 
@@ -984,7 +985,7 @@ void TF_SpawnPlayer( gedict_t * self )
     SetVector( self->s.v.velocity, 0, 0, 0 );
 
     self->primed_grenade = world;
-    TeamFortress_PrintClassName( self, self->playerclass, self->tfstate & TFSTATE_RANDOMPC );
+    TeamFortress_PrintClassName( self, self->playerclass, self->s.v.tfstate & TFSTATE_RANDOMPC );
     TeamFortress_SetEquipment();
     TeamFortress_SetHealth();
     TeamFortress_PrepareForArenaRespawn();
@@ -998,7 +999,7 @@ void TF_SpawnPlayer( gedict_t * self )
     if ( tf_data.cease_fire )
     {
         G_sprint( self, 2, "\n\nCEASE FIRE MODE\n" );
-        self->tfstate |= TFSTATE_CANT_MOVE;
+        self->s.v.tfstate |= TFSTATE_CANT_MOVE;
         TeamFortress_SetSpeed( self );
     }
 }
@@ -1096,13 +1097,13 @@ void PlayerDeathThink()
         if ( self->s.v.button2 || self->s.v.button1 || self->s.v.button0 )
             return;
         self->s.v.deadflag = DEAD_RESPAWNABLE;
-        self->tfstate -= ( self->tfstate & TFSTATE_RESPAWN_READY );
+        self->s.v.tfstate -= ( self->s.v.tfstate & TFSTATE_RESPAWN_READY );
         return;
     }
     // wait for any button down
     if ( !self->s.v.button2 && !self->s.v.button1 && !self->s.v.button0 )
     {
-        if ( self->tfstate & TFSTATE_RESPAWN_READY )
+        if ( self->s.v.tfstate & TFSTATE_RESPAWN_READY )
         {
             if ( self->respawn_time <= g_globalvars.time )
             {
@@ -1115,7 +1116,7 @@ void PlayerDeathThink()
         return;
     } else
     {
-        self->tfstate |= TFSTATE_RESPAWN_READY;
+        self->s.v.tfstate |= TFSTATE_RESPAWN_READY;
         if ( self->respawn_time <= g_globalvars.time )
         {
             self->s.v.button0 = 0;
@@ -1159,7 +1160,7 @@ void PlayerJump()
         /*//REMOVE!!! 
           if (self.fire_held_down && self.current_weapon == WEAP_ASSAULT_CANNON) {
           stuffcmd(self, "v_idlescale 0\n");
-          self->tfstate = self->tfstate - (self->tfstate & TFSTATE_AIMING);
+          self->s.v.tfstate = self->s.v.tfstate - (self->s.v.tfstate & TFSTATE_AIMING);
           TeamFortress_SetSpeed(self);
           self->s.v.weaponframe = 0;
           self.heat = 0;
@@ -1179,7 +1180,7 @@ void PlayerJump()
     /* if (self.fire_held_down && self.current_weapon == WEAP_ASSAULT_CANNON) {
        stuffcmd(self, "v_idlescale 0\n");
        sprint(self, 1, "You cannot fire the assault cannon without your feet on the ground...\n");
-       self->tfstate = self->tfstate - (self->tfstate & TFSTATE_AIMING);
+       self->s.v.tfstate = self->s.v.tfstate - (self->s.v.tfstate & TFSTATE_AIMING);
        TeamFortress_SetSpeed(self);
        self->s.v.weaponframe = 0;
        self.count = 1;
@@ -1443,7 +1444,7 @@ void CheckPowerups()
         {
             if ( self->invisible_finished )
             {
-                if ( self->tfstate & TFSTATE_INVINCIBLE )
+                if ( self->s.v.tfstate & TFSTATE_INVINCIBLE )
                 {
                     if ( self->invisible_finished < g_globalvars.time + 10 )
                         self->invisible_finished = g_globalvars.time + 666;
@@ -1482,7 +1483,7 @@ void CheckPowerups()
     }
     if ( self->invincible_finished )
     {
-        if ( self->tfstate & TFSTATE_INVINCIBLE )
+        if ( self->s.v.tfstate & TFSTATE_INVINCIBLE )
         {
             if ( self->invincible_finished < g_globalvars.time + 10 )
                 self->invincible_finished = g_globalvars.time + 666;
@@ -1520,7 +1521,7 @@ void CheckPowerups()
     }
     if ( self->super_damage_finished )
     {
-        if ( self->tfstate & TFSTATE_QUAD )
+        if ( self->s.v.tfstate & TFSTATE_QUAD )
         {
             if ( self->super_damage_finished == g_globalvars.time + 10 )
                 self->super_damage_finished = g_globalvars.time + 666;
@@ -1559,7 +1560,7 @@ void CheckPowerups()
     if ( self->radsuit_finished )
     {
         self->air_finished = g_globalvars.time + 12;
-        if ( self->tfstate & TFSTATE_RADSUIT)
+        if ( self->s.v.tfstate & TFSTATE_RADSUIT)
         {
             if ( self->radsuit_finished == g_globalvars.time + 10 )
                 self->radsuit_finished = g_globalvars.time + 666;
@@ -1588,6 +1589,7 @@ void CheckPowerups()
     }
 }
 
+void UpdateEngData(gedict_t* self);
 void ApplySvConc( gedict_t* self );
 void ApplySvConcVelocity( gedict_t* self );
 ////////////////
@@ -1655,6 +1657,8 @@ void PlayerPostThink()
     ApplyDmgRoll( self );
 
     W_WeaponFrame();
+
+    UpdateEngData(self);
     if ( self->motd <= 95 )
         TeamFortress_MOTD();
     else
@@ -1695,7 +1699,7 @@ void ClientConnect()
 
     G_bprint( PRINT_HIGH, "%s entered the game\n", self->s.v.netname );
 
-    self->tfstate |= TFSTATE_ZOOMOFF;
+    self->s.v.tfstate |= TFSTATE_ZOOMOFF;
     self->motd = 0;
     self->got_aliases = 0;
     if ( !self->s.v.netname[0] )
@@ -1744,7 +1748,7 @@ void ClientConnect()
                     if ( !( tfset_toggleflags & TFLAG_TEAMFRAGS ) && !( tfset_toggleflags & TFLAG_FULLTEAMSCORE ) )
                         self->s.v.frags = self->real_frags;
                     self->playerclass = te->playerclass;
-                    self->tfstate = te->tfstate;
+                    self->s.v.tfstate = te->s.v.tfstate;
                     dremove( te );
                     te = world;
                 } else
@@ -1836,8 +1840,8 @@ void ClientDisconnect()
         te->real_frags = self->real_frags;
         //te->netname = self->netname;
         te->playerclass = self->playerclass;
-        if ( self->tfstate & TFSTATE_RANDOMPC )
-            te->tfstate = TFSTATE_RANDOMPC;
+        if ( self->s.v.tfstate & TFSTATE_RANDOMPC )
+            te->s.v.tfstate = TFSTATE_RANDOMPC;
     }
     set_suicide_frame();
     self->s.v.netname[0] = 0;

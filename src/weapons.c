@@ -122,7 +122,7 @@ void TempEffectCount(vec3_t origin, int type, int count) {
 //======================================================================
 // Calculate the attack_finished time
 void Attack_Finished(float att_delay) {
-  if (self->tfstate & TFSTATE_TRANQUILISED)
+  if (self->s.v.tfstate & TFSTATE_TRANQUILISED)
     self->attack_finished = g_globalvars.time + att_delay * 2;
   else
     self->attack_finished = g_globalvars.time + att_delay;
@@ -300,14 +300,14 @@ void W_FireMedikit() {
           dremove(te);
           break;
         }
-        if (trace_ent->tfstate & TFSTATE_HALLUCINATING) {
+        if (trace_ent->s.v.tfstate & TFSTATE_HALLUCINATING) {
           for (te = world; (te = trap_find(te, FOFS(s.v.classname), "timer"));) {
             if (te->s.v.owner != g_globalvars.trace_ent)
               continue;
             if (te->s.v.think != (func_t)HallucinationTimer)
               continue;
 
-            trace_ent->tfstate -= (trace_ent->tfstate & TFSTATE_HALLUCINATING);
+            trace_ent->s.v.tfstate -= (trace_ent->s.v.tfstate & TFSTATE_HALLUCINATING);
             SpawnBlood(org, 20);
             G_bprint(1, "%s healed %s of his hallucinations\n", self->s.v.netname, trace_ent->s.v.netname);
 
@@ -322,14 +322,14 @@ void W_FireMedikit() {
           if (!te)
             G_conprintf("Warning: Error in Hallucination Timer logic.\n");
         }
-        if (trace_ent->tfstate & TFSTATE_TRANQUILISED) {
+        if (trace_ent->s.v.tfstate & TFSTATE_TRANQUILISED) {
           for (te = world; (te = trap_find(te, FOFS(s.v.classname), "timer"));) {
             if (te->s.v.owner != g_globalvars.trace_ent)
               continue;
             if (te->s.v.think != (func_t)TranquiliserTimer)
               continue;
 
-            trace_ent->tfstate -= (trace_ent->tfstate & TFSTATE_TRANQUILISED);
+            trace_ent->s.v.tfstate -= (trace_ent->s.v.tfstate & TFSTATE_TRANQUILISED);
             TeamFortress_SetSpeed(trace_ent);
             SpawnBlood(org, 20);
             G_bprint(1, "%s healed %s's tranquilisation\n", self->s.v.netname, trace_ent->s.v.netname);
@@ -362,9 +362,9 @@ void W_FireMedikit() {
             trace_ent->FlashTime = 0;
           }
         }
-        if (trace_ent->tfstate & TFSTATE_INFECTED) {
+        if (trace_ent->s.v.tfstate & TFSTATE_INFECTED) {
           healam = Q_rint(trace_ent->s.v.health / 2);
-          trace_ent->tfstate -= (trace_ent->tfstate & TFSTATE_INFECTED);
+          trace_ent->s.v.tfstate -= (trace_ent->s.v.tfstate & TFSTATE_INFECTED);
           tf_data.deathmsg = DMSG_MEDIKIT;
           T_Damage(trace_ent, self, self, healam);
           SpawnBlood(org, 30);
@@ -419,9 +419,9 @@ void W_FireMedikit() {
           return;
         if (tf_data.cb_prematch_time > g_globalvars.time)
           return;
-        if (trace_ent->tfstate & TFSTATE_INFECTED)
+        if (trace_ent->s.v.tfstate & TFSTATE_INFECTED)
           return;
-        trace_ent->tfstate |= TFSTATE_INFECTED;
+        trace_ent->s.v.tfstate |= TFSTATE_INFECTED;
         BioInfection = spawn();
         BioInfection->s.v.classname = "timer";
         BioInfection->s.v.owner = EDICT_TO_PROG(trace_ent);
@@ -457,7 +457,7 @@ void W_FireMedikit() {
           return;
         if (tf_data.cb_prematch_time > g_globalvars.time)
           return;
-        trace_ent->tfstate |= TFSTATE_INFECTED;
+        trace_ent->s.v.tfstate |= TFSTATE_INFECTED;
         BioInfection = spawn();
         BioInfection->s.v.classname = "timer";
         BioInfection->s.v.owner = g_globalvars.trace_ent;
@@ -1440,7 +1440,7 @@ void W_SetCurrentAmmo() {
 
   if (self->s.v.health <= 0 || !self->current_weapon)
     return;
-  if (self->current_weapon == WEAP_ASSAULT_CANNON && (self->tfstate & TFSTATE_AIMING))
+  if (self->current_weapon == WEAP_ASSAULT_CANNON && (self->s.v.tfstate & TFSTATE_AIMING))
     return;
   player_run();
   items = self->s.v.items;
@@ -1459,7 +1459,7 @@ void W_SetCurrentAmmo() {
     if (wi->w == self->current_weapon) {
       self->s.v.currentammo = 0;
 
-      if (!(self->tfstate & TFSTATE_RELOADING)) {
+      if (!(self->s.v.tfstate & TFSTATE_RELOADING)) {
         if (wi->have_mode && self->weaponmode == 1) {
           self->s.v.weaponmodel = wi->model_mode;
         } else {
@@ -1539,7 +1539,7 @@ void W_Reload_shotgun() {
   gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
 
   owner->s.v.currentclip = GetClipSize(owner);
-  owner->tfstate -= (owner->tfstate & TFSTATE_RELOADING);
+  owner->s.v.tfstate -= (owner->s.v.tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_shot.mdl";
   G_sprint(owner, 0, "finished reloading\n");
   dremove(self);
@@ -1550,7 +1550,7 @@ void W_Reload_super_shotgun() {
   gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
 
   owner->s.v.currentclip = GetClipSize(owner);
-  owner->tfstate -= (owner->tfstate & TFSTATE_RELOADING);
+  owner->s.v.tfstate -= (owner->s.v.tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_shot2.mdl";
   G_sprint(owner, 0, "finished reloading\n");
   dremove(self);
@@ -1561,7 +1561,7 @@ void W_Reload_grenade_launcher() {
   gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
 
   owner->s.v.currentclip = GetClipSize(owner);
-  owner->tfstate -= (owner->tfstate & TFSTATE_RELOADING);
+  owner->s.v.tfstate -= (owner->s.v.tfstate & TFSTATE_RELOADING);
   if (owner->weaponmode == GL_NORMAL)
     owner->s.v.weaponmodel = "progs/v_rock.mdl";
   else
@@ -1575,7 +1575,7 @@ void W_Reload_rocket_launcher() {
   gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
 
   owner->s.v.currentclip = GetClipSize(owner);
-  owner->tfstate -= (owner->tfstate & TFSTATE_RELOADING);
+  owner->s.v.tfstate -= (owner->s.v.tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_rock2.mdl";
   G_sprint(owner, 0, "finished reloading\n");
   dremove(self);
@@ -1586,7 +1586,7 @@ int _weapon_reload(void (*f)(), int tm) {
   gedict_t *tWeapon;
 
   G_sprint(self, 2, "reloading...\n");
-  self->tfstate = self->tfstate | TFSTATE_RELOADING;
+  self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
   tWeapon = spawn();
   tWeapon->s.v.owner = EDICT_TO_PROG(self);
   tWeapon->s.v.classname = "timer";
@@ -1651,7 +1651,7 @@ void W_Attack() {
     return;
   if (self->has_disconnected == 1)
     return;
-  if (self->tfstate & TFSTATE_RELOADING)
+  if (self->s.v.tfstate & TFSTATE_RELOADING)
     return;
   if (self->is_undercover || self->undercover_team || self->undercover_skin)
     Spy_RemoveDisguise(self);
@@ -1761,7 +1761,7 @@ void W_Attack() {
         self->s.v.ammo_cells -= 4;
 
       self->heat = 1;
-      self->tfstate |= TFSTATE_AIMING;
+      self->s.v.tfstate |= TFSTATE_AIMING;
       TeamFortress_SetSpeed(self);
       player_assaultcannonup1();
     }
@@ -1964,7 +1964,7 @@ void W_ChangeWeapon() {
   int *weapons;
   struct w_impulse_s *wi = &w_impulses[0];
 
-  if (self->tfstate & TFSTATE_RELOADING)
+  if (self->s.v.tfstate & TFSTATE_RELOADING)
     return;
   it = self->weapons_carried;
   fl = self->current_weapon;
@@ -2084,7 +2084,7 @@ void CycleWeaponCommand(int prev) {
 
   if (self->s.v.weaponmodel[0] == 0 || !self->current_weapon)
     return;
-  if (self->tfstate & TFSTATE_RELOADING)
+  if (self->s.v.tfstate & TFSTATE_RELOADING)
     return;
   it = self->weapons_carried;
   self->s.v.impulse = 0;
@@ -2480,7 +2480,7 @@ void Angel_SaveImpulse(int impulse) {
     self->s.v.impulse = 0;
     return;
   }
-  if (self->s.v.impulse == TF_GRENADE_T && (self->tfstate & TFSTATE_GRENPRIMED))
+  if (self->s.v.impulse == TF_GRENADE_T && (self->s.v.tfstate & TFSTATE_GRENPRIMED))
     self->tf_impulse = self->tf_impulse | SI_THROWGREN;
   else if (self->s.v.impulse == TF_PB_DETONATE)
     self->tf_impulse = self->tf_impulse | SI_DETPIPE;
@@ -2490,10 +2490,10 @@ void Angel_SaveImpulse(int impulse) {
     self->tf_impulse = self->tf_impulse | SI_RELOAD;
   else if (self->s.v.impulse == TF_DISCARD)
     self->tf_impulse = self->tf_impulse | SI_DISCARD;
-  else if (self->s.v.impulse == TF_GRENADE_1 && !(self->tfstate & TFSTATE_GRENPRIMED)) {
+  else if (self->s.v.impulse == TF_GRENADE_1 && !(self->s.v.tfstate & TFSTATE_GRENPRIMED)) {
     self->tf_impulse = self->tf_impulse - (self->tf_impulse & SI_PRIMETWO);
     self->tf_impulse = self->tf_impulse | SI_PRIMEONE;
-  } else if (self->s.v.impulse == TF_GRENADE_2 && !(self->tfstate & TFSTATE_GRENPRIMED)) {
+  } else if (self->s.v.impulse == TF_GRENADE_2 && !(self->s.v.tfstate & TFSTATE_GRENPRIMED)) {
     self->tf_impulse = self->tf_impulse - (self->tf_impulse & SI_PRIMEONE);
     self->tf_impulse = self->tf_impulse | SI_PRIMETWO;
   } else
@@ -2546,7 +2546,7 @@ int Angel_GetSavedImpulse() {
 void W_WeaponFrame() {
   vec3_t tv;
 
-  if (!(self->tfstate & TFSTATE_AIMING)) {
+  if (!(self->s.v.tfstate & TFSTATE_AIMING)) {
     if (self->height > 29 && self->height < 90) {
       self->height = self->height + 8;
       if (self->height > 90)
@@ -2596,7 +2596,7 @@ void W_WeaponFrame() {
     return;
   if (!self->s.v.button0 && self->fire_held_down && self->current_weapon == WEAP_ASSAULT_CANNON) {
     self->fire_held_down = 0;
-    self->tfstate -= (self->tfstate & TFSTATE_AIMING);
+    self->s.v.tfstate -= (self->s.v.tfstate & TFSTATE_AIMING);
     TeamFortress_SetSpeed(self);
     player_run();
   }
@@ -2608,7 +2608,7 @@ void W_WeaponFrame() {
     } else {
       switch (self->current_weapon) {
       case WEAP_SNIPER_RIFLE:
-        if (self->tfstate & TFSTATE_AIMING) {
+        if (self->s.v.tfstate & TFSTATE_AIMING) {
           if (!tfset_snip_fps && self->heat < 400)
             self->heat += 3;
           if (self->height > 30) {
@@ -2627,7 +2627,7 @@ void W_WeaponFrame() {
                 self->heat = 50;
 
               self->height = 90;
-              self->tfstate = self->tfstate | TFSTATE_AIMING;
+              self->s.v.tfstate = self->s.v.tfstate | TFSTATE_AIMING;
               TeamFortress_SetSpeed(self);
             }
           }
@@ -2653,9 +2653,9 @@ void W_WeaponFrame() {
     if (!self->playerclass)
       self->weaponmode = 0;
     else {
-      if (self->tfstate & TFSTATE_AIMING) {
+      if (self->s.v.tfstate & TFSTATE_AIMING) {
         W_Attack();
-        self->tfstate = self->tfstate - TFSTATE_AIMING;
+        self->s.v.tfstate = self->s.v.tfstate - TFSTATE_AIMING;
         TeamFortress_SetSpeed(self);
         self->heat = 0;
       }

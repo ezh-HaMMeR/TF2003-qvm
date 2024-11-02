@@ -21,24 +21,24 @@
  *  $Id: g_tf_consts.h,v 1.12 2006-02-28 21:29:52 AngelD Exp $
  */
 // TeamFortress State Flags
-#define TFSTATE_GRENPRIMED  1  // Whether the player has a primed grenade
-#define TFSTATE_RELOADING  2  // Whether the player is reloading
-#define TFSTATE_ALTKILL   4   // #TRUE if killed with a weapon not in self.weapon: NOT USED ANYMORE
-#define TFSTATE_RANDOMPC  8   // Whether Playerclass is random, new one each respawn
-#define TFSTATE_INFECTED  16  // set when player is infected by the bioweapon
-#define TFSTATE_INVINCIBLE  32  // Player has permanent Invincibility (Usually by GoalItem)
-#define TFSTATE_INVISIBLE  64  // Player has permanent Invisibility (Usually by GoalItem)
-#define TFSTATE_QUAD   128 // Player has permanent Quad Damage (Usually by GoalItem)
-#define TFSTATE_RADSUIT   256 // Player has permanent Radsuit (Usually by GoalItem)
-#define TFSTATE_BURNING   512 // Is on fire
-#define TFSTATE_GRENTHROWING 1024  // is throwing a grenade
-#define TFSTATE_AIMING   2048  // is using the laser sight
-#define TFSTATE_ZOOMOFF   4096  // doesn't want the FOV changed when zooming
-#define TFSTATE_RESPAWN_READY 8192  // is waiting for respawn, and has pressed fire
-#define TFSTATE_HALLUCINATING  16384  // set when player is hallucinating
-#define TFSTATE_TRANQUILISED   32768  // set when player is tranquilised
-#define TFSTATE_CANT_MOVE    65536  // set when player is setting a detpack
-#define TFSTATE_MAX_FLAMES    131072// set when player has 4 or more numflames
+#define TFSTATE_GRENPRIMED              1<<0  // Whether the player has a primed grenade
+#define TFSTATE_RELOADING               1<<1  // Whether the player is reloading
+#define TFSTATE_ALTKILL                 1<<2  // #TRUE if killed with a weapon not in self.weapon: NOT USED ANYMORE
+#define TFSTATE_RANDOMPC                1<<3  // Whether Playerclass is random, new one each respawn
+#define TFSTATE_INFECTED                1<<4  // set when player is infected by the bioweapon
+#define TFSTATE_INVINCIBLE              1<<5  // Player has permanent Invincibility (Usually by GoalItem)
+#define TFSTATE_INVISIBLE               1<<6  // Player has permanent Invisibility (Usually by GoalItem)
+#define TFSTATE_QUAD                    1<<7  // Player has permanent Quad Damage (Usually by GoalItem)
+#define TFSTATE_RADSUIT                 1<<8  // Player has permanent Radsuit (Usually by GoalItem)
+#define TFSTATE_BURNING                 1<<9  // Is on fire
+#define TFSTATE_GRENTHROWING            1<<10 // is throwing a grenade
+#define TFSTATE_AIMING                  1<<11 // is using the laser sight
+#define TFSTATE_ZOOMOFF                 1<<12 // doesn't want the FOV changed when zooming
+#define TFSTATE_RESPAWN_READY           1<<13 // is waiting for respawn, and has pressed fire
+#define TFSTATE_HALLUCINATING           1<<14 // set when player is hallucinating
+#define TFSTATE_TRANQUILISED            1<<15 // set when player is tranquilised
+#define TFSTATE_CANT_MOVE               1<<16 // set when player is setting a detpack
+#define TFSTATE_MAX_FLAMES              1<<17 // set when player has 4 or more numflames
 
 // Defines used by TF_T_Damage (see combat.qc)
 #define TF_TD_IGNOREARMOUR 1  // Bypasses the armour of the target
