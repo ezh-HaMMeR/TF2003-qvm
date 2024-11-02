@@ -72,6 +72,7 @@ void player_touch(  )
 						sound( self, 2, te->s.v.noise, 1, 1 );
 						self->last_goal_give = g_globalvars.time + 1;
 						G_bprint( 1, "%s passed the flag to %s!\n", self->s.v.netname, other->s.v.netname );
+						updateicons(self, 0);
 						break;
 					}
 				}
@@ -96,6 +97,7 @@ void player_touch(  )
 						sound( other, 2, te->s.v.noise, 1, 1 );
 						other->last_goal_give = g_globalvars.time + 1;
 						G_bprint( 1, "%s passed the flag to %s!\n", other->s.v.netname, self->s.v.netname );
+						updateicons(other, 0);
 						break;
 					}
 				}

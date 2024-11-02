@@ -415,6 +415,16 @@
 #define GR_TYPE_FLASH  9
 #define GR_TYPE_CALTROPS  10
 
+#define TFICON_GREN_NORMAL              1
+#define TFICON_GREN_CONCUSSION          2
+#define TFICON_GREN_NAIL                3
+#define TFICON_GREN_MIRV                4
+#define TFICON_GREN_NAPALM              5
+#define TFICON_GREN_GAS                 7
+#define TFICON_GREN_EMP                 8
+#define TFICON_GREN_FLASH               9
+#define TFICON_PASSFLAG                 10
+
 // Defines for WeaponMode
 #define GL_NORMAL 0
 #define GL_PIPEBOMB 1

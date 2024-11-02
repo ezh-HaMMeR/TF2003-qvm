@@ -664,3 +664,7 @@ void set_think( gedict_t* e, int start, int end, th_die_func_t frame_func, th_di
         self = saveself;
     }
 }
+
+void updateicons(gedict_t* ent, int iconnum) {
+	trap_updateicons(NUM_FOR_EDICT(ent), iconnum);
+}

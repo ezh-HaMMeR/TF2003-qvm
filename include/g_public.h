@@ -145,6 +145,7 @@ typedef enum
 	G_MOVETOGOAL,
 	G_VISIBLETO,
 	G_UPDATETIMER,
+	G_UPDATEICONS,
 	_G__LASTAPI
 } gameImport_t;
 

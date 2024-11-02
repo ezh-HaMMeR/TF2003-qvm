@@ -944,6 +944,7 @@ static qboolean primeGrenade( int gtype )
             G_sprint( self, 2, "Opening Caltrop canister...\n" );
             break;
         default:
+        	updateicons(self, gtype);
             G_sprint( self, 2, "%s primed, 3 seconds...\n", GrenadePrimeName[gtype] );
             if ( self->settings_bits & TF_INTERNAL_GRENSOUND )
                 stuffcmd( self, "play count.wav\n" );
@@ -1034,6 +1035,7 @@ static gedict_t* spawnGrenade( gedict_t* user, int type, int isthrow )
 	qboolean printthrowmsg = true;
     gedict_t* newmis;
 
+	updateicons(user, 0);
 	user->primed_grenade = world;
 	newmis = spawn(  );
 	g_globalvars.newmis = EDICT_TO_PROG( newmis );
