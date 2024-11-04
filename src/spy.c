@@ -28,6 +28,10 @@
    ========================================================
    */
 
+void UpdateSpyData(gedict_t* self, int team, int skin) {
+    self->s.v.spydata = (team & 3) | ((skin & 15) << 2);
+}
+
 void    TeamFortress_SpyCalcName( gedict_t * spy );
 void    TeamFortress_SpyUndercoverThink(  );
 void    GasGrenadeMakeGas(  );
@@ -1036,6 +1040,7 @@ void TeamFortress_SpyUndercoverThink(  )
                 TeamFortress_SetSkin( owner );
                 G_sprint( owner, 2, "Colors set to Team %.0f\n", self->s.v.team );
             }
+            UpdateSpyData(owner, (owner->undercover_team ? owner->undercover_team : owner->team_no), (owner->undercover_skin ? owner->undercover_skin : owner->s.v.skin));
             TeamFortress_SpyCalcName( owner );
             if ( !owner->StatusBarSize )
                 G_centerprint( owner, "You are now disguised.\n" );
@@ -1066,6 +1071,7 @@ void TeamFortress_SpyChangeSkin( int class )
         TeamFortress_SetSkin( self );
         if ( !self->undercover_team )
             self->is_undercover = 0;
+        UpdateSpyData(self, (self->undercover_team ? self->undercover_team : self->team_no), (self->undercover_skin ? self->undercover_skin : self->s.v.skin));
         return;
     }
     G_sprint( self, 2, "Going undercover...\n" );
@@ -1105,6 +1111,7 @@ void TeamFortress_SpyChangeColor( int teamno )
         if ( !self->undercover_skin )
             self->is_undercover = 0;
         TeamFortress_SetSkin( self );
+        UpdateSpyData(self, (self->undercover_team ? self->undercover_team : self->team_no), (self->undercover_skin ? self->undercover_skin : self->s.v.skin));
         return;
     }
     G_sprint( self, 2, "Going undercover...\n" );
@@ -1565,6 +1572,7 @@ void Spy_RemoveDisguise( gedict_t * spy )
             self->StatusRefreshTime = g_globalvars.time + 0.1;
             TeamFortress_SetSkin( spy );
             TeamFortress_SpyCalcName( spy );
+            UpdateSpyData(self, (self->undercover_team ? self->undercover_team : self->team_no), (self->undercover_skin ? self->undercover_skin : self->s.v.skin));
         }
     } else
     {

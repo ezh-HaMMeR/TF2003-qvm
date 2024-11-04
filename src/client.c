@@ -841,6 +841,7 @@ void PutClientInServer()
     self->reload_grenade_launcher = 0;
     self->reload_rocket_launcher = 0;
     self->s.v.currentclip = 0;
+    UpdateSpyData(self, 0, 0);
     self->immune_to_check = g_globalvars.time + tfset_cheat_pause;
     self->on_hook = 0;
     self->hook_out = 0;
@@ -983,6 +984,12 @@ void TF_SpawnPlayer( gedict_t * self )
     setsize( self, PASSVEC3( VEC_HULL_MIN ), PASSVEC3( VEC_HULL_MAX ) );
     SetVector( self->s.v.view_ofs, 0, 0, 22 );
     SetVector( self->s.v.velocity, 0, 0, 0 );
+
+    if (self->playerclass == PC_SPY) {
+        UpdateSpyData(self, self->team_no, PC_SPY);
+    } else {
+        UpdateSpyData(self, 0, 0);
+    }
 
     updateicons(self, 0);
     self->primed_grenade = world;
