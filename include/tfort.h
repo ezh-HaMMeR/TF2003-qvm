@@ -214,3 +214,11 @@ int     TeamFortress_CanGetWeapon( gedict_t * Retriever, int WeaponType );
 qboolean TeamFortress_isTeamsAllied(int teamno1, int teamno2);
 
 void TeamFortress_PrepareForArenaRespawn(  );
+
+#define UPDATEFLAGINFO_BROADCAST 0
+#define UPDATEFLAGINFO_SINGLE 1
+
+#define	FLAGINFO_NOTINIT 0
+#define	FLAG_ON_BASE     1
+#define	FLAG_ON_GROUND   2
+#define	FLAG_CARRIED     3

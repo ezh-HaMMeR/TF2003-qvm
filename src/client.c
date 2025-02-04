@@ -846,10 +846,10 @@ void PutClientInServer()
     self->on_hook = 0;
     self->hook_out = 0;
     self->fire_held_down = 0;
-    self->sentry = self->dispenser = NULL;
     DecodeLevelParms();
     if ( !self->playerclass )
     {
+        self->sentry = self->dispenser = NULL;
         if ( TeamFortress_TeamIsCivilian( self->team_no ) )
         {
             self->s.v.impulse = 1;
@@ -1716,6 +1716,8 @@ void ClientConnect()
     stuffcmd( self, "tf_onconnect\n");
     TeamFortress_ExecMapScript( self );
     self->has_disconnected = 0;
+
+    SendCurrentFlaginfoState(self);
 
     if ( intermission_running )
     {

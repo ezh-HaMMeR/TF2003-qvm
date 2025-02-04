@@ -146,6 +146,7 @@ typedef enum
 	G_VISIBLETO,
 	G_UPDATETIMER,
 	G_UPDATEICONS,
+	G_UPDATEFLAGINFO,
 	_G__LASTAPI
 } gameImport_t;
 

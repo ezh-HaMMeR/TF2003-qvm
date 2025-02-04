@@ -1572,7 +1572,7 @@ void Spy_RemoveDisguise( gedict_t * spy )
             self->StatusRefreshTime = g_globalvars.time + 0.1;
             TeamFortress_SetSkin( spy );
             TeamFortress_SpyCalcName( spy );
-            UpdateSpyData(self, (self->undercover_team ? self->undercover_team : self->team_no), (self->undercover_skin ? self->undercover_skin : self->s.v.skin));
+            UpdateSpyData(spy, (spy->undercover_team ? spy->undercover_team : spy->team_no), (spy->undercover_skin ? spy->undercover_skin : spy->s.v.skin));
         }
     } else
     {

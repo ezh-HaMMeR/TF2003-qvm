@@ -2655,7 +2655,7 @@ void W_WeaponFrame() {
     else {
       if (self->s.v.tfstate & TFSTATE_AIMING) {
         W_Attack();
-        self->s.v.tfstate = self->s.v.tfstate - TFSTATE_AIMING;
+        self->s.v.tfstate = self->s.v.tfstate & ~TFSTATE_AIMING;
         TeamFortress_SetSpeed(self);
         self->heat = 0;
       }

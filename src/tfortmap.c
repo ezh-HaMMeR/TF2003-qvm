@@ -111,6 +111,7 @@ void TF_StartItem(  )
 	self->s.v.think = ( func_t ) TF_PlaceItem;
 	if ( self->goal_state == TFGS_REMOVED )
 		RemoveGoal( self );
+	UpdateFlagInfoBroadcast(self);
 }
 
 void TF_PlaceGoal(  )
@@ -1685,11 +1686,11 @@ void item_tfgoal_touch(  )
 				AttemptToActivate( te, other, self );
 		}
 	}
+	UpdateFlagInfoBroadcast(self);
 }
 
 void tfgoalitem_GiveToPlayer( gedict_t * Item, gedict_t * AP, gedict_t * Goal )
 {
-
 	Item->s.v.owner = EDICT_TO_PROG( AP );
 	if ( Item->mdl )
 		setmodel( Item, "" );
@@ -1709,10 +1710,11 @@ void tfgoalitem_GiveToPlayer( gedict_t * Item, gedict_t * AP, gedict_t * Goal )
 		if ( Goal->goal_result & TFGR_NO_ITEM_RESULTS )
 		{
 			Item->goal_state = TFGS_ACTIVE;
+			UpdateFlagInfoBroadcast(Item);
 			return;
 		}
 	}
-	if ( AP->playerclass == PC_SPY && ( Item->goal_result & TFGR_REMOVE_DISGUISE ) )
+	if ( AP->playerclass == PC_SPY && ( Item->goal_result & TFGR_REMOVE_DISGUISE ) ) 
 		AP->is_unabletospy = 1;
 	DoResults( Item, AP, 1 );
 	DoItemGroupWork( Item, AP );
@@ -1806,6 +1808,7 @@ void ReturnItem(  )
 	setorigin( enemy, PASSVEC3( enemy->s.v.origin ) );
 	sound( enemy, 2, "items/itembk2.wav", 1, 1 );
 	tfgoalitem_checkgoalreturn( enemy );
+	UpdateFlagInfoBroadcast(enemy);
 	if ( self->s.v.weapon != 2 )
 	{
 		if ( enemy->s.v.noise3 || enemy->noise4 )
@@ -2013,11 +2016,16 @@ void tfgoalitem_dropthink(  )
 						self->camdist = self->camdist + 1;
 						self->s.v.nextthink = g_globalvars.time + 5;
 						self->s.v.think = ( func_t ) tfgoalitem_dropthink;
+						UpdateFlagInfoBroadcast(self);
 						return;
-					} else
+					} else {
 						self->s.v.nextthink = g_globalvars.time + 2;
-				} else
+						UpdateFlagInfoBroadcast(self);
+					}
+				} else {
 					self->s.v.nextthink = g_globalvars.time + self->pausetime;
+					UpdateFlagInfoBroadcast(self);
+				}
 			}
 		}
 		self->s.v.think = ( func_t ) tfgoalitem_remove;
@@ -2029,6 +2037,7 @@ void tfgoalitem_droptouch(  )
 	self->s.v.touch = ( func_t ) item_tfgoal_touch;
 	self->s.v.nextthink = g_globalvars.time + 4.25;
 	self->s.v.think = ( func_t ) tfgoalitem_dropthink;
+	UpdateFlagInfoBroadcast(self);
 }
 
 void tfgoalitem_drop( gedict_t * Item, float PAlive, gedict_t * P )
@@ -2225,6 +2234,65 @@ void DisplayItemStatusDefaultFlagInfo(gedict_t * Player, gedict_t *Item )
 	}
 }
 
+void UpdateFlagInfoBroadcast(gedict_t *Item) {
+	if (!Item) {
+		return;
+	}
+	if (Item->goal_no < 1 || Item->goal_no > 4) {
+		return;
+	}
+	if (Item->goal_state == TFGS_ACTIVE) {
+    	if (!Item->s.v.owner) {
+    	    return;
+    	}
+    	trap_updateflaginfo(UPDATEFLAGINFO_BROADCAST, Item->goal_no - 1, FLAG_CARRIED, PROG_TO_EDICT(Item->s.v.owner)->s.v.netname);
+	} else {
+		if (!VectorCompare(Item->s.v.origin, Item->s.v.oldorigin)) {
+			if (Item->s.v.think == (func_t)tfgoalitem_remove) {
+				trap_updateflaginfo(UPDATEFLAGINFO_BROADCAST, Item->goal_no - 1, (int)FLAG_ON_GROUND, (int)((Item->s.v.nextthink - g_globalvars.time) * 1000));
+			} else if (Item->s.v.think == (func_t)tfgoalitem_dropthink) {
+				trap_updateflaginfo(UPDATEFLAGINFO_BROADCAST, Item->goal_no - 1, (int)FLAG_ON_GROUND, (int)((Item->s.v.nextthink - g_globalvars.time) * 1000));
+			}
+		} else {
+			trap_updateflaginfo(UPDATEFLAGINFO_BROADCAST, Item->goal_no - 1, FLAG_ON_BASE);
+		}
+	}
+}
+
+void UpdateFlagInfoSingle(gedict_t *Item, gedict_t* ed) {
+	if (!Item) {
+		return;
+	}
+	if (Item->goal_no < 1 || Item->goal_no > 4) {
+		return;
+	}
+	if (Item->goal_state == TFGS_ACTIVE) {
+    	if (!Item->s.v.owner) {
+    	    return;
+    	}
+    	trap_updateflaginfo(UPDATEFLAGINFO_BROADCAST, Item->goal_no - 1, FLAG_CARRIED, PROG_TO_EDICT(Item->s.v.owner)->s.v.netname,  NUM_FOR_EDICT(ed));
+	} else {
+		if (!VectorCompare(Item->s.v.origin, Item->s.v.oldorigin)) {
+			if (Item->s.v.think == (func_t)tfgoalitem_remove) {
+				trap_updateflaginfo(UPDATEFLAGINFO_BROADCAST, Item->goal_no - 1, FLAG_ON_GROUND, (int)((Item->s.v.nextthink - g_globalvars.time) * 1000), NUM_FOR_EDICT(ed));
+			} else if (Item->s.v.think == (func_t)tfgoalitem_dropthink) {
+				trap_updateflaginfo(UPDATEFLAGINFO_BROADCAST, Item->goal_no - 1, FLAG_ON_GROUND, (int)((Item->s.v.nextthink - g_globalvars.time) * 1000), NUM_FOR_EDICT(ed));
+			}
+		} else {
+			trap_updateflaginfo(UPDATEFLAGINFO_BROADCAST, Item->goal_no - 1, FLAG_ON_BASE, NUM_FOR_EDICT(ed));
+		}
+	}
+}
+
+void SendCurrentFlaginfoState(gedict_t* ed) {
+	gedict_t* te;
+
+	te = trap_find(world, FOFS(s.v.classname), "item_tfgoal");
+	while (te) {
+		UpdateFlagInfoSingle(te, ed);
+		te = trap_find(te, FOFS(s.v.classname), "item_tfgoal");
+	}
+}
 
 void SP_info_player_team1(  )
 {
