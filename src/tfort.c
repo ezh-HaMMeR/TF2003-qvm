@@ -237,7 +237,7 @@ static const class_settings_t class_set[] = {
 	 0, 0,			//AT ,Aallow
 	 0,			//items allowed
 	 0,			//items
-	 "Random Playerclass", "",// "",
+	 "Random playerclass", "",// "",
 	 {NULL, NULL, NULL, NULL}
 	 },
 	{
@@ -473,12 +473,14 @@ void TeamFortress_ChangeClass(  )
 
 	if ( self->playerclass == PC_RANDOM )
 	{
-		G_sprint( self, 2, "Random Playerclass.\n" );
+		G_sprint( self, 2, "Random playerclass.\n" );
 		self->s.v.tfstate |= TFSTATE_RANDOMPC;
 		self->playerclass = 1 + (int)( g_random(  ) * ( 10 - 1 ) );
 	}
 
     TF_SpawnPlayer( self );
+
+    sendtfinfo_broadcast(self);
 
 	for( spot = world;( spot = trap_find( spot, FOFS( s.v.classname ), "player" ) ) ;)
 	{

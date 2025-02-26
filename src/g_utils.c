@@ -668,3 +668,18 @@ void set_think( gedict_t* e, int start, int end, th_die_func_t frame_func, th_di
 void updateicons(gedict_t* ent, int iconnum) {
 	trap_updateicons(NUM_FOR_EDICT(ent), iconnum);
 }
+
+void sendtfinfo_single(gedict_t* e, gedict_t* to) {
+	trap_updatetfinfo(UPDATETFINFO_SINGLE, NUM_FOR_EDICT(e), NUM_FOR_EDICT(to), e->team_no, e->playerclass);
+}
+
+void sendtfinfo_broadcast(gedict_t* e) {
+	trap_updatetfinfo(UPDATETFINFO_BROADCAST, NUM_FOR_EDICT(e), e->team_no, e->playerclass);
+}
+
+void sendinittfinfo(gedict_t* ply) {
+	gedict_t* te;
+	for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
+		sendtfinfo_single(te, ply);
+  	}
+}

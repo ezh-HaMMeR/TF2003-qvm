@@ -904,6 +904,8 @@ void PutClientInServer()
         }
     }
 
+    sendtfinfo_broadcast(self);
+
     iszoom = 0;
     if ( self->s.v.tfstate & TFSTATE_ZOOMOFF )
         iszoom = 1;
@@ -916,6 +918,7 @@ void PutClientInServer()
             self->playerclass = 1 + ( int ) ( g_random() * ( 9 ) );
         self->s.v.tfstate = TFSTATE_RANDOMPC;
         TeamFortress_ExecClassScript( self );
+        sendtfinfo_broadcast(self);
     } else
         self->s.v.tfstate = 0;
 
@@ -1718,6 +1721,7 @@ void ClientConnect()
     self->has_disconnected = 0;
 
     SendCurrentFlaginfoState(self);
+    sendinittfinfo(self);
 
     if ( intermission_running )
     {

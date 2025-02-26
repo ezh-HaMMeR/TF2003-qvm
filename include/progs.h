@@ -137,8 +137,9 @@ typedef struct gedict_s {
 	void            ( *th_pain ) ( struct gedict_s *, float );
 
 ///team fortess
+	int team_no, playerclass;
 	int 		ready;
-	int             playerclass, nextpc;
+	int             nextpc;
 	int             armorclass;
 	int             tf_items, tf_items_flags;
 	int             got_aliases;
@@ -169,7 +170,7 @@ typedef struct gedict_s {
 	int             menu_count;
 	int             menu_displaytime;
 
-	int             team_no, lives, infection_team_no;
+	int             lives, infection_team_no;
 	struct gedict_s *building, *real_owner,*oldenemy;
 
 	struct gedict_s *sentry, *dispenser;

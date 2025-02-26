@@ -704,8 +704,7 @@ void   TF_FinalizeSettings( )
         tfset_flagoff( pyrotype );
         tfset_flagoff( tg_enabled );
         tfset_flagoff( enable_bot );
-        tfset_arena_mode = ARENA_MODE_NONE;
-        tfset_drop_mode = FLAG_DROP_DEFAULT;
+        tfset_arena_mode = ARENA_MODE_NONE;;
     } 
 
     //SETUP LAN CONSTANTS

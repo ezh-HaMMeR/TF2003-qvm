@@ -222,3 +222,10 @@ void TeamFortress_PrepareForArenaRespawn(  );
 #define	FLAG_ON_BASE     1
 #define	FLAG_ON_GROUND   2
 #define	FLAG_CARRIED     3
+
+#define UPDATETFINFO_BROADCAST 0
+#define UPDATETFINFO_SINGLE 1
+
+#define TFINFO_ALL 			0
+#define TFINFO_TEAM 		1
+#define TFINFO_PLAYERCLASS 	2

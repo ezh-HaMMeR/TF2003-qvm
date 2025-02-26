@@ -183,6 +183,7 @@ int TeamFortress_TeamSet( int tno )
 			TeamFortress_ChangeClass(  );
 		}
 	}
+	sendtfinfo_broadcast(self);
 	return 1;
 }
 
