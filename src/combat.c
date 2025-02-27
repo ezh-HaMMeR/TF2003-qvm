@@ -608,6 +608,11 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 
     if ( allowedClasname( attacker, targ ) )
 	{
+		if (targ->team_no != attacker->team_no && !no_damage) {
+			attacker->damage += damage;
+			sendtfinfo_broadcast(attacker, TFINFO_DAMAGE, attacker->damage);
+		}
+
         if ( isTeamDamage( attacker, targ ) )
 		{
 			olddmsg = tf_data.deathmsg;

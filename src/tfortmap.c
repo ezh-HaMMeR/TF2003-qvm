@@ -572,6 +572,8 @@ void Apply_Results( gedict_t * Goal, gedict_t * Player, gedict_t * AP, float add
 			{
 				TeamFortress_TeamIncreaseScore( Player->team_no, Goal->count );
 				TeamFortress_TeamShowScores( 2 );
+				Player->caps++;
+				sendtfinfo_broadcast(Player, TFINFO_CAPS, Player->caps);
 			}
 		}
 	}
@@ -1466,8 +1468,9 @@ void DoResults( gedict_t * Goal, gedict_t * AP, float addb )
 		TeamFortress_TeamIncreaseScore( 4, Goal->increase_team4 );
 		winners = 1;
 	}
-	if ( winners == 1 )
+	if ( winners == 1 ) {
 		TeamFortress_TeamShowScores( 2 );
+	}
     DoCtfResults( Goal, AP );
 
 //	gotone = 0;
@@ -1687,6 +1690,8 @@ void item_tfgoal_touch(  )
 		}
 	}
 	UpdateFlagInfoBroadcast(self);
+	other->touches++;
+	sendtfinfo_broadcast(other, TFINFO_TOUCHES, other->touches);
 }
 
 void tfgoalitem_GiveToPlayer( gedict_t * Item, gedict_t * AP, gedict_t * Goal )

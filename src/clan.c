@@ -112,6 +112,12 @@ void PreMatch_Think(  )
         TeamFortress_RemoveTimers(  );
         self->s.v.frags = 0;
         self->real_frags = 0;
+        self->damage = 0;
+        self->touches = 0;
+        self->caps = 0;
+        sendtfinfo_broadcast(self, TFINFO_TOUCHES, self->touches);
+        sendtfinfo_broadcast(self, TFINFO_CAPS, self->caps);
+        sendtfinfo_broadcast(self, TFINFO_DAMAGE, self->damage);
         for ( gren = world; (gren = trap_find( gren, FOFS( s.v.classname ), "grenade" )); )
         {
             if ( gren->s.v.owner == EDICT_TO_PROG( self ) )

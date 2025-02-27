@@ -480,7 +480,7 @@ void TeamFortress_ChangeClass(  )
 
     TF_SpawnPlayer( self );
 
-    sendtfinfo_broadcast(self);
+    sendtfinfo_broadcast(self, TFINFO_PLAYERCLASS, self->playerclass);
 
 	for( spot = world;( spot = trap_find( spot, FOFS( s.v.classname ), "player" ) ) ;)
 	{

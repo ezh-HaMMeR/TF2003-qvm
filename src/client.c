@@ -904,7 +904,8 @@ void PutClientInServer()
         }
     }
 
-    sendtfinfo_broadcast(self);
+    sendtfinfo_broadcast(self, TFINFO_TEAM, self->team_no);
+    sendtfinfo_broadcast(self, TFINFO_PLAYERCLASS, self->playerclass);
 
     iszoom = 0;
     if ( self->s.v.tfstate & TFSTATE_ZOOMOFF )
@@ -918,7 +919,7 @@ void PutClientInServer()
             self->playerclass = 1 + ( int ) ( g_random() * ( 9 ) );
         self->s.v.tfstate = TFSTATE_RANDOMPC;
         TeamFortress_ExecClassScript( self );
-        sendtfinfo_broadcast(self);
+        sendtfinfo_broadcast(self, TFINFO_PLAYERCLASS, self->playerclass);
     } else
         self->s.v.tfstate = 0;
 
@@ -1763,6 +1764,13 @@ void ClientConnect()
                         self->s.v.frags = self->real_frags;
                     self->playerclass = te->playerclass;
                     self->s.v.tfstate = te->s.v.tfstate;
+                    self->damage = te->damage;
+                    self->touches = te->touches;
+                    self->caps = te->caps;
+                    sendtfinfo_broadcast(self, TFINFO_TOUCHES, self->touches);
+                    sendtfinfo_broadcast(self, TFINFO_CAPS, self->caps);
+                    sendtfinfo_broadcast(self, TFINFO_DAMAGE, self->damage);
+                    sendtfinfo_broadcast(self, TFINFO_PLAYERCLASS, self->playerclass);
                     dremove( te );
                     te = world;
                 } else
@@ -1854,6 +1862,9 @@ void ClientDisconnect()
         te->real_frags = self->real_frags;
         //te->netname = self->netname;
         te->playerclass = self->playerclass;
+        te->damage = self->damage;
+        te->touches = self->touches;
+        te->caps = self->caps;
         if ( self->s.v.tfstate & TFSTATE_RANDOMPC )
             te->s.v.tfstate = TFSTATE_RANDOMPC;
     }

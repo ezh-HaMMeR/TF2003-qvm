@@ -226,6 +226,8 @@ void TeamFortress_PrepareForArenaRespawn(  );
 #define UPDATETFINFO_BROADCAST 0
 #define UPDATETFINFO_SINGLE 1
 
-#define TFINFO_ALL 			0
-#define TFINFO_TEAM 		1
-#define TFINFO_PLAYERCLASS 	2
+#define TFINFO_TEAM 		0
+#define TFINFO_PLAYERCLASS 	1
+#define TFINFO_TOUCHES 		2
+#define TFINFO_CAPS 		3
+#define TFINFO_DAMAGE 		4
