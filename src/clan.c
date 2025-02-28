@@ -592,9 +592,29 @@ void RoundTimerThink() {
     self->s.v.nextthink = g_globalvars.time + 1;
 }
 
+typedef struct {
+    union {
+        struct {
+            int hp;
+            int armor;
+        } s;
+        int d[2];
+    } u;
+} data_t;
+
+#define ACCESS_FIELD(var, field) var.u.s.field
+#define ACCESS_DATA(var, idx) var.u.d[(idx)]
+
 void ChangeReadyState(int state) {
     gedict_t* te, *prematch, *timer;
     int maxclients, readied_up;
+
+    /*
+    data_t e;
+    ACCESS_DATA(e, 0) = 1;
+    ACCESS_DATA(e, 1) = 2;
+    G_conprintf("hp: %d; armor: %d\n", ACCESS_FIELD(e, hp), ACCESS_FIELD(e, armor));
+    */
 
     if (!tfset(prematch_readymode)) {
         return;

@@ -1470,6 +1470,8 @@ void DoResults( gedict_t * Goal, gedict_t * AP, float addb )
 	}
 	if ( winners == 1 ) {
 		TeamFortress_TeamShowScores( 2 );
+		AP->caps++;
+		sendtfinfo_broadcast(AP, TFINFO_CAPS, AP->caps);
 	}
     DoCtfResults( Goal, AP );
 
@@ -1690,8 +1692,10 @@ void item_tfgoal_touch(  )
 		}
 	}
 	UpdateFlagInfoBroadcast(self);
-	other->touches++;
-	sendtfinfo_broadcast(other, TFINFO_TOUCHES, other->touches);
+	if (other->team_no == self->team_no) {
+		other->touches++;
+		sendtfinfo_broadcast(other, TFINFO_TOUCHES, other->touches);
+	}
 }
 
 void tfgoalitem_GiveToPlayer( gedict_t * Item, gedict_t * AP, gedict_t * Goal )
