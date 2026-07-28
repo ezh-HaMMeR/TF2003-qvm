@@ -424,7 +424,6 @@ void PreMatchReady_Think() {
         for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
             te = &g_edicts[client_no];
             if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
-            CenterPrint(te, "\n");
             if (strlen(te->s.v.netname) > mxlen) {
                 mxlen = strlen(te->s.v.netname);
             }
@@ -432,7 +431,6 @@ void PreMatchReady_Think() {
         for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
             te = &g_edicts[client_no];
             if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
-            CenterPrint(te, "\n");
             _snprintf(line, sizeof(line), "%s", te->s.v.netname);
             oldlen = strlen(line);
             if (oldlen < mxlen) {
