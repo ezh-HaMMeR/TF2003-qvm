@@ -138,6 +138,7 @@ typedef struct gedict_s {
 
 ///team fortess
 	int damage, touches, caps;
+	int damage_update_pending;
 	int team_no, playerclass;
 	int 		ready;
 	int             nextpc;

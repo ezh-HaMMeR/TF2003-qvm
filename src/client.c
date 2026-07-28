@@ -1771,7 +1771,7 @@ void ClientConnect()
                     self->caps = te->caps;
                     sendtfinfo_broadcast(self, TFINFO_TOUCHES, self->touches);
                     sendtfinfo_broadcast(self, TFINFO_CAPS, self->caps);
-                    sendtfinfo_broadcast(self, TFINFO_DAMAGE, self->damage);
+                    SendDamageStatUpdate(self);
                     sendtfinfo_broadcast(self, TFINFO_PLAYERCLASS, self->playerclass);
                     dremove( te );
                     te = world;
@@ -1855,6 +1855,9 @@ void ClientDisconnect()
         }
         te = trap_find( te, FOFS( s.v.classname ), "detpack" );
     }
+	if ( self->damage_update_pending )
+		SendDamageStatUpdate( self );
+
     if ( tfset(clanbattle) && self->tf_id )
     {
         te = spawn();

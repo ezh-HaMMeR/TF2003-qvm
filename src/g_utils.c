@@ -677,6 +677,37 @@ void sendtfinfo_broadcast(gedict_t* e, int idx, int val) {
 	trap_updatetfinfo(UPDATETFINFO_BROADCAST, NUM_FOR_EDICT(e), idx, val);
 }
 
+void SendDamageStatUpdate( gedict_t *player )
+{
+	if ( !player || player == world )
+		return;
+
+	sendtfinfo_broadcast( player, TFINFO_DAMAGE, player->damage );
+	player->damage_update_pending = 0;
+}
+
+void FlushDamageStatUpdates(  )
+{
+	gedict_t *player;
+	int client_no;
+
+	/* All possible client edicts are inside slots 1..MAX_CLIENTS. Iterating
+	 * this fixed range avoids a trap_find syscall for every connected player. */
+	for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
+	{
+		player = &g_edicts[client_no];
+		if ( !player->damage_update_pending )
+			continue;
+		if ( player->is_removed || strneq( player->s.v.classname, "player" ) )
+		{
+			player->damage_update_pending = 0;
+			continue;
+		}
+
+		SendDamageStatUpdate( player );
+	}
+}
+
 void sendinittfinfo(gedict_t* ply) {
 	gedict_t* te;
 	for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {

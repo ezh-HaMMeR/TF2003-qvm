@@ -123,7 +123,7 @@ void PreMatch_Think(  )
         self->caps = 0;
         sendtfinfo_broadcast(self, TFINFO_TOUCHES, self->touches);
         sendtfinfo_broadcast(self, TFINFO_CAPS, self->caps);
-        sendtfinfo_broadcast(self, TFINFO_DAMAGE, self->damage);
+        SendDamageStatUpdate(self);
         for ( gren = world; (gren = trap_find( gren, FOFS( s.v.classname ), "grenade" )); )
         {
             if ( gren->s.v.owner == EDICT_TO_PROG( self ) )

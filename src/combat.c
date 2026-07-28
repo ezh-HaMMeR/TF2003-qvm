@@ -610,7 +610,7 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 	{
 		if (targ->team_no != attacker->team_no && !no_damage) {
 			attacker->damage += damage;
-			sendtfinfo_broadcast(attacker, TFINFO_DAMAGE, attacker->damage);
+			attacker->damage_update_pending = 1;
 		}
 
         if ( isTeamDamage( attacker, targ ) )
@@ -786,4 +786,3 @@ void  TempEffectCoordPVS( vec3_t origin, int type )
     trap_WriteCoord( MSG_MULTICAST, origin[2] );
     trap_multicast( PASSVEC3( origin ), MULTICAST_PVS );
 }
-
