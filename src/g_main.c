@@ -120,6 +120,7 @@ intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, 
             G_SpawnEntitiesFromString();
             TF_FinalizeSettings();
             sv_gravity = trap_cvar( "sv_gravity" );
+            sv_watervis = GetSVInfokeyInt( "watervis", NULL, 0 );
 
             /* Immediate demo mode starts at map load. A/D keeps its
              * round-based recording because a map contains two rounds. */
@@ -394,6 +395,7 @@ void G_EdictBlocked()
 }
 
 float sv_gravity;
+int sv_watervis;
 void ClearGlobals()
 {
     damage_attacker = damage_inflictor = activator = self = other = newmis = world;

@@ -374,6 +374,7 @@ typedef struct gedict_s {
 }gedict_t;
 
 extern  float           sv_gravity;
+extern  int             sv_watervis;
 extern  int 		skill;
 extern  int 		number_of_teams; 
 extern  int             illegalclasses[5];

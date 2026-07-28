@@ -373,6 +373,7 @@ void MatchTimer( qboolean );
 void StartFrame( int time )
 {
 	sv_gravity = trap_cvar( "sv_gravity" );
+	sv_watervis = GetSVInfokeyInt( "watervis", NULL, 0 );
 	timelimit = trap_cvar( "timelimit" ) * 60;
 	fraglimit = trap_cvar( "fraglimit" );
 	teamplay  = trap_cvar( "teamplay" );

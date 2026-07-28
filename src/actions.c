@@ -533,7 +533,7 @@ void TeamFortress_ID(  )
 	if ( VectorCompare( trace_ent->s.v.origin, world->s.v.origin ) )
 		return;
 
-    	if( GetSVInfokeyInt( "watervis", NULL, 0) == 0)
+	if ( !sv_watervis )
 	{
 	 traceline( PASSVEC3( src ), PASSVEC3( g_globalvars.trace_endpos ), 1, self );
 	 //inwater inopen startsolid set only if NOMONSTERS = 1
@@ -598,4 +598,3 @@ void TeamFortress_ID(  )
 		}
 	}
 }
-
