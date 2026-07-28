@@ -20,3 +20,7 @@ VM/
 CMakeBuilds/
 bin/
 tools/q3lcc/build--
+
+# Local build products and generated reports.
+src/output/
+src/tmp/
