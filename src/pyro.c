@@ -28,6 +28,14 @@ void    Napalm_touch(  );
 int     RemoveFlameFromQueue( int id_flame );
 static int     num_world_flames = 0;
 
+/* MVDSV's zero-length world trace marks every non-empty, non-solid BSP leaf
+ * as trace_inwater.  Point contents returns that same leaf classification
+ * without performing a full collision trace. */
+static int Pyro_PointHasTraceInWater( const vec3_t origin )
+{
+    return trap_pointcontents( PASSVEC3( origin ) ) < CONTENT_SOLID;
+}
+
 static int FlameIsAttached( gedict_t * flame )
 {
     return flame && ( streq( flame->flame_id, "1" ) || streq( flame->flame_id, "3" ) );
@@ -73,39 +81,31 @@ gedict_t *FlameSpawn( int type, gedict_t * p_owner )
     if ( !newmis || newmis == world )
         return world;
 
+    newmis->s.v.solid = SOLID_BBOX;
+    setmodel( newmis, "progs/flame2.mdl" );
+    setsize( newmis, 0, 0, 0, 0, 0, 0 );
+
     // to keep track of the number of each type of flames
     switch ( type )
     {
         case 1:
             newmis->s.v.movetype = MOVETYPE_FLYMISSILE;
-            newmis->s.v.solid = SOLID_BBOX;
             newmis->s.v.effects = 8;
             newmis->flame_id = "1";
-            setmodel( newmis, "progs/flame2.mdl" );
-            setsize( newmis, 0, 0, 0, 0, 0, 0 );
             break;
         case 2:
             newmis->s.v.movetype = MOVETYPE_BOUNCE;
-            newmis->s.v.solid = SOLID_BBOX;
             newmis->flame_id = "2";
-            setmodel( newmis, "progs/flame2.mdl" );
             newmis->s.v.frame = 1;
-            setsize( newmis, 0, 0, 0, 0, 0, 0 );
             break;
         case 3:
             newmis->s.v.movetype = MOVETYPE_FLYMISSILE;
-            newmis->s.v.solid = SOLID_BBOX;
             newmis->flame_id = "3";
-            setmodel( newmis, "progs/flame2.mdl" );
-            setsize( newmis, 0, 0, 0, 0, 0, 0 );
             break;
         case 4:
             newmis->s.v.movetype = MOVETYPE_FLYMISSILE;
             newmis->flame_id = "4";
             newmis->s.v.frame = 1;
-            newmis->s.v.solid = SOLID_BBOX;
-            setmodel( newmis, "progs/flame2.mdl" );
-            setsize( newmis, 0, 0, 0, 0, 0, 0 );
             break;
         default:
             dremove( newmis );
@@ -148,22 +148,24 @@ void FlameDestroy( gedict_t * this )
     dremove( this );
 }
 
-static gedict_t *Pyro_FindAttachedFlame( gedict_t * target, const char *id )
+static void Pyro_RemoveAttachedFlames( gedict_t *target, const char *id )
 {
-    gedict_t *flame = world;
+    gedict_t *flame;
+    gedict_t *next;
 
-    while ( ( flame = trap_find( flame, FOFS( flame_id ), id ) ) )
+    flame = trap_find( world, FOFS( flame_id ), id );
+    while ( flame )
     {
+        /* Find the successor before FlameDestroy invalidates this entity. */
+        next = trap_find( flame, FOFS( flame_id ), id );
         if ( PROG_TO_EDICT( flame->s.v.enemy ) == target )
-            return flame;
+            FlameDestroy( flame );
+        flame = next;
     }
-    return NULL;
 }
 
 void Pyro_ExtinguishPlayer( gedict_t * target )
 {
-    gedict_t *flame;
-
     if ( !target || target == world )
         return;
 
@@ -171,15 +173,14 @@ void Pyro_ExtinguishPlayer( gedict_t * target )
     // FlameDestroy is idempotent and therefore safe for the current thinker too.
     Pyro_ClearBurnState( target );
 
-    while ( ( flame = Pyro_FindAttachedFlame( target, "1" ) ) )
-        FlameDestroy( flame );
-    while ( ( flame = Pyro_FindAttachedFlame( target, "3" ) ) )
-        FlameDestroy( flame );
+    Pyro_RemoveAttachedFlames( target, "1" );
+    Pyro_RemoveAttachedFlames( target, "3" );
 }
 
 int RemoveFlameFromQueue( int id_flame )
 {
     gedict_t *tmp = NULL;
+    const char *flame_id = NULL;
 
     if ( num_world_flames < FLAME_MAXWORLDNUM )
     {
@@ -191,18 +192,20 @@ int RemoveFlameFromQueue( int id_flame )
     switch ( id_flame )
     {
         case 1:
-            tmp = trap_find( world, FOFS( flame_id ), "1" );
+            flame_id = "1";
             break;
         case 2:
-            tmp = trap_find( world, FOFS( flame_id ), "2" );
+            flame_id = "2";
             break;
         case 3:
-            tmp = trap_find( world, FOFS( flame_id ), "3" );
+            flame_id = "3";
             break;
         case 4:
-            tmp = trap_find( world, FOFS( flame_id ), "4" );
+            flame_id = "4";
             break;
     }
+    if ( flame_id )
+        tmp = trap_find( world, FOFS( flame_id ), flame_id );
     if ( !tmp )
     {
         G_conprintf( "\n\nRemoveFlameFromQueue():BOOM!\n" );
@@ -223,8 +226,7 @@ void Remove(  )
 // function used by the flames spawned when the grenade explode : killed in water or when stopped
 void NapalmGrenadeFollow(  )
 {
-    traceline( PASSVEC3( self->s.v.origin ), PASSVEC3( self->s.v.origin ), 1, self );
-    if ( g_globalvars.trace_inwater == 1 )
+    if ( Pyro_PointHasTraceInWater( self->s.v.origin ) )
     {
         sound( self, 2, "misc/vapeur2.wav", 1, 1 );
         FlameDestroy( self );
@@ -278,8 +280,7 @@ void NapalmGrenadeExplode(  )
     if( !tfset(lan_mode) )
     {
         sound( self, 0, "weapons/flmgrexp.wav", 1, 1 );
-        traceline( PASSVEC3( self->s.v.origin ), PASSVEC3( self->s.v.origin ), 1, self );
-        if ( g_globalvars.trace_inwater == 1 )
+        if ( Pyro_PointHasTraceInWater( self->s.v.origin ) )
         {
             dremove( self );
             return;
@@ -315,8 +316,7 @@ void NapalmGrenadeExplode(  )
     }else
     {
         sound( self, 0, "weapons/flmgrexp.wav", 1, 1 );
-        traceline( PASSVEC3( self->s.v.origin ), PASSVEC3( self->s.v.origin ), 1, self );
-        if ( g_globalvars.trace_inwater == 1 )
+        if ( Pyro_PointHasTraceInWater( self->s.v.origin ) )
         {
             dremove( self );
             return;
@@ -388,8 +388,6 @@ void FlameFollow(  )
     float   damage;
     gedict_t *enemy = PROG_TO_EDICT( self->s.v.enemy );
 
-    VectorCopy( enemy->s.v.absmin, vtemp );
-    VectorCopy( enemy->s.v.size, boundsize );
     self->s.v.solid = SOLID_NOT;
     self->s.v.movetype = MOVETYPE_NONE;
     if ( !enemy->numflames )
@@ -422,7 +420,9 @@ void FlameFollow(  )
         }
     }
     self->s.v.health = self->s.v.health - 1;
-    if ( vlen( enemy->s.v.velocity ) < 50 )
+    VectorCopy( enemy->s.v.absmin, vtemp );
+    VectorCopy( enemy->s.v.size, boundsize );
+    if ( DotProduct( enemy->s.v.velocity, enemy->s.v.velocity ) < 2500 )
     {
         dir[0] = g_random(  ) * boundsize[0] / 2 + boundsize[0] / 4;
         dir[1] = g_random(  ) * boundsize[1] / 2 + boundsize[1] / 4;
@@ -467,6 +467,8 @@ void FlameFollow(  )
 static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
 {
     gedict_t *flame;
+    gedict_t *owner;
+    int is_player;
     int was_burning;
     vec3_t  vtemp;
 
@@ -480,11 +482,13 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
     if ( ( other->armorclass & AT_SAVEFIRE ) && other->s.v.armorvalue > 0 )
         return NULL;
 
+    owner = PROG_TO_EDICT( self->s.v.owner );
+    is_player = streq( other->s.v.classname, "player" );
     was_burning = other->numflames > 0;
-    if ( streq( other->s.v.classname, "player" ) )
+    if ( is_player )
     {
         if ( ( teamplay & TEAMPLAY_NOEXPLOSIVE ) && other->team_no > 0
-                && other->team_no == PROG_TO_EDICT( self->s.v.owner )->team_no )
+                && other->team_no == owner->team_no )
             return NULL;
     }
     if ( other->numflames < 1 )
@@ -513,7 +517,7 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
     vtemp[2] += zdelta;
     setorigin( flame, PASSVEC3( vtemp ) );
 
-    if ( streq( other->s.v.classname, "player" ) )
+    if ( is_player )
     {
         other->s.v.tfstate = ( int ) other->s.v.tfstate | TFSTATE_BURNING;
         if ( !was_burning )
@@ -613,7 +617,7 @@ void Flamer_stream_touch(  )
         }
 	} else
 	{
-		if ( g_random(  ) < 0.3 || trap_pointcontents( PASSVEC3( self->s.v.origin ) + 1 ) != -1 )
+		if ( g_random(  ) < 0.3 || pos != CONTENT_EMPTY )
 		{
 			ent_remove( self );
 //                        SetVector( self->s.v.velocity, 0, 0, 0 );
@@ -680,18 +684,40 @@ void    s_explode4(  );
 void    s_explode5(  );
 void    s_explode6(  );*/
 
-void check_water()
+static int FlameStreamRemoveInWater(  )
 {
- traceline(PASSVEC3(self->s.v.origin), PASSVEC3(self->s.v.origin), 1, self);
- if (g_globalvars.trace_inwater) {
-   sound(self, 2, "misc/vapeur2.wav", 1, 1);
-   dremove(self);
-  }
+	if ( !Pyro_PointHasTraceInWater( self->s.v.origin ) )
+		return 0;
+
+	sound( self, 2, "misc/vapeur2.wav", 1, 1 );
+	dremove( self );
+	return 1;
 }
 
-void s_explode()
+static void FlameStreamThink(  )
 {
-    set_think( self, 0 , 5, check_water, check_water, SUB_Remove );
+	self->s.v.nextthink = g_globalvars.time + 0.1;
+
+	if ( self->s.v.frame >= 5 )
+	{
+		if ( FlameStreamRemoveInWater(  ) )
+			return;
+		self->s.v.think = ( func_t ) SUB_Remove;
+		return;
+	}
+
+	self->s.v.frame = self->s.v.frame + 1;
+	FlameStreamRemoveInWater(  );
+}
+
+static void FlameStreamStart(  )
+{
+	/* Keep the exact set_think(0, 5, ...) schedule without its generic
+	 * callback and frame_info dispatch overhead. */
+	self->s.v.frame = 0;
+	self->s.v.think = ( func_t ) FlameStreamThink;
+	self->s.v.nextthink = g_globalvars.time + 0.1;
+	FlameStreamRemoveInWater(  );
 }
 void W_FireFlame(  )
 {
@@ -728,7 +754,7 @@ void W_FireFlame(  )
 	VectorScale( flame->s.v.velocity, 600, flame->s.v.velocity );
 
 	flame->s.v.touch = ( func_t ) Flamer_stream_touch;
-	flame->s.v.think = ( func_t ) s_explode;
+	flame->s.v.think = ( func_t ) FlameStreamStart;
 	flame->s.v.effects = EF_DIMLIGHT;
 	flame->s.v.nextthink = g_globalvars.time + 0.15;
 
@@ -780,7 +806,7 @@ void T_IncendiaryTouch(  )
 			traceline( PASSVEC3( self->s.v.origin ), PASSVEC3( head->s.v.origin ), 1, self );
 			VectorSubtract( self->s.v.origin, head->s.v.origin, vtemp );
 			if ( g_globalvars.trace_fraction == 1
-			     || ( vlen( vtemp ) <= 64 ) )
+			     || DotProduct( vtemp, vtemp ) <= 4096 )
 			{
 				tf_data.deathmsg = DMSG_FLAME;
 				TF_T_Damage( head, self, owner, 10, TF_TD_NOTTEAM, TF_TD_FIRE );
