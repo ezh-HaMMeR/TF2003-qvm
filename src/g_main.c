@@ -118,6 +118,15 @@ intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, 
             TF_LocalinfoSettings();
             G_SpawnEntitiesFromString();
             TF_FinalizeSettings();
+
+            /* Immediate demo mode starts at map load. A/D keeps its
+             * round-based recording because a map contains two rounds. */
+            if (trap_cvar("demostartmode") == 1.0f && !tfset(admode)) {
+                extern int ad_roundnum;
+                extern void StartDemoRecord(int);
+                StartDemoRecord((ad_roundnum == 0));
+            }
+
             RestoreGlobals();
             return 1;
 

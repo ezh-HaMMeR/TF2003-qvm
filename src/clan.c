@@ -30,8 +30,12 @@ void PreMatch_Think(  )
     gedict_t *te;
     gedict_t *oldself;
     gedict_t *gren;
+    float   demostartmode;
+
+    demostartmode = trap_cvar("demostartmode");
 
     time_left = ceil( tf_data.cb_prematch_time - g_globalvars.time );
+
     if ( time_left > 60 )
     {
         G_bprint( 2, "%d minutes left till Match begins.\n", time_left / 60 );
@@ -53,9 +57,15 @@ void PreMatch_Think(  )
         self->s.v.nextthink = g_globalvars.time + 20.0;
         return;
     }
-    if (time_left == 10) {
-        StartDemoRecord((ad_roundnum == 0));
+
+    /* Default and A/D modes start recording ten seconds before the round.
+     * Mode 1 has already started recording while loading the map. */
+    if (demostartmode != 1.0f || tfset(admode)) {
+        if (time_left == 10) {
+            StartDemoRecord((ad_roundnum == 0));
+        }
     }
+
     if ( time_left > 1 )
     {
         UpdateCountdown((int)time_left);
@@ -63,6 +73,7 @@ void PreMatch_Think(  )
         self->s.v.nextthink = g_globalvars.time + 1.0;
         return;
     }
+
     //if ( time_left > 0 )
     if( tf_data.cb_prematch_time > g_globalvars.time )
     {
@@ -71,27 +82,22 @@ void PreMatch_Think(  )
         self->s.v.nextthink = g_globalvars.time + 1.0;
         return;
     }
-/*  if( tf_data.cb_prematch_time > g_globalvars.time )
-    {
-        self->s.v.nextthink = g_globalvars.time + 0.5;
-        return;
-    }*/
+
     if (time_left == 0) {
         UpdateCountdown((int)time_left);
     }
+
     G_bprint( 2, "MATCH BEGINS NOW\n" );
     MatchTimer( true );
     if ( tfset(game_locked) )
         G_bprint( 2, "GAME IS NOW LOCKED\n" );
-    // Disabled for ad mode
-    //teamscores[0] = teamscores[1] = teamscores[2] = teamscores[3] = teamscores[4] = 0;
-    //teamfrags[0] = teamfrags[1] = teamfrags[2] = teamfrags[3] = teamfrags[4] = 0;
-//paranoid ?????????
+
     if( tf_data.cease_fire )    
     {
         G_bprint(2,"!!!BUG BUG BUG!!! tf_data.cease_fire != 0\n");
         tf_data.cease_fire = 0;
     }
+
     for ( te = world; (te = trap_find( te, FOFS( s.v.classname ), "player" )); )
     {
         oldself = self;
