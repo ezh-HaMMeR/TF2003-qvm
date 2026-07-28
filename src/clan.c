@@ -414,7 +414,7 @@ void PreMatchReady_Think() {
     char   bstmp[512];
     char   rstmp[512];
     char   line[64];
-    int mxlen, oldlen, client_no;
+    int mxlen, oldlen, client_no, name_len;
 
     bstmp[0] = '\0';
     rstmp[0] = '\0';
@@ -424,8 +424,9 @@ void PreMatchReady_Think() {
         for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
             te = &g_edicts[client_no];
             if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
-            if (strlen(te->s.v.netname) > mxlen) {
-                mxlen = strlen(te->s.v.netname);
+            name_len = strlen(te->s.v.netname);
+            if (name_len > mxlen) {
+                mxlen = name_len;
             }
         }
         for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
