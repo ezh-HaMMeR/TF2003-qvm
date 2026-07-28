@@ -547,6 +547,8 @@ void boundPlayerPrimedGrenades( gedict_t *Player, int no_grenades_1, int no_gren
                 {
                     Player->s.v.tfstate -= ( Player->s.v.tfstate & ( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING) );
                     dremove( te );
+                    Player->primed_grenade = world;
+                    updateicons( Player, 0 );
                 } 
                 break;
             }

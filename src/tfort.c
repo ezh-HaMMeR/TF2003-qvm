@@ -1284,30 +1284,68 @@ void TeamFortress_GrenadePrimed(  )
 	dremove( self );
 }
 
+static qboolean IsOwnedActivePrimer( gedict_t *player, gedict_t *primer )
+{
+	if ( !primer || primer == world || primer->is_removed )
+		return false;
+	if ( strneq( primer->s.v.classname, "primer" ) )
+		return false;
+	if ( primer->s.v.owner != EDICT_TO_PROG( player ) )
+		return false;
+	if ( primer->s.v.think != ( func_t ) TeamFortress_GrenadePrimed )
+		return false;
+
+	return true;
+}
+
+static gedict_t *FindOwnedActivePrimer( gedict_t *player )
+{
+	gedict_t *primer;
+
+	for ( primer = world;
+			( primer = trap_find( primer, FOFS( s.v.classname ), "primer" ) ); )
+	{
+		if ( IsOwnedActivePrimer( player, primer ) )
+			return primer;
+	}
+
+	return world;
+}
+
 void TeamFortress_ThrowGrenade(  )
 {
+	gedict_t *primer;
 	gedict_t *oldself;
 
 	if ( !( self->s.v.tfstate & TFSTATE_GRENPRIMED ) )
 		return;
+
+	primer = self->primed_grenade;
+	if ( !IsOwnedActivePrimer( self, primer ) )
+	{
+		primer = FindOwnedActivePrimer( self );
+		self->primed_grenade = primer;
+	}
+
+	if ( primer == world )
+	{
+		/* The state says a grenade is primed, but no live primer exists.
+		 * Repair the player state instead of dereferencing a stale edict. */
+		self->primed_grenade = world;
+		self->s.v.tfstate &= ~( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING );
+		updateicons( self, 0 );
+		return;
+	}
+
 	self->s.v.tfstate |= TFSTATE_GRENTHROWING;
-	
-	if (self->primed_grenade != world && self->primed_grenade->respawn_time <= g_globalvars.time) {
+
+	if ( primer->respawn_time <= g_globalvars.time )
+	{
 		oldself = self;
-		self = oldself->primed_grenade;
+		self = primer;
 		TeamFortress_GrenadePrimed();
 		self = oldself;
 	}
-	/*for ( te = world ; ( te = trap_find( te, FOFS( s.v.classname ), "primer" ) ) ; )
-	{
-		if ( te->s.v.owner == EDICT_TO_PROG( self ) )
-			if ( te->respawn_time <= g_globalvars.time )
-			{
-				te->s.v.nextthink = g_globalvars.time;
-			}
-//              else te->s.v.nextthink=te.respawn_time;
-	}*/
-
 }
 
 int IsLegalClass( int pc )
