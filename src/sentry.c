@@ -57,18 +57,16 @@ void lvl1_sentry_atk1(  )
     self->s.v.nextthink = g_globalvars.time + 0.1;
 
     ai_face(  );
-    if ( enemy == world || enemy->is_feigning || enemy->s.v.health <= 0 || !visible( enemy )
-            || enemy->has_disconnected == 1 )
+    if ( enemy == world || enemy->is_feigning || enemy->s.v.health <= 0
+            || enemy->has_disconnected == 1
+            || ( self->s.v.ammo_shells <= 0 && !tg_data.sg_unlimit_ammo ) )
+        lvl1_sentry_stand(  );
+    else if ( !visible( enemy ) )
         lvl1_sentry_stand(  );
     else
     {
-        if ( self->s.v.ammo_shells <= 0 && !tg_data.sg_unlimit_ammo )
-            lvl1_sentry_stand(  );
-        else
-        {
-            if ( !Sentry_Fire(  ) )
-                lvl1_sentry_atk3(  );
-        }
+        if ( !Sentry_Fire(  ) )
+            lvl1_sentry_atk3(  );
     }
 }
 
@@ -112,18 +110,16 @@ void lvl2_sentry_atk1(  )
     self->s.v.nextthink = g_globalvars.time + 0.1;
 
     ai_face(  );
-    if ( enemy == world || enemy->is_feigning || enemy->s.v.health <= 0 || !visible( enemy )
-            || enemy->has_disconnected == 1 )
+    if ( enemy == world || enemy->is_feigning || enemy->s.v.health <= 0
+            || enemy->has_disconnected == 1
+            || ( self->s.v.ammo_shells <= 0 && !tg_data.sg_unlimit_ammo ) )
+        lvl2_sentry_stand(  );
+    else if ( !visible( enemy ) )
         lvl2_sentry_stand(  );
     else
     {
-        if ( self->s.v.ammo_shells <= 0 && !tg_data.sg_unlimit_ammo )
-            lvl2_sentry_stand(  );
-        else
-        {
-            if ( !Sentry_Fire(  ) )
-                lvl2_sentry_atk3(  );
-        }
+        if ( !Sentry_Fire(  ) )
+            lvl2_sentry_atk3(  );
     }
 }
 
@@ -168,18 +164,17 @@ void lvl3_sentry_atk1(  )
     self->s.v.nextthink = g_globalvars.time + 0.1;
 
     ai_face(  );
-    if ( enemy == world || enemy->is_feigning || enemy->s.v.health <= 0 || !visible( enemy )
-            || enemy->has_disconnected == 1 )
+    if ( enemy == world || enemy->is_feigning || enemy->s.v.health <= 0
+            || enemy->has_disconnected == 1
+            || ( self->s.v.ammo_shells <= 0 && self->s.v.ammo_rockets <= 0
+                && !tg_data.sg_unlimit_ammo ) )
+        lvl3_sentry_stand(  );
+    else if ( !visible( enemy ) )
         lvl3_sentry_stand(  );
     else
     {
-        if ( self->s.v.ammo_shells <= 0 && self->s.v.ammo_rockets <= 0 && !tg_data.sg_unlimit_ammo )
-            lvl3_sentry_stand(  );
-        else
-        {
-            if ( !Sentry_Fire(  ) )
-                lvl3_sentry_atk3(  );
-        }
+        if ( !Sentry_Fire(  ) )
+            lvl3_sentry_atk3(  );
     }
 }
 void lvl3_sentry_atk2(  )
@@ -264,39 +259,35 @@ int CheckTarget( gedict_t * Target )
         return 0;
     if ( ( int ) Target->s.v.items & IT_INVISIBILITY )
         return 0;
-    if ( !visible( Target ) )
-        return 0;
+    if ( tg_data.sg_allow_find != TG_SG_FIND_IGNORE_OFF )
+    {
+        if ( teamplay )
+        {
+            if ( self->team_no && TeamFortress_isTeamsAllied( Target->team_no, self->team_no ) )
+            {
+                if ( tg_data.sg_allow_find == TG_SG_FIND_IGNORE_TEAM )
+                    return 0;
+            }
+            if ( self->team_no && TeamFortress_isTeamsAllied( Target->undercover_team, self->team_no ) )
+            {
+                if ( tg_data.sg_allow_find == TG_SG_FIND_IGNORE_TEAM )
+                    return 0;
+            }
+        }
+        if ( Target == self->real_owner )
+        {
+            if ( tg_data.sg_allow_find == TG_SG_FIND_IGNORE_OWNER )
+                return 0;
+        }
+    }
+
     r = range( Target );
     if ( r == 3 )
         return 0;
-    else
-    {
-        if ( r == 2 && !infront( Target ) )
-            return 0;
-    }
-
-    if ( tg_data.sg_allow_find == TG_SG_FIND_IGNORE_OFF )
-        return 1;
-
-    if ( teamplay )
-    {
-        if (  self->team_no && TeamFortress_isTeamsAllied (Target->team_no , self->team_no) )
-        {
-            if ( tg_data.sg_allow_find == TG_SG_FIND_IGNORE_TEAM )
-                return 0;
-        }
-        if ( self->team_no && TeamFortress_isTeamsAllied(Target->undercover_team , self->team_no))
-        {
-            if ( tg_data.sg_allow_find == TG_SG_FIND_IGNORE_TEAM )
-                return 0;
-        }
-    }
-    if ( Target == self->real_owner )
-    {
-        if ( tg_data.sg_allow_find == TG_SG_FIND_IGNORE_OWNER )
-            return 0;
-    }
-
+    if ( r == 2 && !infront( Target ) )
+        return 0;
+    if ( !visible( Target ) )
+        return 0;
 
     return 1;
 }
