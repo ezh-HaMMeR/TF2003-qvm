@@ -168,17 +168,17 @@ int range( gedict_t * targ )
 {
 	vec3_t  spot1;
 	vec3_t  spot2;
-	float   r;
+	float   distance_squared;
 
 	VectorAdd( self->s.v.origin, self->s.v.view_ofs, spot1 );
 	VectorAdd( targ->s.v.origin, targ->s.v.view_ofs, spot2 );
 	VectorSubtract( spot1, spot2, spot2 );
-	r = vlen( spot2 );
-	if ( r < 120 )
+	distance_squared = DotProduct( spot2, spot2 );
+	if ( distance_squared < 120 * 120 )
 		return 0;
-	if ( r < 500 )
+	if ( distance_squared < 500 * 500 )
 		return 1;
-	if ( r < 1000 )
+	if ( distance_squared < 1000 * 1000 )
 		return 2;
 	return 3;
 }
