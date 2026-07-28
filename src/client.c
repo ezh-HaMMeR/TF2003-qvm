@@ -816,6 +816,8 @@ void PutClientInServer()
     if ( intermission_running )
         GotoNextMap();
 
+    Pyro_ExtinguishPlayer( self );
+
     if( self->isBot )
         botPutInServer();
 
@@ -1813,6 +1815,7 @@ void ClientDisconnect()
     G_bprint( PRINT_HIGH, "%s left the game with %.0f frags\n", self->s.v.netname, self->s.v.frags );
 
     sound( self, CHAN_BODY, "player/tornoff2.wav", 1, ATTN_NONE );
+    Pyro_ExtinguishPlayer( self );
 
     if( TeamFortress_GetNoPlayers() == 1 )
         StopDemoRecord();

@@ -28,6 +28,26 @@ void    Napalm_touch(  );
 int     RemoveFlameFromQueue( int id_flame );
 static int     num_world_flames = 0;
 
+static int FlameIsAttached( gedict_t * flame )
+{
+    return flame && ( streq( flame->flame_id, "1" ) || streq( flame->flame_id, "3" ) );
+}
+
+static void Pyro_ClearBurnState( gedict_t * target )
+{
+    if ( !target || target == world )
+        return;
+
+    target->numflames = 0;
+    target->s.v.tfstate = ( int ) target->s.v.tfstate &
+        ~( TFSTATE_BURNING | TFSTATE_MAX_FLAMES );
+}
+
+void Pyro_Reset(  )
+{
+    num_world_flames = 0;
+}
+
 //** different types of flames (decreasing priority)
 
 // 1 : burning flames making light and damage (1 per players or monsters)
@@ -44,13 +64,15 @@ gedict_t *FlameSpawn( int type, gedict_t * p_owner )
     if ( type != 1 && !tfset(lan_mode) )
         return world;
 
-    num_world_flames = num_world_flames + 1;
-    while ( num_world_flames > FLAME_MAXWORLDNUM )
+    while ( num_world_flames >= FLAME_MAXWORLDNUM )
     {
         if ( !RemoveFlameFromQueue( type ) )
             return world;
     }
     newmis = spawn(  );
+    if ( !newmis || newmis == world )
+        return world;
+
     // to keep track of the number of each type of flames
     switch ( type )
     {
@@ -85,20 +107,74 @@ gedict_t *FlameSpawn( int type, gedict_t * p_owner )
             setmodel( newmis, "progs/flame2.mdl" );
             setsize( newmis, 0, 0, 0, 0, 0, 0 );
             break;
+        default:
+            dremove( newmis );
+            return world;
     }
     newmis->s.v.owner = EDICT_TO_PROG( p_owner );
+    num_world_flames = num_world_flames + 1;
     return newmis;
 }
 
 // destroy a given flame, maintaining counters and links in the queue
 void FlameDestroy( gedict_t * this )
 {
-    gedict_t *enemy = PROG_TO_EDICT( this->s.v.enemy );
-    num_world_flames = num_world_flames - 1;
-    if (enemy->numflames == 0) {
-        enemy->s.v.tfstate = (int)enemy->s.v.tfstate & ~TFSTATE_BURNING;
+    gedict_t *enemy;
+
+    if ( !this || this == world || this->is_removed || strnull( this->flame_id ) )
+        return;
+
+    if ( FlameIsAttached( this ) )
+    {
+        enemy = PROG_TO_EDICT( this->s.v.enemy );
+        if ( enemy && enemy != world )
+        {
+            if ( enemy->numflames > 0 )
+                enemy->numflames = enemy->numflames - 1;
+            if ( enemy->numflames < 4 )
+                enemy->s.v.tfstate = ( int ) enemy->s.v.tfstate & ~TFSTATE_MAX_FLAMES;
+            if ( enemy->numflames <= 0 )
+                Pyro_ClearBurnState( enemy );
+        }
     }
+
+    if ( num_world_flames > 0 )
+        num_world_flames = num_world_flames - 1;
+    else
+        num_world_flames = 0;
+
+    // Stop queue searches from finding an entity pending engine removal.
+    this->flame_id = NULL;
     dremove( this );
+}
+
+static gedict_t *Pyro_FindAttachedFlame( gedict_t * target, const char *id )
+{
+    gedict_t *flame = world;
+
+    while ( ( flame = trap_find( flame, FOFS( flame_id ), id ) ) )
+    {
+        if ( PROG_TO_EDICT( flame->s.v.enemy ) == target )
+            return flame;
+    }
+    return NULL;
+}
+
+void Pyro_ExtinguishPlayer( gedict_t * target )
+{
+    gedict_t *flame;
+
+    if ( !target || target == world )
+        return;
+
+    // Clear gameplay state first, then remove every attached visual entity.
+    // FlameDestroy is idempotent and therefore safe for the current thinker too.
+    Pyro_ClearBurnState( target );
+
+    while ( ( flame = Pyro_FindAttachedFlame( target, "1" ) ) )
+        FlameDestroy( flame );
+    while ( ( flame = Pyro_FindAttachedFlame( target, "3" ) ) )
+        FlameDestroy( flame );
 }
 
 int RemoveFlameFromQueue( int id_flame )
@@ -132,8 +208,10 @@ int RemoveFlameFromQueue( int id_flame )
         G_conprintf( "\n\nRemoveFlameFromQueue():BOOM!\n" );
         return 0;
     }
-    num_world_flames = num_world_flames - 1;
-    ent_remove( tmp );
+    if ( id_flame == 1 && PROG_TO_EDICT( tmp->s.v.enemy ) != world )
+        Pyro_ExtinguishPlayer( PROG_TO_EDICT( tmp->s.v.enemy ) );
+    else
+        FlameDestroy( tmp );
     return 1;
 }
 
@@ -150,10 +228,14 @@ void NapalmGrenadeFollow(  )
     {
         sound( self, 2, "misc/vapeur2.wav", 1, 1 );
         FlameDestroy( self );
+        return;
     }
     if ( VectorCompareF( self->s.v.velocity, 0, 0, 0 ) )
+    {
         FlameDestroy( self );
-    self->s.v.nextthink = g_globalvars.time + 0.1;
+        return;
+    }
+    self->s.v.nextthink = g_globalvars.time + 0.2;
 }
 
 void NapalmGrenadeTouch(  )
@@ -176,8 +258,6 @@ void NapalmGrenadeNetThink(  )
             TF_T_Damage( head, self, PROG_TO_EDICT( self->s.v.owner ), 20, TF_TD_NOTTEAM, TF_TD_FIRE );
             other = head;
             Napalm_touch(  );
-            if ( streq( other->s.v.classname, "player" ) )
-                stuffcmd( other, "bf\nbf\n" );
         }
     }
     TempEffectCoord(  self->s.v.origin , TE_EXPLOSION );
@@ -218,8 +298,6 @@ void NapalmGrenadeExplode(  )
                 // set 'em on fire
                 other = head;// i can't believe this works!
                 Napalm_touch(  );
-                if ( streq( other->s.v.classname, "player" ) )
-                    stuffcmd( other, "bf\nbf\n" );
             }
         }
         TempEffectCoord(  self->s.v.origin , TE_EXPLOSION );
@@ -316,15 +394,14 @@ void FlameFollow(  )
     self->s.v.movetype = MOVETYPE_NONE;
     if ( !enemy->numflames )
     {
-        FlameDestroy( self );
+        Pyro_ExtinguishPlayer( enemy );
         return;
     }
     if ( enemy->s.v.health < 1 )
     {
         tf_data.deathmsg = DMSG_FLAME;
         T_RadiusDamage( self, self, 10, self );
-        enemy->numflames = 0;
-        FlameDestroy( self );
+        Pyro_ExtinguishPlayer( enemy );
         return;
     }
     if ( ( enemy->armorclass & AT_SAVEFIRE ) && enemy->s.v.armorvalue > 0 )
@@ -340,9 +417,7 @@ void FlameFollow(  )
         // only remove the flame if it is not the master flame, or if it is the last flame
         if ( self->s.v.effects != EF_DIMLIGHT || enemy->numflames <= 1 )
         {
-            //enemy->numflames = enemy->numflames - 1;
-            enemy->numflames = 0;
-            FlameDestroy( self );
+            Pyro_ExtinguishPlayer( enemy );
             return;
         }
     }
@@ -370,8 +445,7 @@ void FlameFollow(  )
     if ( enemy->s.v.waterlevel > 1 )
     {
         sound( self, 2, "misc/vapeur2.wav", 1, 1 );
-        enemy->numflames = enemy->numflames - 1;
-        FlameDestroy( self );
+        Pyro_ExtinguishPlayer( enemy );
         return;
     }
     self->s.v.nextthink = g_globalvars.time + 0.1;
@@ -393,6 +467,7 @@ void FlameFollow(  )
 static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
 {
     gedict_t *flame;
+    int was_burning;
     vec3_t  vtemp;
 
     if ( tf_data.cb_prematch_time > g_globalvars.time )
@@ -405,25 +480,25 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
     if ( ( other->armorclass & AT_SAVEFIRE ) && other->s.v.armorvalue > 0 )
         return NULL;
 
+    was_burning = other->numflames > 0;
     if ( streq( other->s.v.classname, "player" ) )
     {
         if ( ( teamplay & TEAMPLAY_NOEXPLOSIVE ) && other->team_no > 0
                 && other->team_no == PROG_TO_EDICT( self->s.v.owner )->team_no )
             return NULL;
-        other->s.v.tfstate = (int)other->s.v.tfstate | TFSTATE_BURNING;
-        CenterPrint( other, "You are on fire!\n" );
-        stuffcmd( other, "bf\n" );
     }
     if ( other->numflames < 1 )
     {
         flame = FlameSpawn( 1, other );
-        sound( flame, 2, "ambience/fire1.wav", 1, 1 );
     } else
-    {
         flame = FlameSpawn( 3, other );
-        if ( flame == world )
-            return NULL;
-    }
+
+    if ( !flame || flame == world )
+        return NULL;
+
+    if ( !was_burning )
+        sound( flame, 2, "ambience/fire1.wav", 1, 1 );
+
     flame->s.v.classname = "fire";
     other->numflames = other->numflames + 1;
     VectorCopy( other->s.v.velocity, flame->s.v.velocity );
@@ -437,6 +512,16 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
     VectorCopy( self->s.v.origin, vtemp );
     vtemp[2] += zdelta;
     setorigin( flame, PASSVEC3( vtemp ) );
+
+    if ( streq( other->s.v.classname, "player" ) )
+    {
+        other->s.v.tfstate = ( int ) other->s.v.tfstate | TFSTATE_BURNING;
+        if ( !was_burning )
+        {
+            CenterPrint( other, "You are on fire!\n" );
+            stuffcmd( other, "bf\n" );
+        }
+    }
     return flame;
 }
 
@@ -702,9 +787,6 @@ void T_IncendiaryTouch(  )
 				other = head;
 				if( !g_globalvars.trace_inwater)
 					Napalm_touch(  );
-
-				if ( streq( other->s.v.classname, "player" ) )
-					stuffcmd( other, "bf\nbf\n" );
 			}
 		}
 	}

@@ -114,6 +114,7 @@ intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, 
             return ( intptr_t ) ( &gamedata );
 
         case GAME_LOADENTS:
+            Pyro_Reset();
             infokey( world, "mapname", mapname, sizeof(mapname) );
             TF_LocalinfoSettings();
             G_SpawnEntitiesFromString();

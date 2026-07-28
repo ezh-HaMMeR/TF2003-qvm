@@ -220,6 +220,10 @@ void      W_FireFlame(  );
 void      W_FireIncendiaryCannon(  );
 void      W_FireTranq(  );
 void      W_FireLaser(  );
+
+// pyro.c
+void      Pyro_Reset(  );
+void      Pyro_ExtinguishPlayer( gedict_t * player );
      		
 
 void BecomeExplosion();
