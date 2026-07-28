@@ -241,75 +241,93 @@ const char* GetSpySbar( gedict_t * pl )
 }
 
 
+static gedict_t *FindOwnedBuildingForHud( gedict_t *pl, gedict_t *preferred,
+        int building_count, const char *classname )
+{
+    gedict_t *building;
+
+    if ( building_count == 1 && preferred && preferred != world
+            && !preferred->is_removed
+            && streq( preferred->s.v.classname, classname )
+            && preferred->real_owner == pl )
+        return preferred;
+
+    for ( building = world;
+            ( building = trap_find( building, FOFS( s.v.classname ), classname ) ); )
+    {
+        if ( building->real_owner == pl )
+            return building;
+    }
+
+    return world;
+}
+
 const char* GetEngSbar( gedict_t * pl )
 {
-        const char  *build;
-        char        *strp;
-        gedict_t    *te;
-        static char sg_status[1024];
+    const char  *build;
+    char        *strp;
+    gedict_t    *te;
+    static char sg_status[1024];
 
-        if( pl->is_building )
-                build = "  building                             ";
-        else
-                build = "                                       ";
+    if( pl->is_building )
+        build = "  building                             ";
+    else
+        build = "                                       ";
 
-        if( !pl->has_dispenser && !pl->has_sentry )
-                return build;
-                        
-        strp = sg_status;
+    if( !pl->has_dispenser && !pl->has_sentry )
+        return build;
 
-      	if ( pl->has_dispenser )
-      	{
+    strp = sg_status;
 
-        	for ( te = world; (te = trap_find( te, FOFS( s.v.classname ), "building_dispenser" )); )
-        	{
-        		if ( te->real_owner != pl )
-        			continue;
-        		_snprintf( strp, 30, "DISP: %3d ", ( int ) te->s.v.health );
-        		strp += 10;
-        		break;
-        	}
-      		if ( pl->has_sentry )
-      			*strp++ = '|';
-      	}
-      	*strp = 0;
-      	if ( pl->has_sentry )
-      	{
-        	for ( te = world; (te = trap_find( te, FOFS( s.v.classname ), "building_sentrygun" )); )
-        	{
-        		if ( te->real_owner != pl )
-        			continue;
-        		if ( (te->has_sentry && te->s.v.health <= 0 ) && tfset(tg_enabled) )
-        		{
-        			strcat( strp, "SENTRY:dead " );
-        			break;
-        		}
-        		if ( te->s.v.health > 0 )
-        		{
-        			_snprintf( strp, 30, " SENTRY: %3d ", ( int ) te->s.v.health );
-        			strp += 13;
-        		}
+    if ( pl->has_dispenser )
+    {
+        te = FindOwnedBuildingForHud( pl, pl->dispenser,
+                pl->has_dispenser, "building_dispenser" );
+        if ( te != world )
+        {
+            _snprintf( strp, 30, "DISP: %3d ", ( int ) te->s.v.health );
+            strp += 10;
+        }
+        if ( pl->has_sentry )
+            *strp++ = '|';
+    }
+    *strp = 0;
+    if ( pl->has_sentry )
+    {
+        te = FindOwnedBuildingForHud( pl, pl->sentry,
+                pl->has_sentry, "building_sentrygun" );
+        if ( te != world )
+        {
+            if ( ( te->has_sentry && te->s.v.health <= 0 ) && tfset( tg_enabled ) )
+            {
+                strcat( strp, "SENTRY:dead " );
+            } else
+            {
+                if ( te->s.v.health > 0 )
+                {
+                    _snprintf( strp, 30, " SENTRY: %3d ", ( int ) te->s.v.health );
+                    strp += 13;
+                }
 
-        		if ( !te->s.v.ammo_shells )
-        		{
-        			if ( !te->s.v.ammo_rockets && te->s.v.weapon == 3 )
-        				strcat( strp, "no ammo   " );
-        			else
-        				strcat( strp, "no shells " );
-        		} else
-        		{
-        			if ( !te->s.v.ammo_rockets && te->s.v.weapon == 3 )
-        				strcat( strp, "no rockets ");
-        			else
-        				strcat( strp, "           ");
-        		}
-        		strp += 11;
-        		break;
-        	}
-        	
-      	}
-      	strcat( strp, build );
-      	return sg_status;
+                if ( !te->s.v.ammo_shells )
+                {
+                    if ( !te->s.v.ammo_rockets && te->s.v.weapon == 3 )
+                        strcat( strp, "no ammo   " );
+                    else
+                        strcat( strp, "no shells " );
+                } else
+                {
+                    if ( !te->s.v.ammo_rockets && te->s.v.weapon == 3 )
+                        strcat( strp, "no rockets " );
+                    else
+                        strcat( strp, "           " );
+                }
+                strp += 11;
+            }
+        }
+    }
+    strcat( strp, build );
+    return sg_status;
 }
 
 
@@ -333,4 +351,3 @@ void StatusRes( int res )
 	self->StatusBarRes = res;
 	G_sprint( self, 2, sbar_msg[res] );
 }
-
