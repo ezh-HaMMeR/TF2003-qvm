@@ -710,7 +710,11 @@ void FlushDamageStatUpdates(  )
 
 void sendinittfinfo(gedict_t* ply) {
 	gedict_t* te;
-	for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
+	int client_no;
+	for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
+		te = &g_edicts[client_no];
+		if (te->is_removed || strneq(te->s.v.classname, "player"))
+			continue;
 		sendtfinfo_single(te, ply, TFINFO_TEAM, te->team_no);
 		sendtfinfo_single(te, ply, TFINFO_PLAYERCLASS, te->playerclass);
 		sendtfinfo_single(te, ply, TFINFO_TOUCHES, te->touches);

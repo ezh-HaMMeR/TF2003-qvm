@@ -414,20 +414,24 @@ void PreMatchReady_Think() {
     char   bstmp[512];
     char   rstmp[512];
     char   line[64];
-    int mxlen, oldlen;
+    int mxlen, oldlen, client_no;
 
     bstmp[0] = '\0';
     rstmp[0] = '\0';
     line[0] = '\0';
     if (tf_data.cb_prematch_time - g_globalvars.time) {
         mxlen = 0;
-        for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
+        for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
+            te = &g_edicts[client_no];
+            if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
             CenterPrint(te, "\n");
             if (strlen(te->s.v.netname) > mxlen) {
                 mxlen = strlen(te->s.v.netname);
             }
         }
-        for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
+        for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
+            te = &g_edicts[client_no];
+            if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
             CenterPrint(te, "\n");
             _snprintf(line, sizeof(line), "%s", te->s.v.netname);
             oldlen = strlen(line);
@@ -445,7 +449,9 @@ void PreMatchReady_Think() {
                 strcat(rstmp, line);
             }
         }
-        for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
+        for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
+            te = &g_edicts[client_no];
+            if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
             G_centerprint(te, "&c44fBlue&r\n\n%s\n&cf00Red&r\n\n%s\n\n%s", bstmp, rstmp, (te->ready ? "&c888----------------&r\n\nIf you are not ready, type &cf20/unready&r\n" : "&c888----------------&r\n\nType &cf20/ready&r to ready up\n"));
             te->StatusRefreshTime = g_globalvars.time + 1.5;
         }
