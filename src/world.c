@@ -372,6 +372,7 @@ static  float old_time = 0;
 void MatchTimer( qboolean );
 void StartFrame( int time )
 {
+	sv_gravity = trap_cvar( "sv_gravity" );
 	timelimit = trap_cvar( "timelimit" ) * 60;
 	fraglimit = trap_cvar( "fraglimit" );
 	teamplay  = trap_cvar( "teamplay" );

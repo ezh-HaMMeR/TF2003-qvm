@@ -119,6 +119,7 @@ intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, 
             TF_LocalinfoSettings();
             G_SpawnEntitiesFromString();
             TF_FinalizeSettings();
+            sv_gravity = trap_cvar( "sv_gravity" );
 
             /* Immediate demo mode starts at map load. A/D keeps its
              * round-based recording because a map contains two rounds. */
@@ -396,5 +397,4 @@ float sv_gravity;
 void ClearGlobals()
 {
     damage_attacker = damage_inflictor = activator = self = other = newmis = world;
-    sv_gravity = trap_cvar("sv_gravity");
 }
