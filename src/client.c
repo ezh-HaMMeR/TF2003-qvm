@@ -1359,8 +1359,6 @@ void PlayerPreThink()
         return;		// the think tics
     }
 
-    trap_makevectors( self->s.v.v_angle );	// is this still used
-
     if ( !self->playerclass )
     {
         if ( self->s.v.button2 && ( self->current_menu == MENU_TEAM ) && !self->team_no )
