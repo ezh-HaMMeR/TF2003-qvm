@@ -353,14 +353,11 @@ int TeamFortress_TeamGetLives( int tno )
 
 int TeamFortress_TeamGetNoPlayers( int tno )
 {
-	int     size_team = 0, client_no;
+	int     size_team = 0;
 	gedict_t *search;
 
-	for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
+	for ( search = world; ( search = G_NextPlayer( search ) ) != world; )
 	{
-		search = &g_edicts[client_no];
-		if ( search->is_removed || strneq( search->s.v.classname, "player" ) )
-			continue;
 		if ( search->team_no == tno )
 			size_team++;
 	}
@@ -369,14 +366,11 @@ int TeamFortress_TeamGetNoPlayers( int tno )
 
 int TeamFortress_GetNoPlayers(  )
 {
-	int     nump = 0, client_no;
+	int     nump = 0;
 	gedict_t *search;
 
-	for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
+	for ( search = world; ( search = G_NextPlayer( search ) ) != world; )
 	{
-		search = &g_edicts[client_no];
-		if ( search->is_removed || strneq( search->s.v.classname, "player" ) )
-			continue;
 		nump++;
 	}
 	return nump;
@@ -857,16 +851,12 @@ int ClassIsRestricted( int tno, int pc )
 void teamsprint( int tno, gedict_t * ignore, char *st )
 {
 	gedict_t *te;
-	int client_no;
 
 	if ( !tno )
 		return;
 
-	for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
+	for ( te = world; ( te = G_NextPlayer( te ) ) != world; )
 	{
-		te = &g_edicts[client_no];
-		if ( te->is_removed || strneq( te->s.v.classname, "player" ) )
-			continue;
 		if ( te->team_no == tno && te != ignore )
 			G_sprint( te, 2, "%s", st );
 	}

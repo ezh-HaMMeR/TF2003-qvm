@@ -315,6 +315,7 @@ void StopDemoRecord();
 void StartDemoRecord(int init);
 int log2powerof2( unsigned int v );
 void set_think( gedict_t* e, int start, int end, th_die_func_t frame_func, th_die_func_t last_func, th_die_func_t last_think );
+gedict_t *G_NextPlayer( gedict_t *player );
 void SendDamageStatUpdate( gedict_t *player );
 void FlushDamageStatUpdates(  );
 

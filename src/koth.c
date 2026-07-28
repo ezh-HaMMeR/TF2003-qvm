@@ -62,7 +62,7 @@ int boxvsprism(vec3_t mns, vec3_t mxs, vec3_t* points, int len, float height) {
 
 void SP_capture_point_think() {
 	gedict_t* te = world;
-	int blue, red, client_no;
+	int blue, red;
 	blue = red = 0;
 
 	if (g_globalvars.time < tf_data.cb_prematch_time) {
@@ -70,9 +70,7 @@ void SP_capture_point_think() {
 		return;
 	}
 
-	for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
-		te = &g_edicts[client_no];
-		if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
+	for (te = world; (te = G_NextPlayer(te)) != world;) {
 		if (te->s.v.deadflag || !te->playerclass) continue;
     if (boxvsprism(te->s.v.absmin, te->s.v.absmax, self->cp_points, self->cp_points_amount, self->cp_height)) {
     	if (te->team_no == 1) {
@@ -87,9 +85,7 @@ void SP_capture_point_think() {
   	if (self->cap_team == 0 && self->team_no != 1) {
   		self->cap_team = 1;
   		G_bprint(2, "Blue team is contesting the point!\n");
-		for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
-			te = &g_edicts[client_no];
-			if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
+		for (te = world; (te = G_NextPlayer(te)) != world;) {
 	      stuffcmd(te, "play koth/%s.wav\n", (te->team_no != self->cap_team ? "cap_enemy" : "cap_friendly"));
 	    }
   	}
@@ -103,9 +99,7 @@ void SP_capture_point_think() {
   	if (self->cap_team == 0 && self->team_no != 2) {
   		self->cap_team = 2;
   		G_bprint(2, "Red team is contesting the point!\n");
-		for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
-			te = &g_edicts[client_no];
-			if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
+		for (te = world; (te = G_NextPlayer(te)) != world;) {
 	      stuffcmd(te, "play koth/%s.wav\n", (te->team_no != self->cap_team ? "cap_enemy" : "cap_friendly"));
 	    }
   	}
@@ -132,9 +126,7 @@ void SP_capture_point_think() {
   	FlagColor(self->team_no);
   	G_bprint(2, "%s team has the point!\n", (self->team_no == 1 ? "Blue" : "Red"));
 
-		for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
-			te = &g_edicts[client_no];
-			if (te->is_removed || strneq(te->s.v.classname, "player")) continue;
+		for (te = world; (te = G_NextPlayer(te)) != world;) {
       stuffcmd(te, "play koth/cap_finished.wav\n");
     }
   }

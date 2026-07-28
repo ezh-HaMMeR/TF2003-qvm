@@ -297,7 +297,6 @@ int Sentry_FindTarget_Angel(  )
 {
     gedict_t *client;
     gedict_t *enemy = PROG_TO_EDICT( self->s.v.enemy );
-    int client_no;
 
     if ( enemy != world )
     {
@@ -311,11 +310,8 @@ int Sentry_FindTarget_Angel(  )
                 return 0;
         }
     }
-    for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
+    for ( client = world; ( client = G_NextPlayer( client ) ) != world; )
     {
-        client = &g_edicts[client_no];
-        if ( client->is_removed || strneq( client->s.v.classname, "player" ) )
-            continue;
         if ( CheckTarget( client ) )
         {
             self->s.v.enemy = EDICT_TO_PROG( client );

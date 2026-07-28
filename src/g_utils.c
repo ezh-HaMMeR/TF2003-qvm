@@ -677,6 +677,25 @@ void sendtfinfo_broadcast(gedict_t* e, int idx, int val) {
 	trap_updatetfinfo(UPDATETFINFO_BROADCAST, NUM_FOR_EDICT(e), idx, val);
 }
 
+gedict_t *G_NextPlayer( gedict_t *player )
+{
+	int client_no;
+
+	if ( !player || player == world )
+		client_no = 1;
+	else
+		client_no = NUM_FOR_EDICT( player ) + 1;
+
+	for ( ; client_no <= MAX_CLIENTS; client_no++ )
+	{
+		player = &g_edicts[client_no];
+		if ( !player->is_removed && streq( player->s.v.classname, "player" ) )
+			return player;
+	}
+
+	return world;
+}
+
 void SendDamageStatUpdate( gedict_t *player )
 {
 	if ( !player || player == world )
@@ -710,11 +729,7 @@ void FlushDamageStatUpdates(  )
 
 void sendinittfinfo(gedict_t* ply) {
 	gedict_t* te;
-	int client_no;
-	for (client_no = 1; client_no <= MAX_CLIENTS; client_no++) {
-		te = &g_edicts[client_no];
-		if (te->is_removed || strneq(te->s.v.classname, "player"))
-			continue;
+	for (te = world; (te = G_NextPlayer(te)) != world;) {
 		sendtfinfo_single(te, ply, TFINFO_TEAM, te->team_no);
 		sendtfinfo_single(te, ply, TFINFO_PLAYERCLASS, te->playerclass);
 		sendtfinfo_single(te, ply, TFINFO_TOUCHES, te->touches);
