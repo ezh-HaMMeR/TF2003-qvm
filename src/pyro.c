@@ -22,6 +22,8 @@
  */
 #include "g_local.h"
 #define FLAME_PLYRMAXTIME 45
+#define CHAN_PYRO_BURN 5
+#define PYRO_BURN_SOUND "ambience/fire1.wav"
 void    NapalmGrenadeTouch(  );
 void    NapalmGrenadeLaunch( vec3_t org, gedict_t * shooter );
 void    Napalm_touch(  );
@@ -39,6 +41,18 @@ static int Pyro_PointHasTraceInWater( const vec3_t origin )
 static int FlameIsAttached( gedict_t * flame )
 {
     return flame && ( streq( flame->flame_id, "1" ) || streq( flame->flame_id, "3" ) );
+}
+
+static int Pyro_IsPlayer( gedict_t * target )
+{
+    return target && target != world && streq( target->s.v.classname, "player" );
+}
+
+static void Pyro_StopPlayerBurnSound( gedict_t * target )
+{
+    if ( Pyro_IsPlayer( target ) )
+        sound( target, CHAN_PYRO_BURN | CHAN_NO_PHS_ADD,
+            PYRO_BURN_SOUND, 0, ATTN_NONE );
 }
 
 static void Pyro_ClearBurnState( gedict_t * target )
@@ -129,8 +143,17 @@ void FlameDestroy( gedict_t * this )
         enemy = PROG_TO_EDICT( this->s.v.enemy );
         if ( enemy && enemy != world )
         {
+            /* Non-player targets keep the sound on the master flame entity. */
+            if ( this->s.v.effects == EF_DIMLIGHT && !Pyro_IsPlayer( enemy ) )
+                sound( this, CHAN_VOICE | CHAN_NO_PHS_ADD,
+                    PYRO_BURN_SOUND, 0, ATTN_NONE );
+
             if ( enemy->numflames > 0 )
+            {
                 enemy->numflames = enemy->numflames - 1;
+                if ( enemy->numflames <= 0 )
+                    Pyro_StopPlayerBurnSound( enemy );
+            }
             if ( enemy->numflames < 4 )
                 enemy->s.v.tfstate = ( int ) enemy->s.v.tfstate & ~TFSTATE_MAX_FLAMES;
             if ( enemy->numflames <= 0 )
@@ -166,8 +189,15 @@ static void Pyro_RemoveAttachedFlames( gedict_t *target, const char *id )
 
 void Pyro_ExtinguishPlayer( gedict_t * target )
 {
+    int was_burning;
+
     if ( !target || target == world )
         return;
+
+    was_burning = target->numflames > 0 ||
+        ( ( int ) target->s.v.tfstate & TFSTATE_BURNING );
+    if ( was_burning )
+        Pyro_StopPlayerBurnSound( target );
 
     // Clear gameplay state first, then remove every attached visual entity.
     // FlameDestroy is idempotent and therefore safe for the current thinker too.
@@ -500,9 +530,6 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
     if ( !flame || flame == world )
         return NULL;
 
-    if ( !was_burning )
-        sound( flame, 2, "ambience/fire1.wav", 1, 1 );
-
     flame->s.v.classname = "fire";
     other->numflames = other->numflames + 1;
     VectorCopy( other->s.v.velocity, flame->s.v.velocity );
@@ -516,6 +543,14 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
     VectorCopy( self->s.v.origin, vtemp );
     vtemp[2] += zdelta;
     setorigin( flame, PASSVEC3( vtemp ) );
+
+    if ( !was_burning )
+    {
+        if ( is_player )
+            sound( other, CHAN_PYRO_BURN, PYRO_BURN_SOUND, 1, ATTN_NORM );
+        else
+            sound( flame, CHAN_VOICE, PYRO_BURN_SOUND, 1, ATTN_NORM );
+    }
 
     if ( is_player )
     {
