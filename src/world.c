@@ -383,8 +383,7 @@ void StartFrame( int time )
 //	bot_frametime = g_globalvars.time - old_time;
 //	old_time = g_globalvars.time;
 //	botFrame();
-	/* Publish the final cumulative damage value from the previous frame.
-	 * Multiple hits by the same player therefore produce one update. */
+	/* Publish accumulated damage updates on their 100 ms schedule. */
 	FlushDamageStatUpdates();
 	MatchTimer( false );
 }

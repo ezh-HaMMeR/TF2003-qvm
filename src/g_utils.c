@@ -677,6 +677,9 @@ void sendtfinfo_broadcast(gedict_t* e, int idx, int val) {
 	trap_updatetfinfo(UPDATETFINFO_BROADCAST, NUM_FOR_EDICT(e), idx, val);
 }
 
+#define TFINFO_DAMAGE_UPDATE_INTERVAL 0.1
+static float next_damage_stat_update;
+
 gedict_t *G_NextPlayer( gedict_t *player )
 {
 	int client_no;
@@ -705,10 +708,21 @@ void SendDamageStatUpdate( gedict_t *player )
 	player->damage_update_pending = 0;
 }
 
+void ResetDamageStatUpdates(  )
+{
+	next_damage_stat_update = 0;
+}
+
 void FlushDamageStatUpdates(  )
 {
 	gedict_t *player;
 	int client_no;
+
+	/* Accumulate hits for 100 ms before crossing the QVM/engine boundary.
+	 * Explicit sends used by resets and disconnects remain immediate. */
+	if ( g_globalvars.time < next_damage_stat_update )
+		return;
+	next_damage_stat_update = g_globalvars.time + TFINFO_DAMAGE_UPDATE_INTERVAL;
 
 	/* All possible client edicts are inside slots 1..MAX_CLIENTS. Iterating
 	 * this fixed range avoids a trap_find syscall for every connected player. */
