@@ -49,6 +49,11 @@ void    Engineer_RotateSG(  );
 void    TeamFortress_Cmd_Detpack(  );
 void    Admin_Cmd(  );
 void    DropOrGiveGoalItems(  );
+void    TeamFortress_Cmd_PrimeGrenade1(  );
+void    TeamFortress_Cmd_PrimeGrenade2(  );
+void    TeamFortress_Cmd_PrimeGrenade1PTH(  );
+void    TeamFortress_Cmd_PrimeGrenade2PTH(  );
+void    TeamFortress_Cmd_ThrowGrenade(  );
 
 const static cmd_t   cmds[] = {
   {"kill", ClientKill},
@@ -62,6 +67,11 @@ const static cmd_t   cmds[] = {
   {"sg_rotate", Engineer_RotateSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"detpack", TeamFortress_Cmd_Detpack, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS },
   {"dropitems", DropOrGiveGoalItems, CMD_NOT_PREMATCH | CMD_NOT_DEAD},
+  {"tf_primegren1", TeamFortress_Cmd_PrimeGrenade1, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"tf_primegren2", TeamFortress_Cmd_PrimeGrenade2, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"tf_primegren1_pth", TeamFortress_Cmd_PrimeGrenade1PTH, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"tf_primegren2_pth", TeamFortress_Cmd_PrimeGrenade2PTH, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"tf_throwgren", TeamFortress_Cmd_ThrowGrenade, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
   {NULL, NULL, 0}
 };
 
@@ -242,4 +252,3 @@ void Test(  )
     }
   }
 }
-

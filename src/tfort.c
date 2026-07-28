@@ -954,7 +954,7 @@ static qboolean primeGrenade( int gtype )
     }
     return false;
 }
-void TeamFortress_PrimeGrenade(int useprimetothrow)
+static void TeamFortress_PrimeGrenadeImpulse( int prime_impulse, int useprimetothrow )
 {
 	int     gtype = -1;
 
@@ -967,7 +967,7 @@ void TeamFortress_PrimeGrenade(int useprimetothrow)
 		return;
 	}
 	// numgrens(self, 1);
-	if ( self->s.v.impulse == TF_GRENADE_1 )
+	if ( prime_impulse == TF_GRENADE_1 )
 	{
 
 		gtype = self->s.v.tpgren1;
@@ -990,7 +990,7 @@ void TeamFortress_PrimeGrenade(int useprimetothrow)
 			return;
 		}
 	}
-	if ( self->s.v.impulse == TF_GRENADE_2 )
+	if ( prime_impulse == TF_GRENADE_2 )
 	{
 
 		gtype = self->s.v.tpgren2;
@@ -1021,7 +1021,7 @@ void TeamFortress_PrimeGrenade(int useprimetothrow)
 	tGrenade->s.v.owner = EDICT_TO_PROG( self );
 	tGrenade->s.v.weapon = gtype;
 	tGrenade->s.v.classname = "primer";
-	tGrenade->s.v.impulse = self->s.v.impulse;
+	tGrenade->s.v.impulse = prime_impulse;
 	tGrenade->s.v.nextthink = g_globalvars.time + 0.8;
 	tGrenade->respawn_time = g_globalvars.time + 0.8;
 	if ( gtype == GR_TYPE_CALTROPS )
@@ -1030,6 +1030,55 @@ void TeamFortress_PrimeGrenade(int useprimetothrow)
 		tGrenade->heat = g_globalvars.time + 3 + 0.8;
 	tGrenade->s.v.think = ( func_t ) TeamFortress_GrenadePrimed;
 	self->primed_grenade = tGrenade;
+}
+
+void TeamFortress_PrimeGrenade( int useprimetothrow )
+{
+	int prime_impulse = self->s.v.impulse;
+
+	/* The prime-to-throw aliases use separate impulse numbers, but select
+	 * the same grenade slots as the regular prime aliases. */
+	if ( prime_impulse == TF_GRENADE_1_PTH )
+		prime_impulse = TF_GRENADE_1;
+	else if ( prime_impulse == TF_GRENADE_2_PTH )
+		prime_impulse = TF_GRENADE_2;
+
+	TeamFortress_PrimeGrenadeImpulse( prime_impulse, useprimetothrow );
+}
+
+void TeamFortress_Cmd_PrimeGrenade1(  )
+{
+	if ( tf_data.cease_fire )
+		return;
+	TeamFortress_PrimeGrenadeImpulse( TF_GRENADE_1, self->useprimetothrow );
+}
+
+void TeamFortress_Cmd_PrimeGrenade2(  )
+{
+	if ( tf_data.cease_fire )
+		return;
+	TeamFortress_PrimeGrenadeImpulse( TF_GRENADE_2, self->useprimetothrow );
+}
+
+void TeamFortress_Cmd_PrimeGrenade1PTH(  )
+{
+	if ( tf_data.cease_fire )
+		return;
+	TeamFortress_PrimeGrenadeImpulse( TF_GRENADE_1, 1 );
+}
+
+void TeamFortress_Cmd_PrimeGrenade2PTH(  )
+{
+	if ( tf_data.cease_fire )
+		return;
+	TeamFortress_PrimeGrenadeImpulse( TF_GRENADE_2, 1 );
+}
+
+void TeamFortress_Cmd_ThrowGrenade(  )
+{
+	if ( tf_data.cease_fire )
+		return;
+	TeamFortress_ThrowGrenade(  );
 }
 
 static gedict_t* spawnGrenade( gedict_t* user, int type, int isthrow )

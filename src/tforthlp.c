@@ -22,6 +22,26 @@
  */
 #include "g_local.h"
 
+static void TeamFortress_ClientCommandAlias( char *halias, char *command )
+{
+    stuffcmd( self, "alias %s \"cmd %s\"\n", halias, command );
+}
+
+static void TeamFortress_GrenadeCommandAliases(  )
+{
+    TeamFortress_ClientCommandAlias( "primeone", "tf_primegren1" );
+    TeamFortress_ClientCommandAlias( "primetwo", "tf_primegren2" );
+    TeamFortress_ClientCommandAlias( "throwgren", "tf_throwgren" );
+    TeamFortress_ClientCommandAlias( "+gren1", "tf_primegren1" );
+    TeamFortress_ClientCommandAlias( "+gren2", "tf_primegren2" );
+    TeamFortress_ClientCommandAlias( "-gren1", "tf_throwgren" );
+    TeamFortress_ClientCommandAlias( "-gren2", "tf_throwgren" );
+    TeamFortress_ClientCommandAlias( "gren1", "tf_primegren1_pth" );
+    TeamFortress_ClientCommandAlias( "gren2", "tf_primegren2_pth" );
+    TeamFortress_ClientCommandAlias( "+grenade1", "tf_primegren1_pth" );
+    TeamFortress_ClientCommandAlias( "+grenade2", "tf_primegren2_pth" );
+}
+
 void TeamFortress_MOTD(  )
 {
 
@@ -60,7 +80,12 @@ void TeamFortress_MOTD(  )
         self->menu_count = MENU_REFRESH_RATE;
         self->motd = 22;
         if ( self->got_aliases == 1 )
+        {
+            /* Existing clients still have the old impulse-based grenade
+             * aliases, so refresh this small, transport-critical subset. */
+            TeamFortress_GrenadeCommandAliases(  );
             return;
+        }
         G_sprint( self, 2, "binding aliases...\n" );
         TeamFortress_Alias( "inv", TF_INVENTORY, 0 );
         TeamFortress_Alias( "showtf", TF_SHOWTF, 0 );
@@ -105,17 +130,7 @@ void TeamFortress_MOTD(  )
     }
     if ( self->motd == 35 )
     {
-        TeamFortress_Alias( "primeone", TF_GRENADE_1, 0 );
-        TeamFortress_Alias( "primetwo", TF_GRENADE_2, 0 );
-        TeamFortress_Alias( "throwgren", TF_GRENADE_T, 0 );
-        TeamFortress_Alias( "+gren1", TF_GRENADE_1, 0 );
-        TeamFortress_Alias( "+gren2", TF_GRENADE_2, 0 );
-        TeamFortress_Alias( "-gren1", TF_GRENADE_T, 0 );
-        TeamFortress_Alias( "-gren2", TF_GRENADE_T, 0 );
-        TeamFortress_Alias( "gren1", TF_GRENADE_1_PTH, 0 );
-        TeamFortress_Alias( "gren2", TF_GRENADE_2_PTH, 0 );
-        TeamFortress_Alias( "+grenade1", TF_GRENADE_1_PTH, 0 );
-        TeamFortress_Alias( "+grenade2", TF_GRENADE_2_PTH, 0 );
+        TeamFortress_GrenadeCommandAliases(  );
         TeamFortress_Alias( "showscores", TF_TEAM_SCORES, 0 );
         TeamFortress_Alias( "showkothstatus", TF_SHOWKOTHSTATUS, 0 );
         TeamFortress_Alias( "showclasses", TF_TEAM_CLASSES, 0 );
