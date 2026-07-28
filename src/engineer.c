@@ -563,6 +563,7 @@ void TeamFortress_FinishedBuilding(  )
     gedict_t *oldself;
     gedict_t *owner;
     vec3_t  end;
+    char team_message[64];
 
 
     owner = PROG_TO_EDICT( self->s.v.owner );
@@ -593,8 +594,9 @@ void TeamFortress_FinishedBuilding(  )
     {
         self->has_dispenser = self->has_dispenser + 1;
         G_sprint( self, 2, "You finish building the dispenser.\n" );
-        teamsprint( self->team_no, self, self->s.v.netname );
-        teamsprint( self->team_no, self, " has built a Dispenser.\n" );
+        _snprintf( team_message, sizeof( team_message ),
+                "%s has built a Dispenser.\n", self->s.v.netname );
+        teamsprint( self->team_no, self, team_message );
 
         if( !tfset(tg_enabled) )
             self->s.v.ammo_cells = self->s.v.ammo_cells - 100;
@@ -650,8 +652,9 @@ void TeamFortress_FinishedBuilding(  )
             self->has_sentry = self->has_sentry + 1;
 
             G_sprint( self, 2, "You finish building the sentry gun.\n" );
-            teamsprint( self->team_no, self, self->s.v.netname );
-            teamsprint( self->team_no, self, " has built a Sentry Gun.\n" );
+            _snprintf( team_message, sizeof( team_message ),
+                    "%s has built a Sentry Gun.\n", self->s.v.netname );
+            teamsprint( self->team_no, self, team_message );
 
             oldself->s.v.classname = "building_sentrygun_base";
             oldself->s.v.netname = "sentry gun";
@@ -799,6 +802,8 @@ int Engineer_Dispenser_Repair( gedict_t* disp)
 
 int Engineer_Dispenser_Dismantle( gedict_t* disp )
 {
+    char team_message[96];
+
     if( !tfset(tg_enabled)  && (self->playerclass != PC_ENGINEER ))
         return 0;
     G_sprint( self, 2, "You dismantle the Dispenser.\n" );
@@ -806,10 +811,9 @@ int Engineer_Dispenser_Dismantle( gedict_t* disp )
     if ( disp->real_owner != self )
     {
         G_sprint( disp->real_owner, 2, "%s dismantled your Dispenser.\n", self->s.v.netname );
-        teamsprint( disp->real_owner->team_no, disp->real_owner, ( char * ) self->s.v.netname );
-        teamsprint( disp->real_owner->team_no, disp->real_owner, " dismantled " );
-        teamsprint( disp->real_owner->team_no, disp->real_owner, ( char * ) disp->real_owner->s.v.netname );
-        teamsprint( disp->real_owner->team_no, disp->real_owner, "'s Dispenser.\n" );
+        _snprintf( team_message, sizeof( team_message ), "%s dismantled %s's Dispenser.\n",
+                self->s.v.netname, disp->real_owner->s.v.netname );
+        teamsprint( disp->real_owner->team_no, disp->real_owner, team_message );
     }
     dremove( disp );
     disp->real_owner->has_dispenser -= 1;
@@ -947,6 +951,8 @@ int Engineer_SentryGun_InsertAmmo( gedict_t* gun )
 
 int Engineer_SentryGun_Dismantle( gedict_t* gun )
 {
+    char team_message[96];
+
     if( !tfset(tg_enabled)  && (self->playerclass != PC_ENGINEER ))
         return 0;
     G_sprint( self, 2, "You dismantle the Sentry Gun.\n" );
@@ -954,10 +960,9 @@ int Engineer_SentryGun_Dismantle( gedict_t* gun )
     if ( gun->real_owner != self )
     {
         G_sprint( gun->real_owner, 2, "%s dismantled your Sentry Gun.\n", self->s.v.netname );
-        teamsprint( gun->real_owner->team_no, gun->real_owner, ( char * ) self->s.v.netname );
-        teamsprint( gun->real_owner->team_no, gun->real_owner, " dismantled " );
-        teamsprint( gun->real_owner->team_no, gun->real_owner, gun->real_owner->s.v.netname );
-        teamsprint( gun->real_owner->team_no, gun->real_owner, "'s Sentry Gun.\n" );
+        _snprintf( team_message, sizeof( team_message ), "%s dismantled %s's Sentry Gun.\n",
+                self->s.v.netname, gun->real_owner->s.v.netname );
+        teamsprint( gun->real_owner->team_no, gun->real_owner, team_message );
     }
     dremove( gun->trigger_field );
     dremove( gun );
