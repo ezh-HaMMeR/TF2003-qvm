@@ -377,7 +377,7 @@ void W_FireMedikit() {
         }
         if (trace_ent->numflames > 0) {
           sound(trace_ent, 1, "items/r_item1.wav", 1, 1);
-          trace_ent->numflames = 0;
+          Pyro_ExtinguishPlayer(trace_ent);
           if (streq(self->s.v.classname, "player")) {
             G_bprint(1, "%s put out %s's fire.\n", self->s.v.netname, trace_ent->s.v.netname);
           }

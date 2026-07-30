@@ -320,7 +320,7 @@ void TG_Eff_Remove(gedict_t *pl) {
   }
   if (pl->numflames > 0) {
     sound(pl, 1, "items/r_item1.wav", 1, 1);
-    pl->numflames = 0;
+    Pyro_ExtinguishPlayer(pl);
     return;
   }
 }
