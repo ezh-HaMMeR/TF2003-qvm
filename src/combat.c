@@ -358,18 +358,23 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 	int     olddmsg;
 	float   no_damage;
 	float   moment;
+	int     target_is_player;
+	int     attacker_is_player;
+	int     allowed_damage_class;
+	int     team_damage;
 
 	if ( !targ->s.v.takedamage )
 		return;
 
-	if ( streq( targ->s.v.classname, "player" ) && targ->playerclass == PC_SPY) {
+	target_is_player = streq( targ->s.v.classname, "player" );
+	if ( target_is_player && targ->playerclass == PC_SPY) {
 		targ->last_attacker = attacker;
 		targ->last_dmsg = tf_data.deathmsg;
 	}
 
 	if ( T_AttackType & TF_TD_NOSOUND )
 	{
-	        if(streq(targ->s.v.classname,"player"))
+	        if(target_is_player)
 	        	G_sprint(targ,2,"!!!BUG BUG BUG!!! killed by TF_TD_NOSOUND\n");
 
 		targ->s.v.health = damage;
@@ -377,19 +382,20 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 	}
 	if ( tf_data.cease_fire )
 		return;
+	attacker_is_player = streq( attacker->s.v.classname, "player" );
 	no_damage = 0;
-	if (tf_data.cb_prematch_time > g_globalvars.time && tfset(prematch_godmode) && streq( targ->s.v.classname, "player" )) {
+	if (tf_data.cb_prematch_time > g_globalvars.time && tfset(prematch_godmode) && target_is_player) {
 		sound(targ, CHAN_ITEM, "items/protect3.wav", 1, ATTN_NORM);
 		no_damage = 1;
 	}
-	if ( streq( attacker->s.v.classname, "player" ) )
+	if ( attacker_is_player )
 	{
 		damage = damage * 0.9;
 		// check for quad damage powerup on the attacker
 		if ( attacker->super_damage_finished > g_globalvars.time )
 			damage = damage * 4;
 
-		if ( strneq( targ->s.v.classname, "player" )
+		if ( !target_is_player
 		     && strneq( targ->s.v.classname, "bot" )
 		     && strneq( targ->s.v.classname, "building_sentrygun" )
 		     && strneq( targ->s.v.classname, "building_dispenser" )
@@ -409,6 +415,9 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 			}
 		}
 	}
+	/* Activated targets may change state, so cache their final class only after
+	 * the activation path above has completed. */
+	target_is_player = streq( targ->s.v.classname, "player" );
 	// used by buttons and triggers to set activator for target firing
 	damage_attacker = attacker;
 
@@ -436,32 +445,8 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 		save = 0;
 	} else
 	{
-		save = ceil( targ->s.v.armortype * damage );
-		if ( streq( attacker->s.v.classname, "player" ) && targ->team_no > 0
-		     && targ->team_no == attacker->team_no && targ != attacker && ( T_flags & TF_TD_NOTTEAM ) )
-		{
-			if ( T_AttackType & TF_TD_EXPLOSION )
-			{
-				if ( teamplay & TEAMPLAY_NOARMOR_EXPLOSIVE )
-					save = 0;
-				else
-				{
-					if ( teamplay & TEAMPLAY_HALFARMOR_EXPLOSIVE )
-						save = save / 2;
-				}
-			} else
-			{
-				if ( teamplay & TEAMPLAY_NOARMOR_DIRECT )
-					save = 0;
-				else
-				{
-					if ( teamplay & TEAMPLAY_HALFARMOR_DIRECT )
-						save = save / 2;
-				}
-			}
-		}
-// save damage based on the target's armor level
-
+		/* The legacy team-armour calculation here was immediately overwritten
+		 * by this assignment, so only the effective calculation is retained. */
 		save = ceil( targ->s.v.armortype * damage );
 		if ( save >= targ->s.v.armorvalue )
 		{
@@ -493,12 +478,6 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 	        // Nail Gren doesn't knock ppl
 		if ( tf_data.deathmsg != DMSG_GREN_NAIL )
 		{
-                        //   targ.immune_to_check = g_globalvars.time + damage / 20;
-			dir[0] = targ->s.v.origin[0] - ( inflictor->s.v.absmin[0] + inflictor->s.v.absmax[0] ) * 0.5;
-			dir[1] = targ->s.v.origin[1] - ( inflictor->s.v.absmin[1] + inflictor->s.v.absmax[1] ) * 0.5;
-			dir[2] = targ->s.v.origin[2] - ( inflictor->s.v.absmin[2] + inflictor->s.v.absmax[2] ) * 0.5;
-			VectorNormalize( dir );
-			
 			if ( targ->playerclass == PC_HVYWEAP )
 			{
 #ifdef NEWHWGUY
@@ -517,40 +496,46 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 #endif
 			} else
 				moment = damage;
-			
-			// Set kickback for smaller weapons
-			// Read: only if it's not yourself doing the damage
-			if ( moment < 60 && streq( attacker->s.v.classname, "player" )
-			     && streq( targ->s.v.classname, "player" )
-			     && strneq( attacker->s.v.netname, targ->s.v.netname ) )
-			{
-				targ->s.v.velocity[0] += dir[0] * moment * 11;
-				targ->s.v.velocity[1] += dir[1] * moment * 11;
-				targ->s.v.velocity[2] += dir[2] * moment * 11;
 
-			} else
-			// Otherwise, these rules apply to rockets and grenades                        
-			// for blast velocity
+			/* A grounded HWGuy hit of at most 50 damage has no knockback. Avoid
+			 * the normalization and all zero-value velocity writes in that case. */
+			if ( moment != 0 )
 			{
-				targ->s.v.velocity[0] += dir[0] * moment * 8;
-				targ->s.v.velocity[1] += dir[1] * moment * 8;
-				targ->s.v.velocity[2] += dir[2] * moment * 8;
-			}
-			// Rocket Jump modifiers
-			if ( ( rj > 1 )
-			     && ( ( streq( attacker->s.v.classname, "player" ) )
-				  && streq( targ->s.v.classname, "player" ) )
-			     && streq( attacker->s.v.netname, targ->s.v.netname ) )
-			{
-				targ->s.v.velocity[0] += dir[0] * moment * rj;
-				targ->s.v.velocity[1] += dir[1] * moment * rj;
-				targ->s.v.velocity[2] += dir[2] * moment * rj;
+				dir[0] = targ->s.v.origin[0] - ( inflictor->s.v.absmin[0] + inflictor->s.v.absmax[0] ) * 0.5;
+				dir[1] = targ->s.v.origin[1] - ( inflictor->s.v.absmin[1] + inflictor->s.v.absmax[1] ) * 0.5;
+				dir[2] = targ->s.v.origin[2] - ( inflictor->s.v.absmin[2] + inflictor->s.v.absmax[2] ) * 0.5;
+				VectorNormalize( dir );
 
+				// Set kickback for smaller weapons
+				// Read: only if it's not yourself doing the damage
+				if ( moment < 60 && attacker_is_player && target_is_player
+				     && strneq( attacker->s.v.netname, targ->s.v.netname ) )
+				{
+					targ->s.v.velocity[0] += dir[0] * moment * 11;
+					targ->s.v.velocity[1] += dir[1] * moment * 11;
+					targ->s.v.velocity[2] += dir[2] * moment * 11;
+
+				} else
+				// Otherwise, these rules apply to rockets and grenades
+				// for blast velocity
+				{
+					targ->s.v.velocity[0] += dir[0] * moment * 8;
+					targ->s.v.velocity[1] += dir[1] * moment * 8;
+					targ->s.v.velocity[2] += dir[2] * moment * 8;
+				}
+				// Rocket Jump modifiers
+				if ( ( rj > 1 ) && attacker_is_player && target_is_player
+				     && streq( attacker->s.v.netname, targ->s.v.netname ) )
+				{
+					targ->s.v.velocity[0] += dir[0] * moment * rj;
+					targ->s.v.velocity[1] += dir[1] * moment * rj;
+					targ->s.v.velocity[2] += dir[2] * moment * rj;
+				}
 			}
 		}
 	}
 // check for godmode or invincibility
-	if ( streq( targ->s.v.classname, "player" ) && tg_data.godmode )
+	if ( target_is_player && tg_data.godmode )
 		return;
 
 	if ( ( int ) targ->s.v.flags & FL_GODMODE )
@@ -565,10 +550,18 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 		}
 		return;
 	}
+	allowed_damage_class = attacker_is_player
+		&& ( target_is_player
+		     || streq( targ->s.v.classname, "building_sentrygun" )
+		     || streq( targ->s.v.classname, "building_dispenser" )
+		     || streq( targ->s.v.classname, "building_teleporter_entrance" )
+		     || streq( targ->s.v.classname, "building_teleporter_exit" ) );
+	team_damage = targ->team_no > 0 && targ->team_no == attacker->team_no
+		&& targ != attacker && ( T_flags & TF_TD_NOTTEAM );
 	// team play damage avoidance
-	if ( allowedClasname( attacker, targ ) )
+	if ( allowed_damage_class )
     {
-		if ( isTeamDamage( attacker, targ ) )
+		if ( team_damage )
 		{
 			if ( T_AttackType & TF_TD_EXPLOSION )
 			{
@@ -606,7 +599,7 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 		targ->s.v.health = targ->s.v.health - take;
 	}
 
-    if ( allowedClasname( attacker, targ ) )
+    if ( allowed_damage_class )
 	{
 #if TF2003_DAMAGE_STATS_ENABLED
 		/* Optional damage statistics. Re-enable with the switch in progs.h. */
@@ -616,7 +609,7 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 		}
 #endif
 
-        if ( isTeamDamage( attacker, targ ) )
+        if ( team_damage )
 		{
 			olddmsg = tf_data.deathmsg;
 			if ( T_AttackType & TF_TD_EXPLOSION )
