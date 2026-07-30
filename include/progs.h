@@ -24,6 +24,11 @@
 
 #define	MAX_ENT_LEAFS	16
 
+/* Set to 1 to restore per-player damage accounting and TFINFO_DAMAGE
+ * network updates. The implementation is intentionally kept behind this
+ * switch so it can be re-enabled without reconstructing the old code. */
+#define TF2003_DAMAGE_STATS_ENABLED 0
+
 typedef struct shared_edict_s {
 	entvars_t       v;	// C exported fields from progs
 // other fields from progs come immediately after
@@ -138,7 +143,7 @@ typedef struct gedict_s {
 
 ///team fortess
 	int damage, touches, caps;
-	int damage_update_pending;
+	int damage_update_pending; /* Used when TF2003_DAMAGE_STATS_ENABLED is 1. */
 	int team_no, playerclass;
 	int 		ready;
 	int             nextpc;

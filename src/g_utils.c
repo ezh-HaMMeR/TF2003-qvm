@@ -677,8 +677,10 @@ void sendtfinfo_broadcast(gedict_t* e, int idx, int val) {
 	trap_updatetfinfo(UPDATETFINFO_BROADCAST, NUM_FOR_EDICT(e), idx, val);
 }
 
+#if TF2003_DAMAGE_STATS_ENABLED
 #define TFINFO_DAMAGE_UPDATE_INTERVAL 0.1
 static float next_damage_stat_update;
+#endif
 
 gedict_t *G_NextPlayer( gedict_t *player )
 {
@@ -699,6 +701,8 @@ gedict_t *G_NextPlayer( gedict_t *player )
 	return world;
 }
 
+#if TF2003_DAMAGE_STATS_ENABLED
+/* Optional damage-stat batching. Re-enable with the switch in progs.h. */
 void SendDamageStatUpdate( gedict_t *player )
 {
 	if ( !player || player == world )
@@ -740,6 +744,7 @@ void FlushDamageStatUpdates(  )
 		SendDamageStatUpdate( player );
 	}
 }
+#endif
 
 void sendinittfinfo(gedict_t* ply) {
 	gedict_t* te;
@@ -748,6 +753,8 @@ void sendinittfinfo(gedict_t* ply) {
 		sendtfinfo_single(te, ply, TFINFO_PLAYERCLASS, te->playerclass);
 		sendtfinfo_single(te, ply, TFINFO_TOUCHES, te->touches);
 		sendtfinfo_single(te, ply, TFINFO_CAPS, te->caps);
+#if TF2003_DAMAGE_STATS_ENABLED
 		sendtfinfo_single(te, ply, TFINFO_DAMAGE, te->damage);
+#endif
   	}
 }

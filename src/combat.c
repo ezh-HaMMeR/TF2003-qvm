@@ -608,10 +608,13 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 
     if ( allowedClasname( attacker, targ ) )
 	{
+#if TF2003_DAMAGE_STATS_ENABLED
+		/* Optional damage statistics. Re-enable with the switch in progs.h. */
 		if (targ->team_no != attacker->team_no && !no_damage) {
 			attacker->damage += damage;
 			attacker->damage_update_pending = 1;
 		}
+#endif
 
         if ( isTeamDamage( attacker, targ ) )
 		{

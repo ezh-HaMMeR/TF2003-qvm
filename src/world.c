@@ -383,7 +383,9 @@ void StartFrame( int time )
 //	bot_frametime = g_globalvars.time - old_time;
 //	old_time = g_globalvars.time;
 //	botFrame();
+#if TF2003_DAMAGE_STATS_ENABLED
 	/* Publish accumulated damage updates on their 100 ms schedule. */
 	FlushDamageStatUpdates();
+#endif
 	MatchTimer( false );
 }

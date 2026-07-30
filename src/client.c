@@ -1764,12 +1764,16 @@ void ClientConnect()
                         self->s.v.frags = self->real_frags;
                     self->playerclass = te->playerclass;
                     self->s.v.tfstate = te->s.v.tfstate;
+#if TF2003_DAMAGE_STATS_ENABLED
                     self->damage = te->damage;
+#endif
                     self->touches = te->touches;
                     self->caps = te->caps;
                     sendtfinfo_broadcast(self, TFINFO_TOUCHES, self->touches);
                     sendtfinfo_broadcast(self, TFINFO_CAPS, self->caps);
+#if TF2003_DAMAGE_STATS_ENABLED
                     SendDamageStatUpdate(self);
+#endif
                     sendtfinfo_broadcast(self, TFINFO_PLAYERCLASS, self->playerclass);
                     dremove( te );
                     te = world;
@@ -1853,8 +1857,10 @@ void ClientDisconnect()
         }
         te = trap_find( te, FOFS( s.v.classname ), "detpack" );
     }
+#if TF2003_DAMAGE_STATS_ENABLED
 	if ( self->damage_update_pending )
 		SendDamageStatUpdate( self );
+#endif
 
     if ( tfset(clanbattle) && self->tf_id )
     {
@@ -1866,7 +1872,9 @@ void ClientDisconnect()
         te->real_frags = self->real_frags;
         //te->netname = self->netname;
         te->playerclass = self->playerclass;
+#if TF2003_DAMAGE_STATS_ENABLED
         te->damage = self->damage;
+#endif
         te->touches = self->touches;
         te->caps = self->caps;
         if ( self->s.v.tfstate & TFSTATE_RANDOMPC )
