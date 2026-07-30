@@ -431,6 +431,17 @@ void NapalmGrenadeLaunch( vec3_t org, gedict_t * shooter )
 
 
 void    OnPlayerFlame_touch(  );
+void    FlameFollow(  );
+
+/* The first attached-flame think performs the one-time physics transition.
+ * Later 100 ms ticks can run the smaller steady-state callback directly. */
+static void FlameFollowStart(  )
+{
+    self->s.v.solid = SOLID_NOT;
+    self->s.v.movetype = MOVETYPE_NONE;
+    self->s.v.think = ( func_t ) FlameFollow;
+    FlameFollow(  );
+}
 
 void FlameFollow(  )
 {
@@ -440,8 +451,6 @@ void FlameFollow(  )
     float   damage;
     gedict_t *enemy = PROG_TO_EDICT( self->s.v.enemy );
 
-    self->s.v.solid = SOLID_NOT;
-    self->s.v.movetype = MOVETYPE_NONE;
     if ( !enemy->numflames )
     {
         Pyro_ExtinguishPlayer( enemy );
@@ -472,26 +481,23 @@ void FlameFollow(  )
         }
     }
     self->s.v.health = self->s.v.health - 1;
-    VectorCopy( enemy->s.v.absmin, vtemp );
-    VectorCopy( enemy->s.v.size, boundsize );
     if ( DotProduct( enemy->s.v.velocity, enemy->s.v.velocity ) < 2500 )
     {
+        VectorCopy( enemy->s.v.absmin, vtemp );
+        VectorCopy( enemy->s.v.size, boundsize );
         dir[0] = g_random(  ) * boundsize[0] / 2 + boundsize[0] / 4;
         dir[1] = g_random(  ) * boundsize[1] / 2 + boundsize[1] / 4;
         dir[2] = g_random(  ) * boundsize[2] / 3 + boundsize[2] / 2;
         VectorAdd( vtemp, dir, vtemp );
         setorigin( self, PASSVEC3( vtemp ) );
-        if ( strneq( self->s.v.model, "progs/flame2.mdl" ) )
-        {
-            self->s.v.model = "progs/flame2.mdl";
-            setmodel( self, self->s.v.model );
-        }
+        if ( self->s.v.modelindex == 0 )
+            Pyro_SetCachedModel( self, PYRO_FLAME_MODEL, &pyro_flame_modelindex );
     } else
     {
-        if ( streq( self->s.v.model, "progs/flame2.mdl" ) )
+        if ( self->s.v.modelindex != 0 )
         {
             self->s.v.model = "";
-            setmodel( self, self->s.v.model );
+            self->s.v.modelindex = 0;
         }
     }
     if ( enemy->s.v.waterlevel > 1 )
@@ -558,7 +564,7 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
     flame->s.v.enemy = EDICT_TO_PROG( other );
     flame->s.v.touch = ( func_t ) OnPlayerFlame_touch;
     flame->s.v.owner = self->s.v.owner;
-    flame->s.v.think = ( func_t ) FlameFollow;
+    flame->s.v.think = ( func_t ) FlameFollowStart;
     flame->s.v.nextthink = g_globalvars.time + 0.1;
 
     flame->s.v.health = FLAME_PLYRMAXTIME;
