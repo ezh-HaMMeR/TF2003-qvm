@@ -549,6 +549,12 @@ static gedict_t* spawnFlameOnPlayer( gedict_t*self, gedict_t*other, int zdelta)
                 && other->team_no == owner->team_no )
             return NULL;
     }
+
+    /* Outside LAN mode only the master flame (type 1) is allowed. Reject a
+     * repeat ignition before entering FlameSpawn's queue/capacity path. */
+    if ( was_burning && !tfset( lan_mode ) )
+        return NULL;
+
     if ( other->numflames < 1 )
     {
         flame = FlameSpawn( 1, other );
