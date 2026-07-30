@@ -30,6 +30,8 @@ void    NapalmGrenadeTouch(  );
 void    NapalmGrenadeLaunch( vec3_t org, gedict_t * shooter );
 void    Napalm_touch(  );
 int     RemoveFlameFromQueue( int id_flame );
+static gedict_t *spawnFlameOnPlayer( gedict_t *source, gedict_t *target, int zdelta );
+static void Pyro_ApplyNapalmTouch( gedict_t *source, gedict_t *target, gedict_t *owner );
 static int     num_world_flames = 0;
 static float   pyro_flame_modelindex = 0;
 static float   pyro_stream_modelindex = 0;
@@ -301,17 +303,17 @@ void NapalmGrenadeTouch(  )
 
 void NapalmGrenadeNetThink(  )
 {
-    gedict_t *head;
+    gedict_t *head, *owner;
 
     self->s.v.nextthink = g_globalvars.time + 1;
+    owner = PROG_TO_EDICT( self->s.v.owner );
     for ( head = world; (head = trap_findradius( head, self->s.v.origin, 180 )); )
     {
         if ( head->s.v.takedamage )
         {
             tf_data.deathmsg = DMSG_FLAME;
-            TF_T_Damage( head, self, PROG_TO_EDICT( self->s.v.owner ), 20, TF_TD_NOTTEAM, TF_TD_FIRE );
-            other = head;
-            Napalm_touch(  );
+            TF_T_Damage( head, self, owner, 20, TF_TD_NOTTEAM, TF_TD_FIRE );
+            Pyro_ApplyNapalmTouch( self, head, owner );
         }
     }
     TempEffectCoord(  self->s.v.origin , TE_EXPLOSION );
@@ -326,9 +328,10 @@ void NapalmGrenadeNetThink(  )
 void NapalmGrenadeExplode(  )
 {
     //      float   i;
-    gedict_t *head;
+    gedict_t *head, *owner;
     float   i;
     vec3_t  tmp;
+    owner = PROG_TO_EDICT( self->s.v.owner );
     if( !tfset(lan_mode) )
     {
         sound( self, 0, "weapons/flmgrexp.wav", 1, 1 );
@@ -347,10 +350,9 @@ void NapalmGrenadeExplode(  )
             if ( head->s.v.takedamage )
             {
                 tf_data.deathmsg = DMSG_FLAME;
-                TF_T_Damage( head, self, PROG_TO_EDICT( self->s.v.owner ), 40, TF_TD_NOTTEAM, TF_TD_FIRE );
+                TF_T_Damage( head, self, owner, 40, TF_TD_NOTTEAM, TF_TD_FIRE );
                 // set 'em on fire
-                other = head;// i can't believe this works!
-                Napalm_touch(  );
+                Pyro_ApplyNapalmTouch( self, head, owner );
             }
         }
         TempEffectCoord(  self->s.v.origin , TE_EXPLOSION );
@@ -360,7 +362,7 @@ void NapalmGrenadeExplode(  )
         head->heat = 0;
         VectorCopy( self->s.v.origin, head->s.v.origin );
         head->s.v.owner = self->s.v.owner;
-        head->team_no = PROG_TO_EDICT( self->s.v.owner )->team_no;
+        head->team_no = owner->team_no;
         head->s.v.enemy = EDICT_TO_PROG( self );
         ///Napalm fix
         self->s.v.movetype = MOVETYPE_NONE;
@@ -374,13 +376,14 @@ void NapalmGrenadeExplode(  )
             return;
         }
         tf_data.deathmsg = DMSG_FLAME;
-        T_RadiusDamage( self, PROG_TO_EDICT( self->s.v.owner ), 20, world );
+        T_RadiusDamage( self, owner, 20, world );
         i = 0;
         VectorCopy( self->s.v.origin, tmp );
         tmp[2] += 5;
+        self->s.v.touch = ( func_t ) SUB_Null;
         while ( i < 15 )
         {
-            NapalmGrenadeLaunch( tmp, PROG_TO_EDICT( self->s.v.owner ) );
+            NapalmGrenadeLaunch( tmp, owner );
             i = i + 1;
         }
         self->s.v.solid = SOLID_NOT;
@@ -405,7 +408,6 @@ void NapalmGrenadeLaunch( vec3_t org, gedict_t * shooter )
 
     if ( newmis == world )
         return;
-    self->s.v.touch = ( func_t ) SUB_Null;
     newmis->s.v.classname = "fire";
     newmis->s.v.touch = ( func_t ) Napalm_touch;
     newmis->s.v.think = ( func_t ) NapalmGrenadeFollow;
@@ -426,7 +428,6 @@ void NapalmGrenadeLaunch( vec3_t org, gedict_t * shooter )
     if ( spin >= 4 )
         SetVector( newmis->s.v.avelocity, 400, 250, 400 );
     setorigin( newmis, PASSVEC3( org ) );
-    setsize( newmis, 0, 0, 0, 0, 0, 0 );
 }
 
 
@@ -643,7 +644,7 @@ static void worldFlame_spawn( gedict_t* self, int time )
     vec3_t  vtemp;
     gedict_t *flame;
 
-    flame = FlameSpawn( 4, other );
+    flame = FlameSpawn( 4, world );
     if ( flame != world )
     {
         flame->s.v.touch = ( func_t ) WorldFlame_touch;
@@ -700,28 +701,33 @@ void Flamer_stream_touch(  )
 	}
 }
 
-void Napalm_touch(  )
+static void Pyro_ApplyNapalmTouch( gedict_t *source, gedict_t *target, gedict_t *owner )
 {
-	if ( streq( other->s.v.classname, "fire" ) )
+	if ( streq( target->s.v.classname, "fire" ) )
 		return;
-	if ( other != world )
+	if ( target != world )
     {
-        if( other->s.v.takedamage == DAMAGE_AIM && other->s.v.health > 0) 
+        if( target->s.v.takedamage == DAMAGE_AIM && target->s.v.health > 0)
         {
             tf_data.deathmsg = DMSG_FLAME;
-            TF_T_Damage( other, self, PROG_TO_EDICT( self->s.v.owner ), 6, TF_TD_NOTTEAM | TF_TD_MOREKICK, TF_TD_FIRE );
-            spawnFlameOnPlayer( self, other, 0 );
+            TF_T_Damage( target, source, owner, 6, TF_TD_NOTTEAM | TF_TD_MOREKICK, TF_TD_FIRE );
+            spawnFlameOnPlayer( source, target, 0 );
         }
 	} else
 	{
-		if ( trap_pointcontents( PASSVEC3( self->s.v.origin ) + 1 ) != -1 )
+		if ( trap_pointcontents( PASSVEC3( source->s.v.origin ) + 1 ) != -1 )
 		{
-			FlameDestroy( self );
+			FlameDestroy( source );
 			return;
 		}
-        worldFlame_spawn( self, 20 );
-		FlameDestroy( self );
+        worldFlame_spawn( source, 20 );
+		FlameDestroy( source );
 	}
+}
+
+void Napalm_touch(  )
+{
+    Pyro_ApplyNapalmTouch( self, other, PROG_TO_EDICT( self->s.v.owner ) );
 }
 
 // Slightly varied version of DEATHBUBBLES
@@ -841,6 +847,7 @@ Touch function for incendiary cannon rockets
 void T_IncendiaryTouch(  )
 {
 	float   damg;
+	int     can_damage;
 
 //      float   points;
 	gedict_t *head, *owner;
@@ -856,7 +863,6 @@ void T_IncendiaryTouch(  )
 		return;
 	}
 
-	self->s.v.effects = ( int ) self->s.v.effects | 4;
 	damg = 30 + g_random(  ) * 20;
 
 	if ( other->s.v.health )
@@ -872,15 +878,18 @@ void T_IncendiaryTouch(  )
 		if ( head->s.v.takedamage )
 		{
 			traceline( PASSVEC3( self->s.v.origin ), PASSVEC3( head->s.v.origin ), 1, self );
-			VectorSubtract( self->s.v.origin, head->s.v.origin, vtemp );
-			if ( g_globalvars.trace_fraction == 1
-			     || DotProduct( vtemp, vtemp ) <= 4096 )
+			can_damage = g_globalvars.trace_fraction == 1;
+			if ( !can_damage )
+			{
+				VectorSubtract( self->s.v.origin, head->s.v.origin, vtemp );
+				can_damage = DotProduct( vtemp, vtemp ) <= 4096;
+			}
+			if ( can_damage )
 			{
 				tf_data.deathmsg = DMSG_FLAME;
 				TF_T_Damage( head, self, owner, 10, TF_TD_NOTTEAM, TF_TD_FIRE );
-				other = head;
 				if( !g_globalvars.trace_inwater)
-					Napalm_touch(  );
+					Pyro_ApplyNapalmTouch( self, head, owner );
 			}
 		}
 	}
@@ -915,7 +924,7 @@ void W_FireIncendiaryCannon(  )
 	newmis->s.v.solid = SOLID_BBOX;
 
 	trap_makevectors( self->s.v.v_angle );
-	aim( newmis->s.v.velocity );
+	VectorCopy( g_globalvars.v_forward, newmis->s.v.velocity );
 	VectorScale( newmis->s.v.velocity, 600, newmis->s.v.velocity );
 
 	vectoangles( newmis->s.v.velocity, newmis->s.v.angles );
@@ -927,7 +936,6 @@ void W_FireIncendiaryCannon(  )
 	newmis->s.v.weapon = DMSG_INCENDIARY;
 
 	setmodel( newmis, "progs/missile.mdl" );
-	setsize( newmis, 0, 0, 0, 0, 0, 0 );
 
 	VectorScale( g_globalvars.v_forward, 8, vtemp );
 	VectorAdd( vtemp, self->s.v.origin, vtemp );
