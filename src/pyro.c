@@ -24,11 +24,32 @@
 #define FLAME_PLYRMAXTIME 45
 #define CHAN_PYRO_BURN 5
 #define PYRO_BURN_SOUND "ambience/fire1.wav"
+#define PYRO_FLAME_MODEL "progs/flame2.mdl"
+#define PYRO_STREAM_MODEL "progs/s_explod.spr"
 void    NapalmGrenadeTouch(  );
 void    NapalmGrenadeLaunch( vec3_t org, gedict_t * shooter );
 void    Napalm_touch(  );
 int     RemoveFlameFromQueue( int id_flame );
 static int     num_world_flames = 0;
+static float   pyro_flame_modelindex = 0;
+static float   pyro_stream_modelindex = 0;
+
+/* setmodel performs a VM-to-engine call and a precache lookup. Pyro creates
+ * these two non-inline models frequently, so discover each index once per map
+ * and populate subsequent fresh entities directly. Their first setorigin call
+ * performs the required link. */
+static void Pyro_SetCachedModel( gedict_t * entity, char *model, float *modelindex )
+{
+    if ( *modelindex == 0 )
+    {
+        setmodel( entity, model );
+        *modelindex = entity->s.v.modelindex;
+        return;
+    }
+
+    entity->s.v.model = model;
+    entity->s.v.modelindex = *modelindex;
+}
 
 /* MVDSV's zero-length world trace marks every non-empty, non-solid BSP leaf
  * as trace_inwater.  Point contents returns that same leaf classification
@@ -68,6 +89,8 @@ static void Pyro_ClearBurnState( gedict_t * target )
 void Pyro_Reset(  )
 {
     num_world_flames = 0;
+    pyro_flame_modelindex = 0;
+    pyro_stream_modelindex = 0;
 }
 
 //** different types of flames (decreasing priority)
@@ -96,8 +119,7 @@ gedict_t *FlameSpawn( int type, gedict_t * p_owner )
         return world;
 
     newmis->s.v.solid = SOLID_BBOX;
-    setmodel( newmis, "progs/flame2.mdl" );
-    setsize( newmis, 0, 0, 0, 0, 0, 0 );
+    Pyro_SetCachedModel( newmis, PYRO_FLAME_MODEL, &pyro_flame_modelindex );
 
     // to keep track of the number of each type of flames
     switch ( type )
@@ -785,7 +807,7 @@ void W_FireFlame(  )
 	flame->s.v.classname = "flamerflame";
 
 	trap_makevectors( self->s.v.v_angle );
-	aim( flame->s.v.velocity );
+	VectorCopy( g_globalvars.v_forward, flame->s.v.velocity );
 	VectorScale( flame->s.v.velocity, 600, flame->s.v.velocity );
 
 	flame->s.v.touch = ( func_t ) Flamer_stream_touch;
@@ -793,8 +815,7 @@ void W_FireFlame(  )
 	flame->s.v.effects = EF_DIMLIGHT;
 	flame->s.v.nextthink = g_globalvars.time + 0.15;
 
-	setmodel( flame, "progs/s_explod.spr" );
-	setsize( flame, 0, 0, 0, 0, 0, 0 );
+	Pyro_SetCachedModel( flame, PYRO_STREAM_MODEL, &pyro_stream_modelindex );
 
 	VectorScale( g_globalvars.v_forward, 16, vtemp );
 	VectorAdd( self->s.v.origin, vtemp, vtemp );
