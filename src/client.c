@@ -1359,6 +1359,10 @@ void PlayerPreThink()
         return;		// the think tics
     }
 
+    /* button1 is transported in every usercmd and provides a redundant
+     * grenade-release path alongside the existing cmd and impulse paths. */
+    TeamFortress_GrenadeButton1Think(  );
+
     if ( !self->playerclass )
     {
         if ( self->s.v.button2 && ( self->current_menu == MENU_TEAM ) && !self->team_no )

@@ -27,19 +27,31 @@ static void TeamFortress_ClientCommandAlias( char *halias, char *command )
     stuffcmd( self, "alias %s \"cmd %s\"\n", halias, command );
 }
 
+static void TeamFortress_GrenadeButtonAlias( char *halias, char *button_command, char *command )
+{
+    if ( command )
+        stuffcmd( self, "alias %s \"%s;cmd %s\"\n", halias, button_command, command );
+    else
+        stuffcmd( self, "alias %s \"%s\"\n", halias, button_command );
+}
+
 static void TeamFortress_GrenadeCommandAliases(  )
 {
     TeamFortress_ClientCommandAlias( "primeone", "tf_primegren1" );
     TeamFortress_ClientCommandAlias( "primetwo", "tf_primegren2" );
     TeamFortress_ClientCommandAlias( "throwgren", "tf_throwgren" );
-    TeamFortress_ClientCommandAlias( "+gren1", "tf_primegren1" );
-    TeamFortress_ClientCommandAlias( "+gren2", "tf_primegren2" );
-    TeamFortress_ClientCommandAlias( "-gren1", "tf_throwgren" );
-    TeamFortress_ClientCommandAlias( "-gren2", "tf_throwgren" );
+    /* +use supplies the repeated button1 state; cmd remains the reliable
+     * primary/fallback path and the legacy impulses remain available. */
+    TeamFortress_GrenadeButtonAlias( "+gren1", "+use", "tf_primegren1" );
+    TeamFortress_GrenadeButtonAlias( "+gren2", "+use", "tf_primegren2" );
+    TeamFortress_GrenadeButtonAlias( "-gren1", "-use", "tf_throwgren" );
+    TeamFortress_GrenadeButtonAlias( "-gren2", "-use", "tf_throwgren" );
     TeamFortress_ClientCommandAlias( "gren1", "tf_primegren1_pth" );
     TeamFortress_ClientCommandAlias( "gren2", "tf_primegren2_pth" );
-    TeamFortress_ClientCommandAlias( "+grenade1", "tf_primegren1_pth" );
-    TeamFortress_ClientCommandAlias( "+grenade2", "tf_primegren2_pth" );
+    TeamFortress_GrenadeButtonAlias( "+grenade1", "+use", "tf_primegren1_pth" );
+    TeamFortress_GrenadeButtonAlias( "-grenade1", "-use", NULL );
+    TeamFortress_GrenadeButtonAlias( "+grenade2", "+use", "tf_primegren2_pth" );
+    TeamFortress_GrenadeButtonAlias( "-grenade2", "-use", NULL );
 }
 
 void TeamFortress_MOTD(  )

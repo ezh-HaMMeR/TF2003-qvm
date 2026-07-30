@@ -161,6 +161,10 @@ typedef struct gedict_s {
 	int 		can_give_goal;
 	struct gedict_s *linked_list, *observer_list;
 	struct gedict_s* primed_grenade;
+	/* Redundant grenade input carried by usercmd.button1 (+use). */
+	int             grenade_button1_state;
+	int             grenade_button1_prime_impulse;
+	int             grenade_button1_suppress_prime;
 
 	int             maxammo_shells;
 	int             maxammo_nails;

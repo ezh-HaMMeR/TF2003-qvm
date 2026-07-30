@@ -64,6 +64,7 @@ void    TeamFortress_IncendiaryCannon(  );
 void    TeamFortress_FlameThrower(  );
 void    TeamFortress_PrimeGrenade(  );
 void    TeamFortress_ThrowGrenade(  );
+void    TeamFortress_GrenadeButton1Think(  );
 void    TeamFortress_Discard(  );
 void    TeamFortress_DetonatePipebombs(  );
 void    TeamFortress_ReloadCurrentWeapon(  );

@@ -906,6 +906,98 @@ void TeamFortress_Inventory(  )
 
 void    TeamFortress_GrenadePrimed(  );
 
+#define GREN_BUTTON1_IDLE                    0
+#define GREN_BUTTON1_HOLD_WAIT_PRESS         1
+#define GREN_BUTTON1_HOLD_WAIT_RELEASE       2
+#define GREN_BUTTON1_PTH_WAIT_FIRST_PRESS    3
+#define GREN_BUTTON1_PTH_WAIT_FIRST_RELEASE  4
+#define GREN_BUTTON1_PTH_WAIT_SECOND_PRESS   5
+
+static qboolean TeamFortress_TryThrowGrenade(  );
+
+static void TeamFortress_DisarmGrenadeButton1( gedict_t *player )
+{
+	player->grenade_button1_state = GREN_BUTTON1_IDLE;
+	player->grenade_button1_prime_impulse = 0;
+}
+
+static void TeamFortress_ArmGrenadeButton1( int prime_impulse, int useprimetothrow )
+{
+	self->grenade_button1_prime_impulse = prime_impulse;
+
+	if ( useprimetothrow )
+	{
+		self->grenade_button1_state = self->s.v.button1
+			? GREN_BUTTON1_PTH_WAIT_FIRST_RELEASE
+			: GREN_BUTTON1_PTH_WAIT_FIRST_PRESS;
+	} else
+	{
+		self->grenade_button1_state = self->s.v.button1
+			? GREN_BUTTON1_HOLD_WAIT_RELEASE
+			: GREN_BUTTON1_HOLD_WAIT_PRESS;
+	}
+}
+
+void TeamFortress_GrenadeButton1Think(  )
+{
+	int prime_impulse;
+
+	if ( self->grenade_button1_state == GREN_BUTTON1_IDLE )
+		return;
+
+	/* Never use button1 to bypass the restrictions of the existing grenade
+	 * commands. Invalid or completed grenade state simply disarms the helper. */
+	if ( !( self->s.v.tfstate & TFSTATE_GRENPRIMED )
+	     || ( self->s.v.tfstate & TFSTATE_GRENTHROWING )
+	     || self->s.v.deadflag )
+	{
+		TeamFortress_DisarmGrenadeButton1( self );
+		return;
+	}
+	if ( tf_data.cease_fire || tf_data.cb_prematch_time > g_globalvars.time )
+		return;
+
+	switch ( self->grenade_button1_state )
+	{
+		case GREN_BUTTON1_HOLD_WAIT_PRESS:
+			if ( self->s.v.button1 )
+				self->grenade_button1_state = GREN_BUTTON1_HOLD_WAIT_RELEASE;
+			break;
+
+		case GREN_BUTTON1_HOLD_WAIT_RELEASE:
+			if ( !self->s.v.button1 )
+				TeamFortress_TryThrowGrenade(  );
+			break;
+
+		case GREN_BUTTON1_PTH_WAIT_FIRST_PRESS:
+			if ( self->s.v.button1 )
+				self->grenade_button1_state = GREN_BUTTON1_PTH_WAIT_FIRST_RELEASE;
+			break;
+
+		case GREN_BUTTON1_PTH_WAIT_FIRST_RELEASE:
+			if ( !self->s.v.button1 )
+				self->grenade_button1_state = GREN_BUTTON1_PTH_WAIT_SECOND_PRESS;
+			break;
+
+		case GREN_BUTTON1_PTH_WAIT_SECOND_PRESS:
+			if ( self->s.v.button1 )
+			{
+				prime_impulse = self->grenade_button1_prime_impulse;
+				if ( TeamFortress_TryThrowGrenade(  ) )
+				{
+					/* The same key press also sends the PTH cmd/impulse. If that
+					 * copy arrives later, consume it instead of priming a new grenade. */
+					self->grenade_button1_suppress_prime = prime_impulse;
+				}
+			}
+			break;
+
+		default:
+			TeamFortress_DisarmGrenadeButton1( self );
+			break;
+	}
+}
+
 
 static qboolean primeGrenade( int gtype )
 {
@@ -959,6 +1051,14 @@ static void TeamFortress_PrimeGrenadeImpulse( int prime_impulse, int useprimetot
 	int     gtype = -1;
 
 	gedict_t *tGrenade;
+
+	/* A PTH throw completed through button1 before its duplicate cmd/impulse
+	 * reached this function. Consume exactly that matching prime request. */
+	if ( useprimetothrow && self->grenade_button1_suppress_prime == prime_impulse )
+	{
+		self->grenade_button1_suppress_prime = 0;
+		return;
+	}
 
 	if ( ( self->s.v.tfstate & TFSTATE_GRENPRIMED ) || ( self->s.v.tfstate & TFSTATE_GRENTHROWING ) ) {
 		if (useprimetothrow) {
@@ -1030,6 +1130,7 @@ static void TeamFortress_PrimeGrenadeImpulse( int prime_impulse, int useprimetot
 		tGrenade->heat = g_globalvars.time + 3 + 0.8;
 	tGrenade->s.v.think = ( func_t ) TeamFortress_GrenadePrimed;
 	self->primed_grenade = tGrenade;
+	TeamFortress_ArmGrenadeButton1( prime_impulse, useprimetothrow );
 }
 
 void TeamFortress_PrimeGrenade( int useprimetothrow )
@@ -1312,13 +1413,15 @@ static gedict_t *FindOwnedActivePrimer( gedict_t *player )
 	return world;
 }
 
-void TeamFortress_ThrowGrenade(  )
+static qboolean TeamFortress_TryThrowGrenade(  )
 {
 	gedict_t *primer;
 	gedict_t *oldself;
 
+	TeamFortress_DisarmGrenadeButton1( self );
+
 	if ( !( self->s.v.tfstate & TFSTATE_GRENPRIMED ) )
-		return;
+		return false;
 
 	primer = self->primed_grenade;
 	if ( !IsOwnedActivePrimer( self, primer ) )
@@ -1334,7 +1437,7 @@ void TeamFortress_ThrowGrenade(  )
 		self->primed_grenade = world;
 		self->s.v.tfstate &= ~( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING );
 		updateicons( self, 0 );
-		return;
+		return false;
 	}
 
 	self->s.v.tfstate |= TFSTATE_GRENTHROWING;
@@ -1346,6 +1449,13 @@ void TeamFortress_ThrowGrenade(  )
 		TeamFortress_GrenadePrimed();
 		self = oldself;
 	}
+
+	return true;
+}
+
+void TeamFortress_ThrowGrenade(  )
+{
+	TeamFortress_TryThrowGrenade(  );
 }
 
 int IsLegalClass( int pc )
