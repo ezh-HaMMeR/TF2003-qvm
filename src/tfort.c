@@ -1336,7 +1336,7 @@ void TeamFortress_GrenadePrimed(  )
 	gedict_t *user;
 
 	user = PROG_TO_EDICT( self->s.v.owner );
-	if ( !( user->s.v.tfstate & TFSTATE_GRENTHROWING ) && !user->s.v.deadflag )
+	if ( !self->grenade_throw_requested && !user->s.v.deadflag )
 	{
 		self->s.v.nextthink = g_globalvars.time + 0.1;
 		if ( !self->s.v.think )
@@ -1347,8 +1347,8 @@ void TeamFortress_GrenadePrimed(  )
 	}
 	if ( !( user->s.v.tfstate & TFSTATE_GRENPRIMED ) )
 		G_conprintf( "GrenadePrimed logic error\n" );
-	user->s.v.tfstate -= ( user->s.v.tfstate & TFSTATE_GRENPRIMED );
-	user->s.v.tfstate -= ( user->s.v.tfstate & TFSTATE_GRENTHROWING );
+	self->grenade_throw_requested = 0;
+	user->s.v.tfstate &= ~( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING );
 	sound( user, 1, "weapons/grenade.wav", 1, 1 );
 // sound (user, 1, "weapons/ax1.wav", 1, 1);
 	KickPlayer( -1, user );
@@ -1417,7 +1417,6 @@ static gedict_t *FindOwnedActivePrimer( gedict_t *player )
 static qboolean TeamFortress_TryThrowGrenade(  )
 {
 	gedict_t *primer;
-	gedict_t *oldself;
 
 	TeamFortress_DisarmGrenadeButton1( self );
 
@@ -1441,15 +1440,11 @@ static qboolean TeamFortress_TryThrowGrenade(  )
 		return false;
 	}
 
-	self->s.v.tfstate |= TFSTATE_GRENTHROWING;
+	primer->grenade_throw_requested = 1;
+	self->s.v.tfstate |= TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING;
 
 	if ( primer->respawn_time <= g_globalvars.time )
-	{
-		oldself = self;
-		self = primer;
-		TeamFortress_GrenadePrimed();
-		self = oldself;
-	}
+		primer->s.v.nextthink = g_globalvars.time;
 
 	return true;
 }
