@@ -916,6 +916,7 @@ void    TeamFortress_GrenadePrimed(  );
 static qboolean TeamFortress_TryThrowGrenade(  );
 static qboolean IsOwnedActivePrimer( gedict_t *player, gedict_t *primer );
 static gedict_t *FindOwnedActivePrimer( gedict_t *player );
+static gedict_t *FindSingleOwnedActivePrimer( gedict_t *player );
 static void SyncPlayerGrenadeState( gedict_t *player, gedict_t *primer );
 
 static void TeamFortress_DisarmGrenadeButton1( gedict_t *player )
@@ -1066,7 +1067,7 @@ static void TeamFortress_PrimeGrenadeImpulse( int prime_impulse, int useprimetot
 		return;
 	}
 
-	tGrenade = FindOwnedActivePrimer( self );
+	tGrenade = FindSingleOwnedActivePrimer( self );
 	SyncPlayerGrenadeState( self, tGrenade );
 	if ( tGrenade != world ) {
 		if (useprimetothrow) {
@@ -1424,6 +1425,33 @@ static gedict_t *FindOwnedActivePrimer( gedict_t *player )
 	return world;
 }
 
+static gedict_t *FindSingleOwnedActivePrimer( gedict_t *player )
+{
+	gedict_t *keep;
+	gedict_t *primer;
+	gedict_t *next;
+
+	keep = FindOwnedActivePrimer( player );
+	if ( keep == world )
+		return world;
+
+	/* Normal priming already prevents duplicates. Collapse any legacy or stale
+	 * duplicate state while retaining the primer referenced by the player. */
+	primer = trap_find( world, FOFS( s.v.classname ), "primer" );
+	while ( primer )
+	{
+		next = trap_find( primer, FOFS( s.v.classname ), "primer" );
+		if ( primer != keep && IsOwnedActivePrimer( player, primer ) )
+		{
+			primer->grenade_throw_requested = 0;
+			dremove( primer );
+		}
+		primer = next;
+	}
+
+	return keep;
+}
+
 static void SyncPlayerGrenadeState( gedict_t *player, gedict_t *primer )
 {
 	if ( IsOwnedActivePrimer( player, primer ) )
@@ -1448,7 +1476,7 @@ static qboolean TeamFortress_TryThrowGrenade(  )
 	TeamFortress_DisarmGrenadeButton1( self );
 
 	/* Locate the live primer before consulting or repairing mirrored flags. */
-	primer = FindOwnedActivePrimer( self );
+	primer = FindSingleOwnedActivePrimer( self );
 	SyncPlayerGrenadeState( self, primer );
 	if ( primer == world )
 	{
