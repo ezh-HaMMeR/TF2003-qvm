@@ -914,6 +914,9 @@ void    TeamFortress_GrenadePrimed(  );
 #define GREN_BUTTON1_PTH_WAIT_SECOND_PRESS   5
 
 static qboolean TeamFortress_TryThrowGrenade(  );
+static qboolean IsOwnedActivePrimer( gedict_t *player, gedict_t *primer );
+static gedict_t *FindOwnedActivePrimer( gedict_t *player );
+static void SyncPlayerGrenadeState( gedict_t *player, gedict_t *primer );
 
 static void TeamFortress_DisarmGrenadeButton1( gedict_t *player )
 {
@@ -940,17 +943,20 @@ static void TeamFortress_ArmGrenadeButton1( int prime_impulse, int useprimetothr
 
 void TeamFortress_GrenadeButton1Think(  )
 {
+	gedict_t *primer;
 	int prime_impulse;
 
 	if ( self->grenade_button1_state == GREN_BUTTON1_IDLE )
 		return;
 
-	/* Never use button1 to bypass the restrictions of the existing grenade
-	 * commands. Invalid or completed grenade state simply disarms the helper. */
-	if ( !( self->s.v.tfstate & TFSTATE_GRENPRIMED )
-	     || ( self->s.v.tfstate & TFSTATE_GRENTHROWING )
-	     || self->s.v.deadflag )
+	/* The live primer is authoritative. Player flags are only compatibility
+	 * mirrors and are repaired before the button state machine uses them. */
+	primer = FindOwnedActivePrimer( self );
+	SyncPlayerGrenadeState( self, primer );
+	if ( primer == world || primer->grenade_throw_requested || self->s.v.deadflag )
 	{
+		if ( primer == world )
+			updateicons( self, 0 );
 		TeamFortress_DisarmGrenadeButton1( self );
 		return;
 	}
@@ -1060,7 +1066,9 @@ static void TeamFortress_PrimeGrenadeImpulse( int prime_impulse, int useprimetot
 		return;
 	}
 
-	if ( ( self->s.v.tfstate & TFSTATE_GRENPRIMED ) || ( self->s.v.tfstate & TFSTATE_GRENTHROWING ) ) {
+	tGrenade = FindOwnedActivePrimer( self );
+	SyncPlayerGrenadeState( self, tGrenade );
+	if ( tGrenade != world ) {
 		if (useprimetothrow) {
 			TeamFortress_ThrowGrenade();
 		}
@@ -1116,7 +1124,6 @@ static void TeamFortress_PrimeGrenadeImpulse( int prime_impulse, int useprimetot
 	if( gtype < 0 )
 		return;
 
-	self->s.v.tfstate |= TFSTATE_GRENPRIMED;
 	tGrenade = spawn(  );
 	tGrenade->s.v.owner = EDICT_TO_PROG( self );
 	tGrenade->s.v.weapon = gtype;
@@ -1130,7 +1137,7 @@ static void TeamFortress_PrimeGrenadeImpulse( int prime_impulse, int useprimetot
 	else
 		tGrenade->heat = g_globalvars.time + 3 + 0.8;
 	tGrenade->s.v.think = ( func_t ) TeamFortress_GrenadePrimed;
-	self->primed_grenade = tGrenade;
+	SyncPlayerGrenadeState( self, tGrenade );
 	TeamFortress_ArmGrenadeButton1( prime_impulse, useprimetothrow );
 }
 
@@ -1336,6 +1343,7 @@ void TeamFortress_GrenadePrimed(  )
 	gedict_t *user;
 
 	user = PROG_TO_EDICT( self->s.v.owner );
+	SyncPlayerGrenadeState( user, self );
 	if ( !self->grenade_throw_requested && !user->s.v.deadflag )
 	{
 		self->s.v.nextthink = g_globalvars.time + 0.1;
@@ -1345,10 +1353,8 @@ void TeamFortress_GrenadePrimed(  )
 			TeamFortress_ExplodePerson(  );
 		return;
 	}
-	if ( !( user->s.v.tfstate & TFSTATE_GRENPRIMED ) )
-		G_conprintf( "GrenadePrimed logic error\n" );
 	self->grenade_throw_requested = 0;
-	user->s.v.tfstate &= ~( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING );
+	SyncPlayerGrenadeState( user, world );
 	sound( user, 1, "weapons/grenade.wav", 1, 1 );
 // sound (user, 1, "weapons/ax1.wav", 1, 1);
 	KickPlayer( -1, user );
@@ -1404,6 +1410,10 @@ static gedict_t *FindOwnedActivePrimer( gedict_t *player )
 {
 	gedict_t *primer;
 
+	primer = player->primed_grenade;
+	if ( IsOwnedActivePrimer( player, primer ) )
+		return primer;
+
 	for ( primer = world;
 			( primer = trap_find( primer, FOFS( s.v.classname ), "primer" ) ); )
 	{
@@ -1414,34 +1424,40 @@ static gedict_t *FindOwnedActivePrimer( gedict_t *player )
 	return world;
 }
 
+static void SyncPlayerGrenadeState( gedict_t *player, gedict_t *primer )
+{
+	if ( IsOwnedActivePrimer( player, primer ) )
+	{
+		player->primed_grenade = primer;
+		player->s.v.tfstate |= TFSTATE_GRENPRIMED;
+		if ( primer->grenade_throw_requested )
+			player->s.v.tfstate |= TFSTATE_GRENTHROWING;
+		else
+			player->s.v.tfstate &= ~TFSTATE_GRENTHROWING;
+		return;
+	}
+
+	player->primed_grenade = world;
+	player->s.v.tfstate &= ~( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING );
+}
+
 static qboolean TeamFortress_TryThrowGrenade(  )
 {
 	gedict_t *primer;
 
 	TeamFortress_DisarmGrenadeButton1( self );
 
-	if ( !( self->s.v.tfstate & TFSTATE_GRENPRIMED ) )
-		return false;
-
-	primer = self->primed_grenade;
-	if ( !IsOwnedActivePrimer( self, primer ) )
-	{
-		primer = FindOwnedActivePrimer( self );
-		self->primed_grenade = primer;
-	}
-
+	/* Locate the live primer before consulting or repairing mirrored flags. */
+	primer = FindOwnedActivePrimer( self );
+	SyncPlayerGrenadeState( self, primer );
 	if ( primer == world )
 	{
-		/* The state says a grenade is primed, but no live primer exists.
-		 * Repair the player state instead of dereferencing a stale edict. */
-		self->primed_grenade = world;
-		self->s.v.tfstate &= ~( TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING );
 		updateicons( self, 0 );
 		return false;
 	}
 
 	primer->grenade_throw_requested = 1;
-	self->s.v.tfstate |= TFSTATE_GRENPRIMED | TFSTATE_GRENTHROWING;
+	SyncPlayerGrenadeState( self, primer );
 
 	if ( primer->respawn_time <= g_globalvars.time )
 		primer->s.v.nextthink = g_globalvars.time;
@@ -2395,7 +2411,8 @@ void TeamFortress_ExplodePerson(  )
 	gedict_t *te;
 	gedict_t *owner = PROG_TO_EDICT( self->s.v.owner );
 
-	owner->s.v.tfstate = owner->s.v.tfstate - ( ( int ) owner->s.v.tfstate & TFSTATE_GRENPRIMED );
+	self->grenade_throw_requested = 0;
+	SyncPlayerGrenadeState( owner, world );
 	KickPlayer( -2, owner );
 
 	newmis = spawnGrenade( owner, self->s.v.weapon, false );
