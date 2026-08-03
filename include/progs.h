@@ -161,6 +161,8 @@ typedef struct gedict_s {
 	int 		can_give_goal;
 	struct gedict_s *linked_list, *observer_list;
 	struct gedict_s* primed_grenade;
+	/* Authoritative throw request; used only by live "primer" entities. */
+	int             grenade_throw_requested;
 	/* Redundant grenade input carried by usercmd.button1 (+use). */
 	int             grenade_button1_state;
 	int             grenade_button1_prime_impulse;

@@ -1122,6 +1122,7 @@ static void TeamFortress_PrimeGrenadeImpulse( int prime_impulse, int useprimetot
 	tGrenade->s.v.weapon = gtype;
 	tGrenade->s.v.classname = "primer";
 	tGrenade->s.v.impulse = prime_impulse;
+	tGrenade->grenade_throw_requested = 0;
 	tGrenade->s.v.nextthink = g_globalvars.time + 0.8;
 	tGrenade->respawn_time = g_globalvars.time + 0.8;
 	if ( gtype == GR_TYPE_CALTROPS )
