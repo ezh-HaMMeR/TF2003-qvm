@@ -27,7 +27,7 @@
 /* Set to 1 to restore per-player damage accounting and TFINFO_DAMAGE
  * network updates. The implementation is intentionally kept behind this
  * switch so it can be re-enabled without reconstructing the old code. */
-#define TF2003_DAMAGE_STATS_ENABLED 0
+#define TF2003_DAMAGE_STATS_ENABLED 1
 
 typedef struct shared_edict_s {
 	entvars_t       v;	// C exported fields from progs
