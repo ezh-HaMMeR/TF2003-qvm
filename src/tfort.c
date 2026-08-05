@@ -2247,10 +2247,10 @@ void TeamFortress_AmmoboxTouch(  )
 		return;
 	if ( other->s.v.health <= 0 )
 		return;
-	//num_world_ammoboxes = num_world_ammoboxes - 1;
-	decrement_team_ammoboxes( self->team_no );
 	if ( self->s.v.weapon == 0 )
 	{
+		if ( !PlayerCanGainPackAmmo( other, self ) )
+			return;
 		G_sprint( other, 2, "You got " );
 		if ( self->s.v.ammo_shells > 0 )
 		{
@@ -2305,6 +2305,8 @@ void TeamFortress_AmmoboxTouch(  )
 
 		}
 	}
+	//num_world_ammoboxes = num_world_ammoboxes - 1;
+	decrement_team_ammoboxes( self->team_no );
 	bound_other_ammo( other );
 	sound( other, 3, "weapons/lock4.wav", 1, 1 );
 	stuffcmd( other, "bf\n" );

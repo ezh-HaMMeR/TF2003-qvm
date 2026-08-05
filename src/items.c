@@ -630,6 +630,48 @@ void bound_other_ammo( gedict_t * p )
 		p->s.v.numgren2 = 3;
 }
 
+qboolean PlayerCanGainPackAmmo( gedict_t *player, gedict_t *pack )
+{
+	if ( pack->s.v.ammo_shells > 0
+	     && player->s.v.ammo_shells < TeamFortress_GetMaxAmmo( player, IT_SHELLS ) )
+		return true;
+	if ( pack->s.v.ammo_nails > 0
+	     && player->s.v.ammo_nails < TeamFortress_GetMaxAmmo( player, IT_NAILS ) )
+		return true;
+	if ( pack->s.v.ammo_rockets > 0
+	     && player->s.v.ammo_rockets < TeamFortress_GetMaxAmmo( player, IT_ROCKETS ) )
+		return true;
+	if ( pack->s.v.ammo_cells > 0
+	     && player->s.v.ammo_cells < TeamFortress_GetMaxAmmo( player, IT_CELLS ) )
+		return true;
+
+	return false;
+}
+
+static qboolean PlayerCanGainWeaponPickup( gedict_t *player, gedict_t *item )
+{
+	if ( streq( item->s.v.classname, "weapon_nailgun" ) )
+		return !( player->weapons_carried & WEAP_NAILGUN )
+			|| player->s.v.ammo_nails < TeamFortress_GetMaxAmmo( player, IT_NAILS );
+	if ( streq( item->s.v.classname, "weapon_supernailgun" ) )
+		return !( player->weapons_carried & WEAP_SUPER_NAILGUN )
+			|| player->s.v.ammo_nails < TeamFortress_GetMaxAmmo( player, IT_NAILS );
+	if ( streq( item->s.v.classname, "weapon_supershotgun" ) )
+		return !( player->weapons_carried & WEAP_SUPER_SHOTGUN )
+			|| player->s.v.ammo_shells < TeamFortress_GetMaxAmmo( player, IT_SHELLS );
+	if ( streq( item->s.v.classname, "weapon_rocketlauncher" ) )
+		return !( player->weapons_carried & WEAP_ROCKET_LAUNCHER )
+			|| player->s.v.ammo_rockets < TeamFortress_GetMaxAmmo( player, IT_ROCKETS );
+	if ( streq( item->s.v.classname, "weapon_grenadelauncher" ) )
+		return !( player->weapons_carried & WEAP_GRENADE_LAUNCHER )
+			|| player->s.v.ammo_rockets < TeamFortress_GetMaxAmmo( player, IT_ROCKETS );
+	if ( streq( item->s.v.classname, "weapon_lightning" ) )
+		return !( player->weapons_carried & WEAP_LIGHTNING )
+			|| player->s.v.ammo_cells < TeamFortress_GetMaxAmmo( player, IT_CELLS );
+
+	return true;
+}
+
 float RankForWeapon( float w )
 {
 	if ( w == WEAP_LIGHTNING )
@@ -707,6 +749,8 @@ void weapon_touch(  )
 		leave = 1;
 	else
 		leave = 0;
+	if ( !PlayerCanGainWeaponPickup( other, self ) )
+		return;
 	if ( !strcmp( self->s.v.classname, "weapon_nailgun" ) )
 	{
 		if ( leave && ( other->weapons_carried & WEAP_NAILGUN ) )
@@ -1643,6 +1687,66 @@ PLAYER BACKPACKS
 ===============================================================================
 */
 extern char *GrenadePrimeName[];
+
+static int BackpackGrenadeCapacity( int grenade_type )
+{
+	if ( grenade_type == GR_TYPE_NAIL )
+		return 2;
+	if ( grenade_type == GR_TYPE_CONCUSSION || grenade_type == GR_TYPE_CALTROPS )
+		return 3;
+	return 4;
+}
+
+static qboolean PlayerCanGainBackpackResources( gedict_t *player, gedict_t *pack )
+{
+	if ( PlayerCanGainPackAmmo( player, pack ) )
+		return true;
+
+	if ( ( tfset_gren2box & BP_TYPE_HEALTH ) && pack->ammo_medikit > 0 )
+	{
+		if ( player->s.v.health < player->s.v.max_health )
+			return true;
+		if ( player->playerclass == PC_MEDIC
+		     && player->ammo_medikit < player->maxammo_medikit )
+			return true;
+	}
+
+	if ( ( tfset_gren2box & BP_TYPE_ARMOR ) && pack->s.v.armorvalue > 0
+	     && player->s.v.armorvalue * player->s.v.armortype
+		< pack->s.v.armorvalue * pack->s.v.armortype )
+		return true;
+
+	/* Engineers also salvage the dropped armor value as metal. */
+	if ( pack->s.v.armorvalue > 0 && player->playerclass == PC_ENGINEER
+	     && player->s.v.ammo_cells < player->maxammo_cells )
+		return true;
+
+	if ( tfset_gren2box & BP_GREN_BYTYPE )
+	{
+		if ( pack->s.v.numgren1 > 0 && pack->s.v.tpgren1 == player->s.v.tpgren1
+		     && player->s.v.numgren1 < BackpackGrenadeCapacity( player->s.v.tpgren1 ) )
+			return true;
+		if ( pack->s.v.numgren2 > 0 && pack->s.v.tpgren2 == player->s.v.tpgren2
+		     && player->s.v.numgren2 < BackpackGrenadeCapacity( player->s.v.tpgren2 ) )
+			return true;
+	} else if ( tfset_gren2box & BP_GREN )
+	{
+		if ( pack->s.v.numgren1 > 0
+		     && player->s.v.numgren1 < BackpackGrenadeCapacity( player->s.v.tpgren1 ) )
+			return true;
+		if ( pack->s.v.numgren2 > 0
+		     && player->s.v.numgren2 < BackpackGrenadeCapacity( player->s.v.tpgren2 ) )
+			return true;
+	}
+
+	if ( ( tfset_gren2box & BP_TYPE_DETPACK ) && pack->ammo_detpack > 0
+	     && player->playerclass == PC_DEMOMAN
+	     && player->ammo_detpack < player->maxammo_detpack )
+		return true;
+
+	return false;
+}
+
 void BackpackTouch(  )
 {
 	float   best;
@@ -1655,6 +1759,8 @@ void BackpackTouch(  )
 		return;
 
 	if ( other->s.v.button0 )
+		return;
+	if ( !PlayerCanGainBackpackResources( other, self ) )
 		return;
 	other->s.v.ammo_shells = other->s.v.ammo_shells + self->s.v.ammo_shells;
 	other->s.v.ammo_nails = other->s.v.ammo_nails + self->s.v.ammo_nails;
