@@ -88,7 +88,7 @@ void door_blocked(  )
 
 void door_hit_top(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise1, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise1, 1, ATTN_NORM );
 	self->state = STATE_TOP;
 
 	if ( ( int ) ( self->s.v.spawnflags ) & DOOR_TOGGLE )
@@ -101,13 +101,13 @@ void door_hit_top(  )
 void door_hit_bottom(  )
 {
 	self->goal_state = TFGS_INACTIVE;
-	sound( self, CHAN_VOICE, self->s.v.noise1, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise1, 1, ATTN_NORM );
 	self->state = STATE_BOTTOM;
 }
 
 void door_go_down(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise2, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise2, 1, ATTN_NORM );
 	if ( self->s.v.max_health )
 	{
 		self->s.v.takedamage = DAMAGE_YES;
@@ -131,7 +131,7 @@ void door_go_up(  )
 		return;
 	}
 
-	sound( self, CHAN_VOICE, self->s.v.noise2, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise2, 1, ATTN_NORM );
 	self->state = STATE_UP;
 
 	SUB_CalcMove( self->pos2, self->speed, door_hit_top );
@@ -716,7 +716,7 @@ void fd_secret_use( gedict_t * attacker, float take )
 
 	// Make a sound, wait a little...
 
-	sound( self, CHAN_VOICE, self->s.v.noise1, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise1, 1, ATTN_NORM );
 	self->s.v.nextthink = self->s.v.ltime + 0.1;
 
 	temp = 1 - ( ( int ) ( self->s.v.spawnflags ) & SECRET_1ST_LEFT );	// 1 or -1
@@ -750,7 +750,7 @@ void fd_secret_use( gedict_t * attacker, float take )
 	self->dest2[2] = self->dest1[2] + g_globalvars.v_forward[2] * self->t_length;
 
 	SUB_CalcMove( self->dest1, self->speed, fd_secret_move1 );
-	sound( self, CHAN_VOICE, self->s.v.noise2, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise2, 1, ATTN_NORM );
 }
 
 // Wait after first movement...
@@ -758,20 +758,20 @@ void fd_secret_move1(  )
 {
 	self->s.v.nextthink = self->s.v.ltime + 1.0;
 	self->s.v.think = ( func_t ) fd_secret_move2;
-	sound( self, CHAN_VOICE, self->s.v.noise3, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise3, 1, ATTN_NORM );
 }
 
 // Start moving sideways w/sound...
 void fd_secret_move2(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise2, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise2, 1, ATTN_NORM );
 	SUB_CalcMove( self->dest2, self->speed, fd_secret_move3 );
 }
 
 // Wait here until time to go back...
 void fd_secret_move3(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise3, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise3, 1, ATTN_NORM );
 	if ( !( ( int ) ( self->s.v.spawnflags ) & SECRET_OPEN_ONCE ) )
 	{
 		self->s.v.nextthink = self->s.v.ltime + self->wait;
@@ -782,7 +782,7 @@ void fd_secret_move3(  )
 // Move backward...
 void fd_secret_move4(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise2, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise2, 1, ATTN_NORM );
 	SUB_CalcMove( self->dest1, self->speed, fd_secret_move5 );
 }
 
@@ -791,12 +791,12 @@ void fd_secret_move5(  )
 {
 	self->s.v.nextthink = self->s.v.ltime + 1.0;
 	self->s.v.think = ( func_t ) fd_secret_move6;
-	sound( self, CHAN_VOICE, self->s.v.noise3, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise3, 1, ATTN_NORM );
 }
 
 void fd_secret_move6(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise2, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise2, 1, ATTN_NORM );
 	SUB_CalcMove( self->s.v.oldorigin, self->speed, fd_secret_done );
 }
 
@@ -810,7 +810,7 @@ void fd_secret_done(  )
 		self->th_pain = fd_secret_use;
 		self->th_die = ( void ( * )(  ) ) fd_secret_use;
 	}
-	sound( self, CHAN_VOICE, self->s.v.noise3, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise3, 1, ATTN_NORM );
 }
 
 void secret_blocked(  )

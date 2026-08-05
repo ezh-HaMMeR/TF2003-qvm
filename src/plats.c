@@ -92,7 +92,7 @@ void plat_spawn_inside_trigger(  )
 
 void plat_hit_top(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise1, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise1, 1, ATTN_NORM );
 	self->state = STATE_TOP;
 	self->s.v.think = ( func_t ) plat_go_down;
 	self->s.v.nextthink = self->s.v.ltime + 3;
@@ -100,20 +100,20 @@ void plat_hit_top(  )
 
 void plat_hit_bottom(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise1, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise1, 1, ATTN_NORM );
 	self->state = STATE_BOTTOM;
 }
 
 void plat_go_down(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise, 1, ATTN_NORM );
 	self->state = STATE_DOWN;
 	SUB_CalcMove( self->pos2, self->speed, plat_hit_bottom );
 }
 
 void plat_go_up(  )
 {
-	sound( self, CHAN_VOICE, self->s.v.noise, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise, 1, ATTN_NORM );
 	self->state = STATE_UP;
 	SUB_CalcMove( self->pos1, self->speed, plat_hit_top );
 }
@@ -332,7 +332,7 @@ void train_wait(  )
 	if ( self->wait )
 	{
 		self->s.v.nextthink = self->s.v.ltime + self->wait;
-		sound( self, CHAN_VOICE, self->s.v.noise, 1, ATTN_NORM );
+		sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise, 1, ATTN_NORM );
 	} else
 		self->s.v.nextthink = self->s.v.ltime + 0.1;
 
@@ -357,7 +357,7 @@ void train_next(  )
 	else
 		self->wait = 0;
 
-	sound( self, CHAN_VOICE, self->s.v.noise1, 1, ATTN_NORM );
+	sound( self, CHAN_VOICE | CHAN_NO_PHS_ADD, self->s.v.noise1, 1, ATTN_NORM );
 	VectorSubtract( targ->s.v.origin, self->s.v.mins, tmpv );
 	SUB_CalcMove( tmpv, self->speed, train_wait );
 }
