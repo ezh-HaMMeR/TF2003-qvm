@@ -509,10 +509,15 @@ void armor_touch(  )
 		other->armorclass = self->armorclass;
 	self->s.v.solid = SOLID_NOT;
 	self->s.v.model = "";
-	if ( deathmatch != 2 )
-		self->s.v.nextthink = g_globalvars.time + 20;
-	if ( coop )
-		self->s.v.nextthink = g_globalvars.time + 40;
+	if ( streq( self->s.v.classname, "item_armorInv" ) )
+		self->s.v.nextthink = g_globalvars.time + 1;
+	else
+	{
+		if ( deathmatch != 2 )
+			self->s.v.nextthink = g_globalvars.time + 20;
+		if ( coop )
+			self->s.v.nextthink = g_globalvars.time + 40;
+	}
 	self->s.v.think = ( func_t ) SUB_regen;
 	sound( other, 3, "items/armor1.wav", 1, 1 );
 	stuffcmd( other, "bf\n" );
