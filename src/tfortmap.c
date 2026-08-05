@@ -1564,6 +1564,89 @@ void DoResults( gedict_t * Goal, gedict_t * AP, float addb )
 		SetupRespawn( Goal );
 }
 
+static int ResupplyGrenadeCapacity( int grenade_type )
+{
+	if ( grenade_type == GR_TYPE_NAIL )
+		return 2;
+	if ( grenade_type == GR_TYPE_CONCUSSION || grenade_type == GR_TYPE_CALTROPS )
+		return 3;
+	return 4;
+}
+
+static qboolean IsSimplePlayerResupplyPack( gedict_t *goal )
+{
+	int other_players;
+
+	if ( !streq( goal->mdl, "progs/backpack.mdl" ) )
+		return false;
+
+	/* A team/radius goal may still benefit somebody when the toucher is full. */
+	other_players = goal->goal_effects & ( TFGE_AP_TEAM | TFGE_NOT_AP_TEAM | TFGE_NOT_AP );
+	if ( !( goal->goal_effects & TFGE_AP ) || other_players )
+		return false;
+
+	/* Preserve custom goal/trigger semantics; only filter plain resupply packs. */
+	if ( goal->goal_result & ~TFGR_SINGLE
+	     || goal->count || goal->s.v.frags || goal->lives
+	     || goal->invincible_finished || goal->invisible_finished
+	     || goal->super_damage_finished || goal->radsuit_finished
+	     || goal->s.v.items || goal->axhitme || goal->remove_item_group
+	     || goal->display_item_status1 || goal->display_item_status2
+	     || goal->display_item_status3 || goal->display_item_status4
+	     || goal->increase_team1 || goal->increase_team2
+	     || goal->increase_team3 || goal->increase_team4
+	     || goal->activate_goal_no || goal->inactivate_goal_no
+	     || goal->remove_goal_no || goal->restore_goal_no
+	     || goal->activate_group_no || goal->inactivate_group_no
+	     || goal->remove_group_no || goal->restore_group_no
+	     || goal->return_item_no || goal->remove_spawnpoint
+	     || goal->restore_spawnpoint || goal->remove_spawngroup
+	     || goal->restore_spawngroup || goal->all_active
+	     || goal->s.v.target || goal->killtarget )
+		return false;
+
+	/* A mixed harmful goal must never be suppressed by the resource guard. */
+	if ( goal->s.v.health < 0 || goal->s.v.armorvalue < 0
+	     || goal->s.v.ammo_shells < 0 || goal->s.v.ammo_nails < 0
+	     || goal->s.v.ammo_rockets < 0 || goal->s.v.ammo_cells < 0
+	     || goal->ammo_medikit < 0 || goal->ammo_detpack < 0
+	     || goal->s.v.numgren1 < 0 || goal->s.v.numgren2 < 0 )
+		return false;
+
+	return goal->s.v.health > 0 || goal->s.v.armorvalue > 0
+	       || goal->s.v.armortype > 0 || goal->armorclass > 0
+	       || goal->s.v.ammo_shells > 0 || goal->s.v.ammo_nails > 0
+	       || goal->s.v.ammo_rockets > 0 || goal->s.v.ammo_cells > 0
+	       || goal->ammo_medikit > 0 || goal->ammo_detpack > 0
+	       || goal->s.v.numgren1 > 0 || goal->s.v.numgren2 > 0;
+}
+
+static qboolean PlayerCanGainResupplyPack( gedict_t *player, gedict_t *pack )
+{
+	if ( pack->s.v.health > 0 && player->s.v.health < player->s.v.max_health )
+		return true;
+	if ( pack->s.v.armorvalue > 0 && player->s.v.armorvalue < player->maxarmor )
+		return true;
+	if ( pack->s.v.armortype > player->s.v.armortype
+	     && player->s.v.armortype < player->armor_allowed )
+		return true;
+	if ( pack->armorclass > 0 && pack->armorclass != player->armorclass )
+		return true;
+	if ( PlayerCanGainPackAmmo( player, pack ) )
+		return true;
+	if ( pack->ammo_medikit > 0 && player->ammo_medikit < player->maxammo_medikit )
+		return true;
+	if ( pack->ammo_detpack > 0 && player->ammo_detpack < player->maxammo_detpack )
+		return true;
+	if ( pack->s.v.numgren1 > 0
+	     && player->s.v.numgren1 < ResupplyGrenadeCapacity( player->s.v.tpgren1 ) )
+		return true;
+	if ( pack->s.v.numgren2 > 0
+	     && player->s.v.numgren2 < ResupplyGrenadeCapacity( player->s.v.tpgren2 ) )
+		return true;
+	return false;
+}
+
 void tfgoal_touch(  )
 {
 	gedict_t *te;
@@ -1578,6 +1661,8 @@ void tfgoal_touch(  )
 	if ( tf_data.cb_prematch_time > g_globalvars.time )
 		return;
 	if ( self->goal_state == TFGS_ACTIVE )
+		return;
+	if ( IsSimplePlayerResupplyPack( self ) && !PlayerCanGainResupplyPack( other, self ) )
 		return;
 	if ( CTF_Map == 1 )
 	{
