@@ -722,6 +722,78 @@ gedict_t *G_NextSpectator( gedict_t *spectator )
 	return world;
 }
 
+#define TEAMMATE_STATUS_UPDATE_INTERVAL 1.0
+static float next_teammate_status_update;
+
+static qboolean IsActiveTeammateStatusPlayer( gedict_t *player )
+{
+	return player && player != world
+		&& !player->is_removed && !player->has_disconnected
+		&& !player->isSpectator
+		&& streq( player->s.v.classname, "player" )
+		&& player->team_no > 0;
+}
+
+static int ClampTeammateStatusValue( float value )
+{
+	if ( value < 0 )
+		return 0;
+	if ( value > 999 )
+		return 999;
+	return ( int ) value;
+}
+
+void ResetTeammateStatusUpdates(  )
+{
+	next_teammate_status_update = 0;
+}
+
+void FlushTeammateStatusUpdates(  )
+{
+	gedict_t *recipient;
+	gedict_t *source;
+	int source_slot;
+
+	/* Team status uses reliable stufftext, so update it centrally at most once
+	 * per second instead of multiplying it through every PlayerPreThink. */
+	if ( g_globalvars.time < next_teammate_status_update )
+		return;
+	next_teammate_status_update = g_globalvars.time + TEAMMATE_STATUS_UPDATE_INTERVAL;
+
+	for ( recipient = world; ( recipient = G_NextPlayer( recipient ) ) != world; )
+	{
+		if ( !IsActiveTeammateStatusPlayer( recipient ) )
+			continue;
+
+		for ( source = world; ( source = G_NextPlayer( source ) ) != world; )
+		{
+			if ( !IsActiveTeammateStatusPlayer( source ) )
+				continue;
+
+			/* Privacy boundary: use only the mod's authoritative real team number.
+			 * Allied teams, userinfo, colors, skins and Spy disguise never qualify. */
+			if ( source->team_no != recipient->team_no )
+				continue;
+
+			/* Client edicts occupy slots 1..MAX_CLIENTS; //tinfo is zero-based. */
+			source_slot = NUM_FOR_EDICT( source ) - 1;
+			stuffcmd( recipient,
+				"//tinfo %d %d %d %d %d %d %d \"\" %d %d %d %d\n",
+				source_slot,
+				( int ) source->s.v.origin[0],
+				( int ) source->s.v.origin[1],
+				( int ) source->s.v.origin[2],
+				ClampTeammateStatusValue( source->s.v.health ),
+				ClampTeammateStatusValue( source->s.v.armorvalue ),
+				( int ) source->s.v.items,
+				ClampTeammateStatusValue( source->s.v.ammo_shells ),
+				ClampTeammateStatusValue( source->s.v.ammo_nails ),
+				ClampTeammateStatusValue( source->s.v.ammo_rockets ),
+				ClampTeammateStatusValue( source->s.v.ammo_cells ) );
+		}
+	}
+}
+
 #if TF2003_DAMAGE_STATS_ENABLED
 /* Optional damage-stat batching. Re-enable with the switch in progs.h. */
 void SendDamageStatUpdate( gedict_t *player )

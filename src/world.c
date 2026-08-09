@@ -387,5 +387,6 @@ void StartFrame( int time )
 	/* Publish accumulated damage updates on their 100 ms schedule. */
 	FlushDamageStatUpdates();
 #endif
+	FlushTeammateStatusUpdates();
 	MatchTimer( false );
 }
