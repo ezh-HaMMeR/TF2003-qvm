@@ -1484,8 +1484,8 @@ void DoResults( gedict_t * Goal, gedict_t * AP, float addb )
 			CenterPrint( te, "\n\n\n%s", Goal->broadcast );
 		if ( Goal->netname_broadcast && !CTF_Map )
 		{
-			G_sprint( te, 2, "%s", AP->s.v.netname );
-			G_sprint( te, 2, "%s", Goal->netname_broadcast );
+			G_sprint_nodemo( te, 2, "%s", AP->s.v.netname );
+			G_sprint_nodemo( te, 2, "%s", Goal->netname_broadcast );
 		}
 		if ( AP == te )
 		{
@@ -1502,10 +1502,10 @@ void DoResults( gedict_t * Goal, gedict_t * AP, float addb )
 
 				if ( Goal->netname_owners_team_broadcast && te->team_no == Goal->owned_by )
 				{
-					G_sprint( te, 2, "%s%s", AP->s.v.netname, Goal->netname_owners_team_broadcast );
+					G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Goal->netname_owners_team_broadcast );
 				} else if ( Goal->netname_team_broadcast )
                 {
-                    G_sprint( te, 2, "%s%s", AP->s.v.netname, Goal->netname_team_broadcast );
+                    G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Goal->netname_team_broadcast );
                 }
 			} else
 			{
@@ -1515,9 +1515,9 @@ void DoResults( gedict_t * Goal, gedict_t * AP, float addb )
                     CenterPrint( te, "\n\n\n%s", Goal->non_team_broadcast );
 
 				if ( Goal->netname_owners_team_broadcast && te->team_no == Goal->owned_by )
-					G_sprint( te, 2, "%s%s", AP->s.v.netname, Goal->netname_owners_team_broadcast );
+					G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Goal->netname_owners_team_broadcast );
 				else if ( Goal->netname_non_team_broadcast )
-                    G_sprint( te, 2, "%s%s", AP->s.v.netname, Goal->netname_non_team_broadcast );
+                    G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Goal->netname_non_team_broadcast );
 			}
 		}
 		if ( IsAffectedBy( Goal, te, AP ) )
@@ -1543,12 +1543,18 @@ void DoResults( gedict_t * Goal, gedict_t * AP, float addb )
 		if ( Goal->broadcast && !CTF_Map )
 			CenterPrint( te, "\n\n\n%s", Goal->broadcast );
 		if ( Goal->netname_broadcast && !CTF_Map )
-			G_sprint( te, 2, "%s%s", AP->s.v.netname, Goal->netname_broadcast );
+			G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Goal->netname_broadcast );
 		if ( Goal->non_team_broadcast )
 			CenterPrint( te, "\n\n\n%s", Goal->non_team_broadcast );
 		if ( Goal->netname_non_team_broadcast )
-			G_sprint( te, 2, "%s%s", AP->s.v.netname, Goal->netname_non_team_broadcast );
+			G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Goal->netname_non_team_broadcast );
 	}
+	/* Store the neutral public announcements once as dem_all so MVD playback
+	 * shows them in free fly and while tracking any player. */
+	if ( Goal->netname_broadcast && !CTF_Map )
+		G_demoprint( 2, "%s%s", AP->s.v.netname, Goal->netname_broadcast );
+	if ( Goal->netname_non_team_broadcast )
+		G_demoprint( 2, "%s%s", AP->s.v.netname, Goal->netname_non_team_broadcast );
 	if ( strneq( Goal->s.v.classname, "item_tfgoal" ) )
 		Goal->goal_state = 1;
 	if ( Goal->goal_result & TFGR_ENDGAME )
@@ -2025,7 +2031,7 @@ void tfgoalitem_RemoveFromPlayer( gedict_t * Item, gedict_t * AP, int method )
 					CenterPrint( te, "\n\n\n%s", Item->team_drop );
 				if ( Item->netname_team_drop )
 				{
-					G_sprint( te, 2, "%s%s", AP->s.v.netname, Item->netname_team_drop );
+					G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Item->netname_team_drop );
 				}
 			} else
 			{
@@ -2033,7 +2039,7 @@ void tfgoalitem_RemoveFromPlayer( gedict_t * Item, gedict_t * AP, int method )
 					CenterPrint( te, "\n\n\n%s", Item->non_team_drop );
 				if ( Item->netname_non_team_drop )
 				{
-					G_sprint( te, 2, "%s%s", AP->s.v.netname, Item->netname_non_team_drop );
+					G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Item->netname_non_team_drop );
 				}
 			}
 			te = trap_find( te, FOFS( s.v.classname ), "player" );
@@ -2043,8 +2049,11 @@ void tfgoalitem_RemoveFromPlayer( gedict_t * Item, gedict_t * AP, int method )
 			if ( Item->non_team_drop )
 				CenterPrint( te, "\n\n\n%s", Item->non_team_drop );
 			if ( Item->netname_non_team_drop )
-				G_sprint( te, 2, "%s%s", AP->s.v.netname, Item->netname_non_team_drop );
+				G_sprint_nodemo( te, 2, "%s%s", AP->s.v.netname, Item->netname_non_team_drop );
 		}
+		/* The non-team drop text is the neutral spectator-facing variant. */
+		if ( Item->netname_non_team_drop )
+			G_demoprint( 2, "%s%s", AP->s.v.netname, Item->netname_non_team_drop );
 		if ( Item->goal_activation & TFGI_RETURN_DROP )
 		{
 			DelayReturn = spawn(  );

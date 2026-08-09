@@ -411,6 +411,20 @@ void G_sprint( gedict_t * ed, int level, const char *fmt, ... )
 	trap_SPrint( NUM_FOR_EDICT( ed ), level, text, 0 );
 }
 
+void G_sprint_nodemo( gedict_t * ed, int level, const char *fmt, ... )
+{
+	va_list argptr;
+	char text[1024];
+
+	va_start( argptr, fmt );
+	_vsnprintf( text, sizeof(text), fmt, argptr );
+	va_end( argptr );
+
+	/* The live recipient still sees the message, but MVDSV does not create
+	 * a view-dependent dem_single copy for it. */
+	trap_SPrint( NUM_FOR_EDICT( ed ), level, text, SPRINT_IGNOREINDEMO );
+}
+
 void G_bprint( int level, const char *fmt, ... )
 {
 	va_list argptr;
@@ -421,6 +435,20 @@ void G_bprint( int level, const char *fmt, ... )
 	va_end( argptr );
 
 	trap_BPrint( level, text, 0  );
+}
+
+void G_demoprint( int level, const char *fmt, ... )
+{
+	va_list argptr;
+	char text[1024];
+
+	va_start( argptr, fmt );
+	_vsnprintf( text, sizeof(text), fmt, argptr );
+	va_end( argptr );
+
+	/* MVDSV records this as one dem_all message without sending a duplicate
+	 * to live clients or printing it in the server console. */
+	trap_BPrint( level, text, BPRINT_IGNORECLIENTS | BPRINT_IGNORECONSOLE );
 }
 
 void G_centerprint( gedict_t * ed, const char *fmt, ... )
