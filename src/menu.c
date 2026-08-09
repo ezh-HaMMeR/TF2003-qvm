@@ -801,6 +801,12 @@ void Menu_Dispenser( menunum_t menu )
 void Menu_Dispenser_Input( int inp )
 {
 	float   am, empty = 0;
+	qboolean can_withdraw_cells;
+
+	/* Cells from dispensers are reserved for the two classes that use them
+	 * as a primary class resource; every class may still withdraw other ammo. */
+	can_withdraw_cells = self->playerclass == PC_HVYWEAP
+		|| self->playerclass == PC_ENGINEER;
 
 	switch ( inp )
 	{
@@ -808,7 +814,7 @@ void Menu_Dispenser_Input( int inp )
 		if ( !self->building->s.v.ammo_shells
 		     && !self->building->s.v.ammo_nails
 		     && !self->building->s.v.ammo_rockets
-		     && !self->building->s.v.ammo_cells )
+		     && ( !can_withdraw_cells || !self->building->s.v.ammo_cells ) )
 		{
 			empty = 1;
 			break;
@@ -831,11 +837,14 @@ void Menu_Dispenser_Input( int inp )
 			am = self->building->s.v.ammo_rockets;
 		self->building->s.v.ammo_rockets = self->building->s.v.ammo_rockets - am;
 		self->s.v.ammo_rockets = self->s.v.ammo_rockets + am;
-		am = self->maxammo_cells - self->s.v.ammo_cells;
-		if ( am > self->building->s.v.ammo_cells )
-			am = self->building->s.v.ammo_cells;
-		self->building->s.v.ammo_cells = self->building->s.v.ammo_cells - am;
-		self->s.v.ammo_cells = self->s.v.ammo_cells + am;
+		if ( can_withdraw_cells )
+		{
+			am = self->maxammo_cells - self->s.v.ammo_cells;
+			if ( am > self->building->s.v.ammo_cells )
+				am = self->building->s.v.ammo_cells;
+			self->building->s.v.ammo_cells = self->building->s.v.ammo_cells - am;
+			self->s.v.ammo_cells = self->s.v.ammo_cells + am;
+		}
 		break;
 	case 2:
 		if ( !self->building->s.v.armorvalue )
