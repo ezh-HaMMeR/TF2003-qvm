@@ -54,3 +54,4 @@ typedef enum {
 	TG_MENU_SG_FIRE
 } menunum_t;
 
+void ResetMenu( void );

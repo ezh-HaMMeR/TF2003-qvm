@@ -45,6 +45,7 @@ void    RemoveBot(  );
 void    TG_Cmd(  );
 void    Vote_Cmd(  );
 void    TeamFortress_Cmd_Discard(  );
+void    Engineer_BuildSentryPoint(  );
 void    Engineer_RotateSG(  );
 void    TeamFortress_Cmd_Detpack(  );
 void    Admin_Cmd(  );
@@ -64,6 +65,7 @@ const static cmd_t   cmds[] = {
   {"set", Client_Set_Cmd},
   {"admin", Admin_Cmd, CMD_SPECTATOR_ALLOWED},
   {"discard", TeamFortress_Cmd_Discard, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"builtsg_pw", Engineer_BuildSentryPoint, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"sg_rotate", Engineer_RotateSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"detpack", TeamFortress_Cmd_Detpack, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS },
   {"dropitems", DropOrGiveGoalItems, CMD_NOT_PREMATCH | CMD_NOT_DEAD},

@@ -415,7 +415,7 @@ int CheckArea( gedict_t * obj, gedict_t * builder )
     return 1;
 }
 
-void TeamFortress_Build( int objtobuild )
+static void TeamFortress_BuildInternal( int objtobuild, qboolean point_view )
 {
     float btime;
 
@@ -503,7 +503,10 @@ void TeamFortress_Build( int objtobuild )
     newmis->s.v.think = ( func_t ) TeamFortress_FinishedBuilding;
     newmis->s.v.colormap = self->s.v.colormap;
     newmis->s.v.weapon = objtobuild;
-    newmis->s.v.angles[1] = anglemod( self->s.v.angles[1] + 180 );
+    if ( objtobuild == BUILD_SENTRYGUN && point_view )
+        newmis->s.v.angles[1] = anglemod( self->s.v.angles[1] );
+    else
+        newmis->s.v.angles[1] = anglemod( self->s.v.angles[1] + 180 );
     SetVector( newmis->s.v.velocity, 0, 0, 8 );
     newmis->s.v.movetype = MOVETYPE_TOSS;
     newmis->s.v.solid = SOLID_BBOX;
@@ -511,6 +514,41 @@ void TeamFortress_Build( int objtobuild )
     setsize( newmis, PASSVEC3( tmp1 ), PASSVEC3( tmp2 ) );
     setorigin( newmis, PASSVEC3( newmis->s.v.origin ) );
     newmis->s.v.flags = ( int ) newmis->s.v.flags - ( ( int ) newmis->s.v.flags & FL_ONGROUND );
+}
+
+void TeamFortress_Build( int objtobuild )
+{
+    TeamFortress_BuildInternal( objtobuild, false );
+}
+
+void Engineer_BuildSentryPoint(  )
+{
+    if ( !tfset(tg_enabled) && self->playerclass != PC_ENGINEER )
+        return;
+    if ( tf_data.cease_fire )
+        return;
+
+    if ( !( ( int ) self->s.v.flags & FL_ONGROUND ) )
+    {
+        CenterPrint( self, "You can't build in the air!\n\n" );
+        return;
+    }
+    if ( !tfset(tg_enabled) && self->has_sentry )
+    {
+        G_sprint( self, 2, "You can only have one sentry gun.\nTry dismantling your old one.\n" );
+        return;
+    }
+    if ( !tfset(tg_enabled) && self->s.v.ammo_cells < BUILD_COST_SENTRYGUN )
+    {
+        G_sprint( self, 2, "You need %d metal to build a sentry gun.\n", BUILD_COST_SENTRYGUN );
+        return;
+    }
+
+    /* The direct command records the point-view yaw in the build timer now;
+     * turning during the normal build delay cannot change the final arc. */
+    TeamFortress_BuildInternal( BUILD_SENTRYGUN, true );
+    if ( self->is_building )
+        ResetMenu(  );
 }
 
 void CheckBelowBuilding( gedict_t * bld )
@@ -1019,30 +1057,90 @@ void Engineer_UseSentryGun( gedict_t * gun )
   dist_checker->s.v.nextthink = g_globalvars.time + 0.3;
 }
 
+static qboolean Engineer_IsLiveSentry( gedict_t *gun )
+{
+    return gun && gun != world && !gun->is_removed
+        && streq( gun->s.v.classname, "building_sentrygun" );
+}
+
+static qboolean Engineer_CanDirectlyReachSentry( gedict_t *gun )
+{
+    vec3_t dist;
+    vec3_t start;
+    vec3_t end;
+
+    VectorSubtract( gun->s.v.origin, self->s.v.origin, dist );
+    if ( DotProduct( dist, dist ) > 64 * 64 )
+        return false;
+
+    VectorAdd( self->s.v.origin, self->s.v.view_ofs, start );
+    VectorAdd( gun->s.v.origin, gun->s.v.view_ofs, end );
+    traceline( PASSVEC3( start ), PASSVEC3( end ), 1, self );
+    return g_globalvars.trace_fraction == 1;
+}
+
+static gedict_t *Engineer_FindSentryForRotation(  )
+{
+    gedict_t *gun;
+    gedict_t *nearest = world;
+    vec3_t dist;
+    float distance_squared;
+    float nearest_distance_squared = 64 * 64 + 1;
+
+    /* Preserve the old spanner/menu target when it exists.  The direct path
+     * below deliberately accepts only an owned sentry within spanner reach. */
+    if ( self->current_menu == MENU_ENGINEER_FIX_SENTRYGUN
+         && Engineer_IsLiveSentry( self->building ) )
+        return self->building;
+
+    for ( gun = world; ( gun = trap_find( gun, FOFS( s.v.classname ), "building_sentrygun" ) ); )
+    {
+        if ( !Engineer_IsLiveSentry( gun ) || gun->real_owner != self )
+            continue;
+
+        VectorSubtract( gun->s.v.origin, self->s.v.origin, dist );
+        distance_squared = DotProduct( dist, dist );
+        if ( distance_squared >= nearest_distance_squared )
+            continue;
+        if ( !Engineer_CanDirectlyReachSentry( gun ) )
+            continue;
+
+        nearest = gun;
+        nearest_distance_squared = distance_squared;
+    }
+
+    return nearest;
+}
+
 void 	Engineer_RotateSG(  )
 {
     int angle;
     char    value[1024];
+    gedict_t *gun;
 
     if( !tfset(tg_enabled)  && (self->playerclass != PC_ENGINEER ))
-        return;
-
-    if( self->current_menu != MENU_ENGINEER_FIX_SENTRYGUN )
         return;
 
     if( trap_CmdArgc() != 2)
         return;
 
+    gun = Engineer_FindSentryForRotation(  );
+    if ( gun == world )
+    {
+        G_sprint( self, 2, "No usable sentry gun within reach.\n" );
+        return;
+    }
+
     trap_CmdArgv( 1, value, sizeof( value ) );
     if( !strcmp( value,"point") )
     {
-        self->building->waitmin = anglemod( ( int ) ( self->s.v.angles[1] - 50 ) );
-        self->building->waitmax = anglemod( ( int ) ( self->s.v.angles[1] + 50 ) );
+        gun->waitmin = anglemod( ( int ) ( self->s.v.angles[1] - 50 ) );
+        gun->waitmax = anglemod( ( int ) ( self->s.v.angles[1] + 50 ) );
         return;
     }
     angle = atoi(value);
-    self->building->waitmin = anglemod( self->building->waitmin + angle );
-    self->building->waitmax = anglemod( self->building->waitmax + angle );
+    gun->waitmin = anglemod( gun->waitmin + angle );
+    gun->waitmax = anglemod( gun->waitmax + angle );
 }
 
 void CheckSentry( gedict_t * gunhead )
