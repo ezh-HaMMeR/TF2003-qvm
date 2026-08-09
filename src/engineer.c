@@ -1079,6 +1079,12 @@ static qboolean Engineer_CanDirectlyReachSentry( gedict_t *gun )
     return g_globalvars.trace_fraction == 1;
 }
 
+static qboolean Engineer_CanRotateFriendlySentry( gedict_t *gun )
+{
+    return gun->real_owner && gun->real_owner != world && self->team_no
+        && TeamFortress_isTeamsAllied( self->team_no, gun->real_owner->team_no );
+}
+
 static gedict_t *Engineer_FindSentryForRotation(  )
 {
     gedict_t *gun;
@@ -1088,14 +1094,14 @@ static gedict_t *Engineer_FindSentryForRotation(  )
     float nearest_distance_squared = 64 * 64 + 1;
 
     /* Preserve the old spanner/menu target when it exists.  The direct path
-     * below deliberately accepts only an owned sentry within spanner reach. */
+     * uses the same real-team alliance check as friendly spanner servicing. */
     if ( self->current_menu == MENU_ENGINEER_FIX_SENTRYGUN
          && Engineer_IsLiveSentry( self->building ) )
         return self->building;
 
     for ( gun = world; ( gun = trap_find( gun, FOFS( s.v.classname ), "building_sentrygun" ) ); )
     {
-        if ( !Engineer_IsLiveSentry( gun ) || gun->real_owner != self )
+        if ( !Engineer_IsLiveSentry( gun ) || !Engineer_CanRotateFriendlySentry( gun ) )
             continue;
 
         VectorSubtract( gun->s.v.origin, self->s.v.origin, dist );
