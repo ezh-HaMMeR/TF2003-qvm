@@ -208,6 +208,9 @@ typedef struct gedict_s {
 	float           last_saveme_sound;
 	float           last_goal_give;
 	int             no_active_nail_grens;
+	/* Stable FIFO metadata for Demoman pipebomb overflow handling. */
+	int             pipebomb_order;
+	int             pipebomb_forced;
 	float		waitmin,waitmax;
 
 //goal fields

@@ -42,7 +42,10 @@ void TeamFortress_DetonatePipebombs(  )
 	for ( e = world; (e = trap_find( e, FOFS( s.v.classname ), "pipebomb" )); )
 	{
 		if ( e->s.v.owner == EDICT_TO_PROG( self ) )
+		{
+			e->pipebomb_forced = 1;
 			e->s.v.nextthink = g_globalvars.time;
+		}
 	}
 }
 

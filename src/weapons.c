@@ -1112,6 +1112,39 @@ int CountPlayerPipebombs(gedict_t *player) {
 }
 
 static int num_team_pipebombs[5];
+static int next_pipebomb_order;
+
+static int CountForcedPipebombs(int tno) {
+  gedict_t *pipe;
+  int count;
+
+  count = 0;
+  for (pipe = world; (pipe = trap_find(pipe, FOFS(s.v.classname), "pipebomb"));) {
+    if (tno && pipe->team_no != tno)
+      continue;
+    if (pipe->pipebomb_forced)
+      count++;
+  }
+
+  return count;
+}
+
+static gedict_t *FindOldestPipebomb(int tno) {
+  gedict_t *pipe;
+  gedict_t *oldest;
+
+  oldest = world;
+  for (pipe = world; (pipe = trap_find(pipe, FOFS(s.v.classname), "pipebomb"));) {
+    if (tno && pipe->team_no != tno)
+      continue;
+    if (pipe->pipebomb_forced)
+      continue;
+    if (oldest == world || pipe->pipebomb_order < oldest->pipebomb_order)
+      oldest = pipe;
+  }
+
+  return oldest;
+}
 
 void ExplodeOldPipebomb(int tno, int extra) {
   gedict_t *old;
@@ -1124,21 +1157,18 @@ void ExplodeOldPipebomb(int tno, int extra) {
       index = index - 1;
   } else
     index = num_team_pipebombs[0] - MAX_WORLD_PIPEBOMBS;
-  old = trap_find(world, FOFS(s.v.classname), "pipebomb");
+
+  /* Pipes already scheduled for forced detonation still exist and remain in
+   * the team counter during the existing 0.5 second delay.  Do not schedule
+   * additional pipes for overflow that those pending removals already cover. */
+  index -= CountForcedPipebombs(tno);
   while (index > 0) {
-    if (!old) {
-      num_team_pipebombs[0] = 0;
-      num_team_pipebombs[1] = 0;
-      num_team_pipebombs[2] = 0;
-      num_team_pipebombs[3] = 0;
-      num_team_pipebombs[4] = 0;
+    old = FindOldestPipebomb(tno);
+    if (old == world)
       return;
-    }
-    if (PROG_TO_EDICT(old->s.v.owner)->team_no == tno || !tno) {
-      old->s.v.nextthink = g_globalvars.time + 0.5;
-      index = index - 1;
-    }
-    old = trap_find(old, FOFS(s.v.classname), "pipebomb");
+    old->pipebomb_forced = 1;
+    old->s.v.nextthink = g_globalvars.time + 0.5;
+    index = index - 1;
   }
 }
 
@@ -1227,6 +1257,8 @@ void W_FireGrenade() {
     newmis->s.v.touch = (func_t)GrenadeTouch;
     newmis->s.v.nextthink = g_globalvars.time + 2.5;
   } else {
+    newmis->pipebomb_order = ++next_pipebomb_order;
+    newmis->pipebomb_forced = 0;
     num_pipes = CountPlayerPipebombs(self);
     if (self->team_no) {
       increment_team_pipebombs(self->team_no);
