@@ -30,7 +30,7 @@ void TeamFortress_SniperWeapon(  )
 {
 
 	self->s.v.impulse = 0;
-	if ( self->s.v.tfstate & TFSTATE_RELOADING )
+	if ( W_IsReloading( self ) )
 		return;
 	if ( !( ( self->weapons_carried & WEAP_SNIPER_RIFLE ) && ( self->weapons_carried & WEAP_AUTO_RIFLE ) ) )
 		return;

@@ -1720,6 +1720,7 @@ void TeamFortress_SetEquipment(  )
 	self->weaponmode = 0;
 	self->respawn_time = 0;
 	self->heat = 0;
+	self->reload_timer = world;
 	self->s.v.tfstate -= self->s.v.tfstate & TFSTATE_RELOADING;
 	if ( !self->team_no )
 		self->lives = -1;
@@ -1952,6 +1953,8 @@ void TeamFortress_RemoveTimers(  )
 			te = world;
 		}
 	}
+	self->reload_timer = world;
+	self->s.v.tfstate &= ~TFSTATE_RELOADING;
     TeamFortress_PlayerLostFlag();
 
 	for( te = world; (te = trap_find( te, FOFS( s.v.classname ), "detpack" ));)
@@ -2399,7 +2402,7 @@ void decrement_team_ammoboxes( int tno )
 void TeamFortress_AssaultWeapon(  )
 {
 	self->s.v.impulse = 0;
-	if ( self->s.v.tfstate & TFSTATE_RELOADING )
+	if ( W_IsReloading( self ) )
 		return;
 	if ( !( self->weapons_carried & WEAP_ASSAULT_CANNON ) )
 		return;

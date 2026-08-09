@@ -203,6 +203,8 @@ typedef struct gedict_s {
 	int             reload_super_shotgun;
 	int             reload_grenade_launcher;
 	int             reload_rocket_launcher;
+	/* Authoritative reload state; TFSTATE_RELOADING is only its mirror. */
+	struct gedict_s *reload_timer;
 	float           heat;
 	float           immune_to_check;
 	float           last_saveme_sound;

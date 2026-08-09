@@ -1491,7 +1491,7 @@ void W_SetCurrentAmmo() {
     if (wi->w == self->current_weapon) {
       self->s.v.currentammo = 0;
 
-      if (!(self->s.v.tfstate & TFSTATE_RELOADING)) {
+      if (!W_IsReloading(self)) {
         if (wi->have_mode && self->weaponmode == 1) {
           self->s.v.weaponmodel = wi->model_mode;
         } else {
@@ -1567,11 +1567,77 @@ int W_CheckNoAmmo() {
   return 0;
 }
 
+static qboolean W_IsReloadThink(func_t think) {
+  return think == (func_t)W_Reload_shotgun ||
+         think == (func_t)W_Reload_super_shotgun ||
+         think == (func_t)W_Reload_grenade_launcher ||
+         think == (func_t)W_Reload_rocket_launcher;
+}
+
+static qboolean W_IsActiveReloadTimer(gedict_t *player, gedict_t *timer) {
+  if (!timer || timer == world || timer->is_removed)
+    return false;
+  if (timer->s.v.owner != EDICT_TO_PROG(player))
+    return false;
+  if (strneq(timer->s.v.classname, "timer"))
+    return false;
+  if (!W_IsReloadThink(timer->s.v.think))
+    return false;
+
+  return true;
+}
+
+qboolean W_IsReloading(gedict_t *player) {
+  if (W_IsActiveReloadTimer(player, player->reload_timer)) {
+    player->s.v.tfstate |= TFSTATE_RELOADING;
+    return true;
+  }
+
+  player->reload_timer = world;
+  player->s.v.tfstate &= ~TFSTATE_RELOADING;
+  return false;
+}
+
+qboolean W_StartReloadTimer(gedict_t *player, void (*reload_think)(), float reload_time) {
+  gedict_t *timer;
+
+  if (W_IsReloading(player))
+    return false;
+
+  timer = spawn();
+  timer->s.v.owner = EDICT_TO_PROG(player);
+  timer->s.v.classname = "timer";
+  timer->s.v.nextthink = g_globalvars.time + reload_time;
+  timer->s.v.think = (func_t)reload_think;
+  player->reload_timer = timer;
+  player->s.v.tfstate |= TFSTATE_RELOADING;
+  player->s.v.weaponmodel = "";
+  player->s.v.weaponframe = 0;
+  G_sprint(player, 2, "reloading...\n");
+  return true;
+}
+
+static gedict_t *W_FinishReloadTimer() {
+  gedict_t *owner;
+
+  owner = PROG_TO_EDICT(self->s.v.owner);
+  if (!W_IsActiveReloadTimer(owner, self) || owner->reload_timer != self) {
+    dremove(self);
+    return world;
+  }
+
+  owner->reload_timer = world;
+  owner->s.v.tfstate &= ~TFSTATE_RELOADING;
+  return owner;
+}
+
 void W_Reload_shotgun() {
-  gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
+  gedict_t *owner = W_FinishReloadTimer();
+
+  if (owner == world)
+    return;
 
   owner->s.v.currentclip = GetClipSize(owner);
-  owner->s.v.tfstate -= (owner->s.v.tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_shot.mdl";
   G_sprint(owner, 0, "finished reloading\n");
   dremove(self);
@@ -1579,10 +1645,12 @@ void W_Reload_shotgun() {
 }
 
 void W_Reload_super_shotgun() {
-  gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
+  gedict_t *owner = W_FinishReloadTimer();
+
+  if (owner == world)
+    return;
 
   owner->s.v.currentclip = GetClipSize(owner);
-  owner->s.v.tfstate -= (owner->s.v.tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_shot2.mdl";
   G_sprint(owner, 0, "finished reloading\n");
   dremove(self);
@@ -1590,10 +1658,12 @@ void W_Reload_super_shotgun() {
 }
 
 void W_Reload_grenade_launcher() {
-  gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
+  gedict_t *owner = W_FinishReloadTimer();
+
+  if (owner == world)
+    return;
 
   owner->s.v.currentclip = GetClipSize(owner);
-  owner->s.v.tfstate -= (owner->s.v.tfstate & TFSTATE_RELOADING);
   if (owner->weaponmode == GL_NORMAL)
     owner->s.v.weaponmodel = "progs/v_rock.mdl";
   else
@@ -1604,10 +1674,12 @@ void W_Reload_grenade_launcher() {
 }
 
 void W_Reload_rocket_launcher() {
-  gedict_t *owner = PROG_TO_EDICT(self->s.v.owner);
+  gedict_t *owner = W_FinishReloadTimer();
+
+  if (owner == world)
+    return;
 
   owner->s.v.currentclip = GetClipSize(owner);
-  owner->s.v.tfstate -= (owner->s.v.tfstate & TFSTATE_RELOADING);
   owner->s.v.weaponmodel = "progs/v_rock2.mdl";
   G_sprint(owner, 0, "finished reloading\n");
   dremove(self);
@@ -1615,17 +1687,7 @@ void W_Reload_rocket_launcher() {
 }
 
 int _weapon_reload(void (*f)(), int tm) {
-  gedict_t *tWeapon;
-
-  G_sprint(self, 2, "reloading...\n");
-  self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
-  tWeapon = spawn();
-  tWeapon->s.v.owner = EDICT_TO_PROG(self);
-  tWeapon->s.v.classname = "timer";
-  tWeapon->s.v.nextthink = g_globalvars.time + tm;
-  tWeapon->s.v.think = (func_t)f;
-  self->s.v.weaponmodel = "";
-  self->s.v.weaponframe = 0;
+  W_StartReloadTimer(self, f, tm);
   return 1;
 }
 
@@ -1679,11 +1741,11 @@ float CheckForReload() {
 
 void W_Attack() {
 
+  if (W_IsReloading(self))
+    return;
   if (!W_CheckNoAmmo())
     return;
   if (self->has_disconnected == 1)
-    return;
-  if (self->s.v.tfstate & TFSTATE_RELOADING)
     return;
   if (self->is_undercover || self->undercover_team || self->undercover_skin)
     Spy_RemoveDisguise(self);
@@ -1996,7 +2058,7 @@ void W_ChangeWeapon() {
   int *weapons;
   struct w_impulse_s *wi = &w_impulses[0];
 
-  if (self->s.v.tfstate & TFSTATE_RELOADING)
+  if (W_IsReloading(self))
     return;
   it = self->weapons_carried;
   fl = self->current_weapon;
@@ -2116,7 +2178,7 @@ void CycleWeaponCommand(int prev) {
 
   if (self->s.v.weaponmodel[0] == 0 || !self->current_weapon)
     return;
-  if (self->s.v.tfstate & TFSTATE_RELOADING)
+  if (W_IsReloading(self))
     return;
   it = self->weapons_carried;
   self->s.v.impulse = 0;

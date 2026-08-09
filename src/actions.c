@@ -22,11 +22,6 @@
  */
 #include "g_local.h"
 
-void	W_Reload_shotgun(  );
-void	W_Reload_super_shotgun(  );
-void 	W_Reload_grenade_launcher(  );
-void 	W_Reload_rocket_launcher(  );
-
 static const int     default_class_discard[10][4] = {
 	{0, 0, 0, 0},
 	{0, 0, 1, 1},
@@ -234,9 +229,8 @@ void TeamFortress_SaveMe(  )
 void TeamFortress_ReloadCurrentWeapon(  )
 {
 	float   rt;
-	gedict_t *tWeapon;
 
-	if ( self->s.v.tfstate & TFSTATE_RELOADING )
+	if ( W_IsReloading( self ) )
 		return;
 	if ( self->current_weapon == WEAP_SHOTGUN )
 	{
@@ -263,15 +257,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 			self->reload_shotgun = 0;
 			if ( self->s.v.ammo_shells < 8 )
 				self->reload_shotgun = 8 - self->s.v.ammo_shells;
-			G_sprint( self, 2, "reloading...\n" );
-			self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
-			tWeapon = spawn(  );
-			tWeapon->s.v.owner = EDICT_TO_PROG(self);
-			tWeapon->s.v.classname = "timer";
-			tWeapon->s.v.nextthink = g_globalvars.time + rt;
-			tWeapon->s.v.think = ( func_t ) W_Reload_shotgun;
-			self->s.v.weaponmodel = "";
-			self->s.v.weaponframe = 0;
+			W_StartReloadTimer( self, W_Reload_shotgun, rt );
 		} else
 			G_sprint( self, 2, "not enough ammo to reload\n" );
 	}
@@ -300,15 +286,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 			self->reload_super_shotgun = 0;
 			if ( self->s.v.ammo_shells < 16 )
 				self->reload_super_shotgun = 16 - self->s.v.ammo_shells;
-			G_sprint( self, 2, "reloading...\n" );
-			self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
-			tWeapon = spawn(  );
-			tWeapon->s.v.owner = EDICT_TO_PROG(self);
-			tWeapon->s.v.classname = "timer";
-			tWeapon->s.v.nextthink = g_globalvars.time + rt;
-			tWeapon->s.v.think = ( func_t ) W_Reload_super_shotgun;
-			self->s.v.weaponmodel = "";
-			self->s.v.weaponframe = 0;
+			W_StartReloadTimer( self, W_Reload_super_shotgun, rt );
 		} else
 			G_sprint( self, 2, "not enough ammo to reload\n" );
 	}
@@ -337,15 +315,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 			self->reload_grenade_launcher = 0;
 			if ( self->s.v.ammo_rockets < 6 )
 				self->reload_grenade_launcher = 6 - self->s.v.ammo_rockets;
-			G_sprint( self, 2, "reloading...\n" );
-			self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
-			tWeapon = spawn(  );
-			tWeapon->s.v.owner = EDICT_TO_PROG(self);
-			tWeapon->s.v.classname = "timer";
-			tWeapon->s.v.nextthink = g_globalvars.time + rt;
-			tWeapon->s.v.think = ( func_t ) W_Reload_grenade_launcher;
-			self->s.v.weaponmodel = "";
-			self->s.v.weaponframe = 0;
+			W_StartReloadTimer( self, W_Reload_grenade_launcher, rt );
 		} else
 			G_sprint( self, 2, "not enough ammo to reload\n" );
 	}
@@ -374,15 +344,7 @@ void TeamFortress_ReloadCurrentWeapon(  )
 			self->reload_rocket_launcher = 0;
 			if ( self->s.v.ammo_rockets < 4 )
 				self->reload_rocket_launcher = 4 - self->s.v.ammo_rockets;
-			G_sprint( self, 2, "reloading...\n" );
-			self->s.v.tfstate = self->s.v.tfstate | TFSTATE_RELOADING;
-			tWeapon = spawn(  );
-			tWeapon->s.v.owner = EDICT_TO_PROG(self);
-			tWeapon->s.v.classname = "timer";
-			tWeapon->s.v.nextthink = g_globalvars.time + rt;
-			tWeapon->s.v.think = ( func_t ) W_Reload_rocket_launcher;
-			self->s.v.weaponmodel = "";
-			self->s.v.weaponframe = 0;
+			W_StartReloadTimer( self, W_Reload_rocket_launcher, rt );
 		}
 	}
 }
