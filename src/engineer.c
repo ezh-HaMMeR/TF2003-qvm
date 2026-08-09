@@ -418,10 +418,39 @@ int CheckArea( gedict_t * obj, gedict_t * builder )
 static void TeamFortress_BuildInternal( int objtobuild, qboolean point_view )
 {
     float btime;
+    gedict_t *old_sentry = world;
 
     //      gedict_t *te;
     vec3_t tmp1;
     vec3_t tmp2;
+
+    if ( objtobuild == BUILD_SENTRYGUN && self->has_sentry && !tfset(tg_enabled) )
+    {
+        if ( self->sentry && self->sentry != world && !self->sentry->is_removed )
+            old_sentry = self->sentry;
+        else
+        {
+            for ( old_sentry = world;
+                  ( old_sentry = trap_find( old_sentry, FOFS( s.v.classname ), "building_sentrygun" ) ); )
+            {
+                if ( old_sentry->real_owner == self )
+                    break;
+            }
+        }
+
+        DestroyBuilding( self, "building_sentrygun" );
+
+        /* Sentry_Die keeps the dead head/base for 0.1 seconds before the
+         * explosion.  Make only this replacement victim non-blocking now so
+         * the new placement can reuse the old spot just like a det/build alias. */
+        if ( old_sentry && old_sentry != world && !old_sentry->is_removed )
+        {
+            old_sentry->s.v.solid = SOLID_NOT;
+            if ( old_sentry->trigger_field && old_sentry->trigger_field != world
+                 && !old_sentry->trigger_field->is_removed )
+                old_sentry->trigger_field->s.v.solid = SOLID_NOT;
+        }
+    }
 
     newmis = spawn(  );
     g_globalvars.newmis = EDICT_TO_PROG( newmis );
@@ -451,11 +480,6 @@ static void TeamFortress_BuildInternal( int objtobuild, qboolean point_view )
     {
         if ( objtobuild == BUILD_SENTRYGUN )
         {
-            if( self->has_sentry && !tfset(tg_enabled))
-            {
-                G_sprint( self, 2, "You can only have one sentry gun.\nTry dismantling your old one.\n" );
-                return;
-            }
             SetVector( tmp1, -16, -16, 0 );
             SetVector( tmp2, 16, 16, 48 );
             newmis->mdl = "progs/turrbase.mdl";
@@ -531,11 +555,6 @@ void Engineer_BuildSentryPoint(  )
     if ( !( ( int ) self->s.v.flags & FL_ONGROUND ) )
     {
         CenterPrint( self, "You can't build in the air!\n\n" );
-        return;
-    }
-    if ( !tfset(tg_enabled) && self->has_sentry )
-    {
-        G_sprint( self, 2, "You can only have one sentry gun.\nTry dismantling your old one.\n" );
         return;
     }
     if ( !tfset(tg_enabled) && self->s.v.ammo_cells < BUILD_COST_SENTRYGUN )
@@ -1118,6 +1137,20 @@ static gedict_t *Engineer_FindSentryForRotation(  )
     return nearest;
 }
 
+static gedict_t *Engineer_FindSentryBuildTimer(  )
+{
+    gedict_t *timer;
+
+    for ( timer = world; ( timer = trap_find( timer, FOFS( s.v.netname ), "build_timer" ) ); )
+    {
+        if ( !timer->is_removed && timer->s.v.owner == EDICT_TO_PROG( self )
+             && ( int ) timer->s.v.weapon == BUILD_SENTRYGUN )
+            return timer;
+    }
+
+    return world;
+}
+
 static void Engineer_SentryRotateSwingDone(  )
 {
 }
@@ -1139,12 +1172,38 @@ void 	Engineer_RotateSG(  )
     int angle;
     char    value[1024];
     gedict_t *gun;
+    gedict_t *build_timer;
 
     if( !tfset(tg_enabled)  && (self->playerclass != PC_ENGINEER ))
         return;
 
+    if ( self->is_detpacking || self->is_feigning )
+        return;
+
     if( trap_CmdArgc() != 2)
         return;
+
+    trap_CmdArgv( 1, value, sizeof( value ) );
+    if ( self->is_building )
+    {
+        build_timer = Engineer_FindSentryBuildTimer(  );
+        if ( build_timer == world )
+        {
+            G_sprint( self, 2, "No sentry gun is being built.\n" );
+            return;
+        }
+
+        if ( !strcmp( value,"point") )
+            build_timer->s.v.angles[1] = anglemod( self->s.v.angles[1] );
+        else
+        {
+            angle = atoi(value);
+            build_timer->s.v.angles[1] = anglemod( build_timer->s.v.angles[1] + angle );
+        }
+
+        Engineer_PlaySentryRotateSwing(  );
+        return;
+    }
 
     gun = Engineer_FindSentryForRotation(  );
     if ( gun == world )
@@ -1153,7 +1212,6 @@ void 	Engineer_RotateSG(  )
         return;
     }
 
-    trap_CmdArgv( 1, value, sizeof( value ) );
     if( !strcmp( value,"point") )
     {
         gun->waitmin = anglemod( ( int ) ( self->s.v.angles[1] - 50 ) );

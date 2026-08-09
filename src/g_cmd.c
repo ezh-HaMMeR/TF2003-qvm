@@ -66,7 +66,7 @@ const static cmd_t   cmds[] = {
   {"admin", Admin_Cmd, CMD_SPECTATOR_ALLOWED},
   {"discard", TeamFortress_Cmd_Discard, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"builtsg_pw", Engineer_BuildSentryPoint, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
-  {"sg_rotate", Engineer_RotateSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"sg_rotate", Engineer_RotateSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
   {"detpack", TeamFortress_Cmd_Detpack, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS },
   {"dropitems", DropOrGiveGoalItems, CMD_NOT_PREMATCH | CMD_NOT_DEAD},
   {"tf_primegren1", TeamFortress_Cmd_PrimeGrenade1, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},

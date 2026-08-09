@@ -544,22 +544,15 @@ void Menu_Engineer( menunum_t menu )
 	}
 
 	if ( self->has_sentry )
-	{
 		s_detsentry = menu_eng_detsentry;
-		if ( tfset(tg_enabled) )
-			s_bsentry = menu_eng_buildsentry;
-		else
-			s_bsentry = "";
-	} else
-	{
-		if ( ( self->s.v.ammo_cells < BUILD_COST_SENTRYGUN )
-		     && !tfset(tg_enabled) )
-			s_bsentry = "\n";
-		else
-			s_bsentry = menu_eng_buildsentry;
-
+	else
 		s_detsentry = "";
-	}
+
+	if ( ( self->s.v.ammo_cells < BUILD_COST_SENTRYGUN )
+	     && !tfset(tg_enabled) )
+		s_bsentry = "\n";
+	else
+		s_bsentry = menu_eng_buildsentry;
 
 	CenterPrint( self, "%s%s%s%s%s%s", menu_eng_header, s_bdisp, s_detdisp, s_bsentry,
 		     s_detsentry, menu_eng_exit );
@@ -593,8 +586,7 @@ void Menu_Engineer_Input( int inp )
 			self->s.v.impulse = 0;
 			return;
 		}
-		if ( ( self->s.v.ammo_cells >= BUILD_COST_SENTRYGUN
-		       && self->has_sentry == 0 ) || tfset(tg_enabled) )
+		if ( self->s.v.ammo_cells >= BUILD_COST_SENTRYGUN || tfset(tg_enabled) )
 		{
 			TeamFortress_Build( 2 );
 			ResetMenu(  );
