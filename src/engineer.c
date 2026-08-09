@@ -545,7 +545,7 @@ void TeamFortress_Build( int objtobuild )
     TeamFortress_BuildInternal( objtobuild, false );
 }
 
-void Engineer_BuildSentryPoint(  )
+static void Engineer_BuildSentryDirect( qboolean point_view )
 {
     if ( !tfset(tg_enabled) && self->playerclass != PC_ENGINEER )
         return;
@@ -563,11 +563,21 @@ void Engineer_BuildSentryPoint(  )
         return;
     }
 
-    /* The direct command records the point-view yaw in the build timer now;
-     * turning during the normal build delay cannot change the final arc. */
-    TeamFortress_BuildInternal( BUILD_SENTRYGUN, true );
+    TeamFortress_BuildInternal( BUILD_SENTRYGUN, point_view );
     if ( self->is_building )
         ResetMenu(  );
+}
+
+void Engineer_BuildSentry(  )
+{
+    /* Direct duplicate of menu construction, including its builder-facing yaw. */
+    Engineer_BuildSentryDirect( false );
+}
+
+void Engineer_BuildSentryPoint(  )
+{
+    /* Record point-view yaw now so turning during the build cannot change it. */
+    Engineer_BuildSentryDirect( true );
 }
 
 void CheckBelowBuilding( gedict_t * bld )
@@ -1098,7 +1108,7 @@ static qboolean Engineer_CanDirectlyReachSentry( gedict_t *gun )
     return g_globalvars.trace_fraction == 1;
 }
 
-static qboolean Engineer_CanRotateFriendlySentry( gedict_t *gun )
+static qboolean Engineer_IsFriendlySentry( gedict_t *gun )
 {
     return gun->real_owner && gun->real_owner != world && self->team_no
         && TeamFortress_isTeamsAllied( self->team_no, gun->real_owner->team_no );
@@ -1120,7 +1130,7 @@ static gedict_t *Engineer_FindSentryForRotation(  )
 
     for ( gun = world; ( gun = trap_find( gun, FOFS( s.v.classname ), "building_sentrygun" ) ); )
     {
-        if ( !Engineer_IsLiveSentry( gun ) || !Engineer_CanRotateFriendlySentry( gun ) )
+        if ( !Engineer_IsLiveSentry( gun ) || !Engineer_IsFriendlySentry( gun ) )
             continue;
 
         VectorSubtract( gun->s.v.origin, self->s.v.origin, dist );
@@ -1151,11 +1161,40 @@ static gedict_t *Engineer_FindSentryBuildTimer(  )
     return world;
 }
 
-static void Engineer_SentryRotateSwingDone(  )
+static gedict_t *Engineer_FindSentryInSpannerReach( qboolean require_friendly )
+{
+    vec3_t source;
+    vec3_t dest;
+    gedict_t *gun;
+
+    /* Match the original spanner's 64-unit view trace.  Direct maintenance
+     * commands therefore cannot repair, load, upgrade, or dismantle remotely. */
+    trap_makevectors( self->s.v.v_angle );
+    VectorCopy( self->s.v.origin, source );
+    source[2] += 16;
+    VectorScale( g_globalvars.v_forward, 64, dest );
+    VectorAdd( source, dest, dest );
+    traceline( PASSVEC3( source ), PASSVEC3( dest ), false, self );
+    if ( g_globalvars.trace_fraction == 1 )
+        return world;
+
+    gun = PROG_TO_EDICT( g_globalvars.trace_ent );
+    if ( gun && streq( gun->s.v.classname, "building_sentrygun_base" ) )
+        gun = gun->oldenemy;
+
+    if ( !Engineer_IsLiveSentry( gun ) )
+        return world;
+    if ( require_friendly && !Engineer_IsFriendlySentry( gun ) )
+        return world;
+
+    return gun;
+}
+
+static void Engineer_SentryCommandSwingDone(  )
 {
 }
 
-static void Engineer_PlaySentryRotateSwing(  )
+static void Engineer_PlaySentryCommandSwing(  )
 {
     /* Visual feedback only: never call W_FireSpanner here because that would
      * trace and apply a second repair, upgrade, reload, dismantle, or hit. */
@@ -1164,7 +1203,86 @@ static void Engineer_PlaySentryRotateSwing(  )
         return;
 
     sound( self, CHAN_WEAPON, "weapons/ax1.wav", 1, ATTN_NORM );
-    player_naxe( 119, 1, Engineer_SentryRotateSwingDone );
+    player_naxe( 119, 1, Engineer_SentryCommandSwingDone );
+}
+
+typedef enum
+{
+    SG_DIRECT_UPGRADE,
+    SG_DIRECT_REPAIR,
+    SG_DIRECT_RELOAD,
+    SG_DIRECT_DISMANTLE
+} sg_direct_action_t;
+
+static void Engineer_DirectSentryAction( sg_direct_action_t action )
+{
+    gedict_t *gun;
+    int status = 0;
+    qboolean require_friendly = action != SG_DIRECT_DISMANTLE;
+
+    if ( !tfset(tg_enabled) && self->playerclass != PC_ENGINEER )
+        return;
+    if ( self->is_building || self->is_detpacking || self->is_feigning )
+        return;
+
+    gun = Engineer_FindSentryInSpannerReach( require_friendly );
+    if ( gun == world )
+    {
+        G_sprint( self, 2, require_friendly
+                ? "No usable friendly sentry gun in spanner reach.\n"
+                : "No sentry gun in spanner reach.\n" );
+        return;
+    }
+
+    switch ( action )
+    {
+    case SG_DIRECT_UPGRADE:
+        status = Engineer_SentryGun_Upgrade( gun );
+        if ( !status )
+            G_sprint( self, 2, "The sentry gun cannot be upgraded.\n" );
+        break;
+    case SG_DIRECT_REPAIR:
+        status = Engineer_SentryGun_Repair( gun );
+        if ( !status )
+            G_sprint( self, 2, "The sentry gun does not need repair or you have no metal.\n" );
+        break;
+    case SG_DIRECT_RELOAD:
+        status = Engineer_SentryGun_InsertAmmo( gun );
+        if ( !status )
+            G_sprint( self, 2, "The sentry gun cannot take any of your ammunition.\n" );
+        break;
+    case SG_DIRECT_DISMANTLE:
+        status = Engineer_SentryGun_Dismantle( gun );
+        break;
+    }
+
+    if ( !status )
+        return;
+
+    bound_other_ammo( self );
+    bound_other_armor( self );
+    W_SetCurrentAmmo(  );
+    Engineer_PlaySentryCommandSwing(  );
+}
+
+void Engineer_UpgradeSG(  )
+{
+    Engineer_DirectSentryAction( SG_DIRECT_UPGRADE );
+}
+
+void Engineer_RepairSG(  )
+{
+    Engineer_DirectSentryAction( SG_DIRECT_REPAIR );
+}
+
+void Engineer_ReloadSG(  )
+{
+    Engineer_DirectSentryAction( SG_DIRECT_RELOAD );
+}
+
+void Engineer_DismantleSG(  )
+{
+    Engineer_DirectSentryAction( SG_DIRECT_DISMANTLE );
 }
 
 void 	Engineer_RotateSG(  )
@@ -1201,7 +1319,7 @@ void 	Engineer_RotateSG(  )
             build_timer->s.v.angles[1] = anglemod( build_timer->s.v.angles[1] + angle );
         }
 
-        Engineer_PlaySentryRotateSwing(  );
+        Engineer_PlaySentryCommandSwing(  );
         return;
     }
 
@@ -1223,7 +1341,7 @@ void 	Engineer_RotateSG(  )
         gun->waitmax = anglemod( gun->waitmax + angle );
     }
 
-    Engineer_PlaySentryRotateSwing(  );
+    Engineer_PlaySentryCommandSwing(  );
 }
 
 void CheckSentry( gedict_t * gunhead )

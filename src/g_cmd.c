@@ -45,8 +45,13 @@ void    RemoveBot(  );
 void    TG_Cmd(  );
 void    Vote_Cmd(  );
 void    TeamFortress_Cmd_Discard(  );
+void    Engineer_BuildSentry(  );
 void    Engineer_BuildSentryPoint(  );
 void    Engineer_RotateSG(  );
+void    Engineer_UpgradeSG(  );
+void    Engineer_RepairSG(  );
+void    Engineer_ReloadSG(  );
+void    Engineer_DismantleSG(  );
 void    TeamFortress_Cmd_Detpack(  );
 void    Admin_Cmd(  );
 void    DropOrGiveGoalItems(  );
@@ -65,8 +70,13 @@ const static cmd_t   cmds[] = {
   {"set", Client_Set_Cmd},
   {"admin", Admin_Cmd, CMD_SPECTATOR_ALLOWED},
   {"discard", TeamFortress_Cmd_Discard, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"builtsg", Engineer_BuildSentry, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"builtsg_pw", Engineer_BuildSentryPoint, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"sg_rotate", Engineer_RotateSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"sg_upgrade", Engineer_UpgradeSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"sg_repair", Engineer_RepairSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"sg_reload", Engineer_ReloadSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"sg_dismantle", Engineer_DismantleSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"detpack", TeamFortress_Cmd_Detpack, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS },
   {"dropitems", DropOrGiveGoalItems, CMD_NOT_PREMATCH | CMD_NOT_DEAD},
   {"tf_primegren1", TeamFortress_Cmd_PrimeGrenade1, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
