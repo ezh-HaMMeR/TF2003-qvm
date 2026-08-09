@@ -628,54 +628,23 @@ void Menu_EngineerFix_Dispenser( menunum_t menu )
 
 int Engineer_Dispenser_Repair( gedict_t* disp);
 int Engineer_Dispenser_Dismantle( gedict_t* disp );
+int Engineer_Dispenser_InsertAmmo( gedict_t *player, gedict_t *disp );
+int Engineer_Dispenser_InsertArmor( gedict_t *player, gedict_t *disp );
+qboolean Engineer_DispenserHasUsableAmmo( gedict_t *player, gedict_t *disp );
+int Engineer_Dispenser_WithdrawAmmo( gedict_t *player, gedict_t *disp );
+int Engineer_Dispenser_WithdrawArmor( gedict_t *player, gedict_t *disp );
 void Menu_EngineerFix_Dispenser_Input( int inp )
 {
-  float   metalcost;
-  float   am;
-
   if ( strneq( self->s.v.classname, "player" ) || !self->building || self->building == world )
     return;
 
   switch ( inp )
     {
       case 1:
-        am = 20 * 2;
-        if ( am > self->s.v.ammo_shells )
-          am = self->s.v.ammo_shells;
-        if ( am > 400 - self->building->s.v.ammo_shells )
-          am = 400 - self->building->s.v.ammo_shells;
-        self->s.v.ammo_shells = self->s.v.ammo_shells - am;
-        self->building->s.v.ammo_shells = self->building->s.v.ammo_shells + am;
-        am = 20 * 2;
-        if ( am > self->s.v.ammo_nails )
-          am = self->s.v.ammo_nails;
-        if ( am > 600 - self->building->s.v.ammo_nails )
-          am = 600 - self->building->s.v.ammo_nails;
-        self->s.v.ammo_nails = self->s.v.ammo_nails - am;
-        self->building->s.v.ammo_nails = self->building->s.v.ammo_nails + am;
-        am = 10 * 2;
-        if ( am > self->s.v.ammo_rockets )
-          am = self->s.v.ammo_rockets;
-        if ( am > 300 - self->building->s.v.ammo_rockets )
-          am = 300 - self->building->s.v.ammo_rockets;
-        self->s.v.ammo_rockets = self->s.v.ammo_rockets - am;
-        self->building->s.v.ammo_rockets = self->building->s.v.ammo_rockets + am;
-        am = 10 * 2;
-        if ( am > self->s.v.ammo_cells )
-          am = self->s.v.ammo_cells;
-        if ( am > 400 - self->building->s.v.ammo_cells )
-          am = 400 - self->building->s.v.ammo_cells;
-        self->s.v.ammo_cells = self->s.v.ammo_cells - am;
-        self->building->s.v.ammo_cells = self->building->s.v.ammo_cells + am;
+        Engineer_Dispenser_InsertAmmo( self, self->building );
         break;
       case 2:
-        am = 40 * 2;
-        if ( am > self->s.v.armorvalue )
-          am = self->s.v.armorvalue;
-        if ( am > 500 - self->building->s.v.armorvalue )
-          am = 500 - self->building->s.v.armorvalue;
-        self->s.v.armorvalue = self->s.v.armorvalue - am;
-        self->building->s.v.armorvalue = self->building->s.v.armorvalue + am;
+        Engineer_Dispenser_InsertArmor( self, self->building );
         break;
       case 3:
         Engineer_Dispenser_Repair(self->building);
@@ -800,51 +769,17 @@ void Menu_Dispenser( menunum_t menu )
 
 void Menu_Dispenser_Input( int inp )
 {
-	float   am, empty = 0;
-	qboolean can_withdraw_cells;
-
-	/* Cells from dispensers are reserved for the two classes that use them
-	 * as a primary class resource; every class may still withdraw other ammo. */
-	can_withdraw_cells = self->playerclass == PC_HVYWEAP
-		|| self->playerclass == PC_ENGINEER;
+	float   empty = 0;
 
 	switch ( inp )
 	{
 	case 1:
-		if ( !self->building->s.v.ammo_shells
-		     && !self->building->s.v.ammo_nails
-		     && !self->building->s.v.ammo_rockets
-		     && ( !can_withdraw_cells || !self->building->s.v.ammo_cells ) )
+		if ( !Engineer_DispenserHasUsableAmmo( self, self->building ) )
 		{
 			empty = 1;
 			break;
 		}
-		am = self->maxammo_shells - self->s.v.ammo_shells;
-		if ( am > self->building->s.v.ammo_shells )
-			am = self->building->s.v.ammo_shells;
-
-		self->building->s.v.ammo_shells = self->building->s.v.ammo_shells - am;
-		self->s.v.ammo_shells = self->s.v.ammo_shells + am;
-
-		am = self->maxammo_nails - self->s.v.ammo_nails;
-		if ( am > self->building->s.v.ammo_nails )
-			am = self->building->s.v.ammo_nails;
-
-		self->building->s.v.ammo_nails = self->building->s.v.ammo_nails - am;
-		self->s.v.ammo_nails = self->s.v.ammo_nails + am;
-		am = self->maxammo_rockets - self->s.v.ammo_rockets;
-		if ( am > self->building->s.v.ammo_rockets )
-			am = self->building->s.v.ammo_rockets;
-		self->building->s.v.ammo_rockets = self->building->s.v.ammo_rockets - am;
-		self->s.v.ammo_rockets = self->s.v.ammo_rockets + am;
-		if ( can_withdraw_cells )
-		{
-			am = self->maxammo_cells - self->s.v.ammo_cells;
-			if ( am > self->building->s.v.ammo_cells )
-				am = self->building->s.v.ammo_cells;
-			self->building->s.v.ammo_cells = self->building->s.v.ammo_cells - am;
-			self->s.v.ammo_cells = self->s.v.ammo_cells + am;
-		}
+		Engineer_Dispenser_WithdrawAmmo( self, self->building );
 		break;
 	case 2:
 		if ( !self->building->s.v.armorvalue )
@@ -852,16 +787,7 @@ void Menu_Dispenser_Input( int inp )
 			empty = 1;
 			break;
 		}
-		am = self->maxarmor - self->s.v.armorvalue;
-		if ( am > self->building->s.v.armorvalue )
-			am = self->building->s.v.armorvalue;
-		if ( !self->s.v.armortype )
-		{
-			self->s.v.armortype = 0.3;
-			self->s.v.items = ( int ) self->s.v.items | IT_ARMOR1;
-		}
-		self->building->s.v.armorvalue -= am;
-		self->s.v.armorvalue += am;
+		Engineer_Dispenser_WithdrawArmor( self, self->building );
 		break;
 	case 3:
 		break;

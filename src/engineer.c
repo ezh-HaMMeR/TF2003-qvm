@@ -851,6 +851,100 @@ void Dispenser_Die(  )
     self->s.v.nextthink = g_globalvars.time + 0.1;
 }
 
+static float Engineer_TransferResource( float *source, float *destination,
+        float amount, float destination_max )
+{
+    if ( amount > *source )
+        amount = *source;
+    if ( amount > destination_max - *destination )
+        amount = destination_max - *destination;
+    if ( amount <= 0 )
+        return 0;
+
+    *source -= amount;
+    *destination += amount;
+    return amount;
+}
+
+static qboolean Engineer_CanWithdrawDispenserCells( gedict_t *player )
+{
+    return player->playerclass == PC_HVYWEAP
+        || player->playerclass == PC_ENGINEER;
+}
+
+qboolean Engineer_DispenserHasUsableAmmo( gedict_t *player, gedict_t *disp )
+{
+    return disp->s.v.ammo_shells > 0 || disp->s.v.ammo_nails > 0
+        || disp->s.v.ammo_rockets > 0
+        || ( Engineer_CanWithdrawDispenserCells( player )
+             && disp->s.v.ammo_cells > 0 );
+}
+
+int Engineer_Dispenser_InsertAmmo( gedict_t *player, gedict_t *disp )
+{
+    float moved = 0;
+
+    moved += Engineer_TransferResource( &player->s.v.ammo_shells,
+            &disp->s.v.ammo_shells, 40, BUILD_DISPENSER_MAX_SHELLS );
+    moved += Engineer_TransferResource( &player->s.v.ammo_nails,
+            &disp->s.v.ammo_nails, 40, BUILD_DISPENSER_MAX_NAILS );
+    moved += Engineer_TransferResource( &player->s.v.ammo_rockets,
+            &disp->s.v.ammo_rockets, 20, BUILD_DISPENSER_MAX_ROCKETS );
+    moved += Engineer_TransferResource( &player->s.v.ammo_cells,
+            &disp->s.v.ammo_cells, 20, BUILD_DISPENSER_MAX_CELLS );
+    return moved > 0;
+}
+
+int Engineer_Dispenser_InsertArmor( gedict_t *player, gedict_t *disp )
+{
+    return Engineer_TransferResource( &player->s.v.armorvalue,
+            &disp->s.v.armorvalue, 80, BUILD_DISPENSER_MAX_ARMOR ) > 0;
+}
+
+int Engineer_Dispenser_WithdrawAmmo( gedict_t *player, gedict_t *disp )
+{
+    float moved = 0;
+
+    moved += Engineer_TransferResource( &disp->s.v.ammo_shells,
+            &player->s.v.ammo_shells, disp->s.v.ammo_shells, player->maxammo_shells );
+    moved += Engineer_TransferResource( &disp->s.v.ammo_nails,
+            &player->s.v.ammo_nails, disp->s.v.ammo_nails, player->maxammo_nails );
+    moved += Engineer_TransferResource( &disp->s.v.ammo_rockets,
+            &player->s.v.ammo_rockets, disp->s.v.ammo_rockets, player->maxammo_rockets );
+    if ( Engineer_CanWithdrawDispenserCells( player ) )
+        moved += Engineer_TransferResource( &disp->s.v.ammo_cells,
+                &player->s.v.ammo_cells, disp->s.v.ammo_cells, player->maxammo_cells );
+    return moved > 0;
+}
+
+int Engineer_Dispenser_WithdrawArmor( gedict_t *player, gedict_t *disp )
+{
+    float moved;
+
+    moved = Engineer_TransferResource( &disp->s.v.armorvalue,
+            &player->s.v.armorvalue, disp->s.v.armorvalue, player->maxarmor );
+    if ( moved > 0 && !player->s.v.armortype )
+    {
+        player->s.v.armortype = 0.3;
+        player->s.v.items = ( int ) player->s.v.items | IT_ARMOR1;
+    }
+    return moved > 0;
+}
+
+static int Engineer_Dispenser_InsertResources( gedict_t *player, gedict_t *disp )
+{
+    int status = Engineer_Dispenser_InsertAmmo( player, disp );
+    status += Engineer_Dispenser_InsertArmor( player, disp );
+    return status;
+}
+
+static int Engineer_Dispenser_WithdrawResources( gedict_t *player, gedict_t *disp )
+{
+    int status = Engineer_Dispenser_WithdrawAmmo( player, disp );
+    status += Engineer_Dispenser_WithdrawArmor( player, disp );
+    return status;
+}
+
 int Engineer_Dispenser_Repair( gedict_t* disp)
 {
     float metalcost;
@@ -1108,10 +1202,10 @@ static qboolean Engineer_CanDirectlyReachSentry( gedict_t *gun )
     return g_globalvars.trace_fraction == 1;
 }
 
-static qboolean Engineer_IsFriendlySentry( gedict_t *gun )
+static qboolean Engineer_IsFriendlyBuilding( gedict_t *building )
 {
-    return gun->real_owner && gun->real_owner != world && self->team_no
-        && TeamFortress_isTeamsAllied( self->team_no, gun->real_owner->team_no );
+    return building->real_owner && building->real_owner != world && self->team_no
+        && TeamFortress_isTeamsAllied( self->team_no, building->real_owner->team_no );
 }
 
 static gedict_t *Engineer_FindSentryForRotation(  )
@@ -1130,7 +1224,7 @@ static gedict_t *Engineer_FindSentryForRotation(  )
 
     for ( gun = world; ( gun = trap_find( gun, FOFS( s.v.classname ), "building_sentrygun" ) ); )
     {
-        if ( !Engineer_IsLiveSentry( gun ) || !Engineer_IsFriendlySentry( gun ) )
+        if ( !Engineer_IsLiveSentry( gun ) || !Engineer_IsFriendlyBuilding( gun ) )
             continue;
 
         VectorSubtract( gun->s.v.origin, self->s.v.origin, dist );
@@ -1161,14 +1255,20 @@ static gedict_t *Engineer_FindSentryBuildTimer(  )
     return world;
 }
 
-static gedict_t *Engineer_FindSentryInSpannerReach( qboolean require_friendly )
+static qboolean Engineer_IsLiveDispenser( gedict_t *disp )
+{
+    return disp && disp != world && !disp->is_removed
+        && streq( disp->s.v.classname, "building_dispenser" );
+}
+
+static gedict_t *Engineer_FindBuildingInSpannerReach(  )
 {
     vec3_t source;
     vec3_t dest;
-    gedict_t *gun;
+    gedict_t *building;
 
     /* Match the original spanner's 64-unit view trace.  Direct maintenance
-     * commands therefore cannot repair, load, upgrade, or dismantle remotely. */
+     * commands therefore cannot manipulate a sentry or dispenser remotely. */
     trap_makevectors( self->s.v.v_angle );
     VectorCopy( self->s.v.origin, source );
     source[2] += 16;
@@ -1178,23 +1278,21 @@ static gedict_t *Engineer_FindSentryInSpannerReach( qboolean require_friendly )
     if ( g_globalvars.trace_fraction == 1 )
         return world;
 
-    gun = PROG_TO_EDICT( g_globalvars.trace_ent );
-    if ( gun && streq( gun->s.v.classname, "building_sentrygun_base" ) )
-        gun = gun->oldenemy;
+    building = PROG_TO_EDICT( g_globalvars.trace_ent );
+    if ( building && streq( building->s.v.classname, "building_sentrygun_base" ) )
+        building = building->oldenemy;
 
-    if ( !Engineer_IsLiveSentry( gun ) )
-        return world;
-    if ( require_friendly && !Engineer_IsFriendlySentry( gun ) )
+    if ( !Engineer_IsLiveSentry( building ) && !Engineer_IsLiveDispenser( building ) )
         return world;
 
-    return gun;
+    return building;
 }
 
-static void Engineer_SentryCommandSwingDone(  )
+static void Engineer_BuildingCommandSwingDone(  )
 {
 }
 
-static void Engineer_PlaySentryCommandSwing(  )
+static void Engineer_PlayBuildingCommandSwing(  )
 {
     /* Visual feedback only: never call W_FireSpanner here because that would
      * trace and apply a second repair, upgrade, reload, dismantle, or hit. */
@@ -1203,7 +1301,7 @@ static void Engineer_PlaySentryCommandSwing(  )
         return;
 
     sound( self, CHAN_WEAPON, "weapons/ax1.wav", 1, ATTN_NORM );
-    player_naxe( 119, 1, Engineer_SentryCommandSwingDone );
+    player_naxe( 119, 1, Engineer_BuildingCommandSwingDone );
 }
 
 typedef enum
@@ -1214,9 +1312,9 @@ typedef enum
     SG_DIRECT_DISMANTLE
 } sg_direct_action_t;
 
-static void Engineer_DirectSentryAction( sg_direct_action_t action )
+static void Engineer_DirectBuildingAction( sg_direct_action_t action )
 {
-    gedict_t *gun;
+    gedict_t *building;
     int status = 0;
     qboolean require_friendly = action != SG_DIRECT_DISMANTLE;
 
@@ -1225,35 +1323,62 @@ static void Engineer_DirectSentryAction( sg_direct_action_t action )
     if ( self->is_building || self->is_detpacking || self->is_feigning )
         return;
 
-    gun = Engineer_FindSentryInSpannerReach( require_friendly );
-    if ( gun == world )
+    building = Engineer_FindBuildingInSpannerReach(  );
+    if ( building == world )
     {
-        G_sprint( self, 2, require_friendly
-                ? "No usable friendly sentry gun in spanner reach.\n"
-                : "No sentry gun in spanner reach.\n" );
+        G_sprint( self, 2, "No sentry gun or dispenser in spanner reach.\n" );
         return;
     }
 
-    switch ( action )
+    if ( Engineer_IsLiveDispenser( building ) )
     {
-    case SG_DIRECT_UPGRADE:
-        status = Engineer_SentryGun_Upgrade( gun );
-        if ( !status )
-            G_sprint( self, 2, "The sentry gun cannot be upgraded.\n" );
-        break;
-    case SG_DIRECT_REPAIR:
-        status = Engineer_SentryGun_Repair( gun );
-        if ( !status )
-            G_sprint( self, 2, "The sentry gun does not need repair or you have no metal.\n" );
-        break;
-    case SG_DIRECT_RELOAD:
-        status = Engineer_SentryGun_InsertAmmo( gun );
-        if ( !status )
-            G_sprint( self, 2, "The sentry gun cannot take any of your ammunition.\n" );
-        break;
-    case SG_DIRECT_DISMANTLE:
-        status = Engineer_SentryGun_Dismantle( gun );
-        break;
+        if ( ( action != SG_DIRECT_REPAIR && action != SG_DIRECT_RELOAD )
+             || !Engineer_IsFriendlyBuilding( building ) )
+        {
+            G_sprint( self, 2, "This command cannot be used on that dispenser.\n" );
+            return;
+        }
+
+        if ( action == SG_DIRECT_RELOAD )
+        {
+            status = Engineer_Dispenser_InsertResources( self, building );
+            if ( !status )
+                G_sprint( self, 2, "The dispenser cannot take any of your resources.\n" );
+        } else
+        {
+            status = Engineer_Dispenser_WithdrawResources( self, building );
+            if ( !status )
+                G_sprint( self, 2, "The dispenser has no resources you can take.\n" );
+        }
+    } else
+    {
+        if ( require_friendly && !Engineer_IsFriendlyBuilding( building ) )
+        {
+            G_sprint( self, 2, "No usable friendly sentry gun in spanner reach.\n" );
+            return;
+        }
+
+        switch ( action )
+        {
+        case SG_DIRECT_UPGRADE:
+            status = Engineer_SentryGun_Upgrade( building );
+            if ( !status )
+                G_sprint( self, 2, "The sentry gun cannot be upgraded.\n" );
+            break;
+        case SG_DIRECT_REPAIR:
+            status = Engineer_SentryGun_Repair( building );
+            if ( !status )
+                G_sprint( self, 2, "The sentry gun does not need repair or you have no metal.\n" );
+            break;
+        case SG_DIRECT_RELOAD:
+            status = Engineer_SentryGun_InsertAmmo( building );
+            if ( !status )
+                G_sprint( self, 2, "The sentry gun cannot take any of your ammunition.\n" );
+            break;
+        case SG_DIRECT_DISMANTLE:
+            status = Engineer_SentryGun_Dismantle( building );
+            break;
+        }
     }
 
     if ( !status )
@@ -1262,27 +1387,27 @@ static void Engineer_DirectSentryAction( sg_direct_action_t action )
     bound_other_ammo( self );
     bound_other_armor( self );
     W_SetCurrentAmmo(  );
-    Engineer_PlaySentryCommandSwing(  );
+    Engineer_PlayBuildingCommandSwing(  );
 }
 
 void Engineer_UpgradeSG(  )
 {
-    Engineer_DirectSentryAction( SG_DIRECT_UPGRADE );
+    Engineer_DirectBuildingAction( SG_DIRECT_UPGRADE );
 }
 
 void Engineer_RepairSG(  )
 {
-    Engineer_DirectSentryAction( SG_DIRECT_REPAIR );
+    Engineer_DirectBuildingAction( SG_DIRECT_REPAIR );
 }
 
 void Engineer_ReloadSG(  )
 {
-    Engineer_DirectSentryAction( SG_DIRECT_RELOAD );
+    Engineer_DirectBuildingAction( SG_DIRECT_RELOAD );
 }
 
 void Engineer_DismantleSG(  )
 {
-    Engineer_DirectSentryAction( SG_DIRECT_DISMANTLE );
+    Engineer_DirectBuildingAction( SG_DIRECT_DISMANTLE );
 }
 
 void 	Engineer_RotateSG(  )
@@ -1319,7 +1444,7 @@ void 	Engineer_RotateSG(  )
             build_timer->s.v.angles[1] = anglemod( build_timer->s.v.angles[1] + angle );
         }
 
-        Engineer_PlaySentryCommandSwing(  );
+        Engineer_PlayBuildingCommandSwing(  );
         return;
     }
 
@@ -1341,7 +1466,7 @@ void 	Engineer_RotateSG(  )
         gun->waitmax = anglemod( gun->waitmax + angle );
     }
 
-    Engineer_PlaySentryCommandSwing(  );
+    Engineer_PlayBuildingCommandSwing(  );
 }
 
 void CheckSentry( gedict_t * gunhead )
