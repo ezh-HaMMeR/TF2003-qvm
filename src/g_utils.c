@@ -701,6 +701,27 @@ gedict_t *G_NextPlayer( gedict_t *player )
 	return world;
 }
 
+gedict_t *G_NextSpectator( gedict_t *spectator )
+{
+	int client_no;
+
+	if ( !spectator || spectator == world )
+		client_no = 1;
+	else
+		client_no = NUM_FOR_EDICT( spectator ) + 1;
+
+	for ( ; client_no <= MAX_CLIENTS; client_no++ )
+	{
+		spectator = &g_edicts[client_no];
+		if ( !spectator->is_removed && !spectator->has_disconnected
+		     && spectator->isSpectator
+		     && streq( spectator->s.v.classname, "spectator" ) )
+			return spectator;
+	}
+
+	return world;
+}
+
 #if TF2003_DAMAGE_STATS_ENABLED
 /* Optional damage-stat batching. Re-enable with the switch in progs.h. */
 void SendDamageStatUpdate( gedict_t *player )

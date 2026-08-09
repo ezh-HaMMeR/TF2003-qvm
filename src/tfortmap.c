@@ -1536,6 +1536,19 @@ void DoResults( gedict_t * Goal, gedict_t * AP, float addb )
 			}
 		}
 	}
+	/* Spectators have no team, so they receive the same public/non-team
+	 * announcements as a neutral player, but never any goal results. */
+	for ( te = world; ( te = G_NextSpectator( te ) ) != world; )
+	{
+		if ( Goal->broadcast && !CTF_Map )
+			CenterPrint( te, "\n\n\n%s", Goal->broadcast );
+		if ( Goal->netname_broadcast && !CTF_Map )
+			G_sprint( te, 2, "%s%s", AP->s.v.netname, Goal->netname_broadcast );
+		if ( Goal->non_team_broadcast )
+			CenterPrint( te, "\n\n\n%s", Goal->non_team_broadcast );
+		if ( Goal->netname_non_team_broadcast )
+			G_sprint( te, 2, "%s%s", AP->s.v.netname, Goal->netname_non_team_broadcast );
+	}
 	if ( strneq( Goal->s.v.classname, "item_tfgoal" ) )
 		Goal->goal_state = 1;
 	if ( Goal->goal_result & TFGR_ENDGAME )
@@ -1924,6 +1937,11 @@ void ReturnItem(  )
 				}
 				te = trap_find( te, FOFS( s.v.classname ), "player" );
 			}
+			for ( te = world; ( te = G_NextSpectator( te ) ) != world; )
+			{
+				if ( enemy->noise4 )
+					CenterPrint( te, "\n\n\n%s", enemy->noise4 );
+			}
 		}
 	}
 	dremove( self );
@@ -2019,6 +2037,13 @@ void tfgoalitem_RemoveFromPlayer( gedict_t * Item, gedict_t * AP, int method )
 				}
 			}
 			te = trap_find( te, FOFS( s.v.classname ), "player" );
+		}
+		for ( te = world; ( te = G_NextSpectator( te ) ) != world; )
+		{
+			if ( Item->non_team_drop )
+				CenterPrint( te, "\n\n\n%s", Item->non_team_drop );
+			if ( Item->netname_non_team_drop )
+				G_sprint( te, 2, "%s%s", AP->s.v.netname, Item->netname_non_team_drop );
 		}
 		if ( Item->goal_activation & TFGI_RETURN_DROP )
 		{
