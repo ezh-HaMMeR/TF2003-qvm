@@ -2249,8 +2249,9 @@ void TeamFortress_AmmoboxTouch(  )
 		return;
 	if ( self->s.v.weapon == 0 )
 	{
-		if ( !PlayerCanGainPackAmmo( other, self ) )
-			return;
+		/* Combined discard packs must remain removable even when the toucher
+		 * is already at every ammo cap.  Map resupply packs are filtered in
+		 * tfgoal_touch(), and individual dropammo boxes use the branch below. */
 		G_sprint( other, 2, "You got " );
 		if ( self->s.v.ammo_shells > 0 )
 		{
