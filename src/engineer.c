@@ -545,6 +545,35 @@ void TeamFortress_Build( int objtobuild )
     TeamFortress_BuildInternal( objtobuild, false );
 }
 
+void Engineer_BuildDispenser(  )
+{
+    if ( !tfset(tg_enabled) && self->playerclass != PC_ENGINEER )
+        return;
+    if ( tf_data.cease_fire )
+        return;
+
+    if ( !( ( int ) self->s.v.flags & FL_ONGROUND ) )
+    {
+        CenterPrint( self, "You can't build in the air!\n\n" );
+        return;
+    }
+    if ( !tfset(tg_enabled) && self->has_dispenser )
+    {
+        G_sprint( self, 2, "You can only have one dispenser.\nTry dismantling your old one.\n" );
+        return;
+    }
+    if ( !tfset(tg_enabled) && self->s.v.ammo_cells < BUILD_COST_DISPENSER )
+    {
+        G_sprint( self, 2, "You need %d metal to build a dispenser.\n", BUILD_COST_DISPENSER );
+        return;
+    }
+
+    /* Direct duplicate of menu construction; destruction remains detdispenser. */
+    TeamFortress_BuildInternal( BUILD_DISPENSER, false );
+    if ( self->is_building )
+        ResetMenu(  );
+}
+
 static void Engineer_BuildSentryDirect( qboolean point_view )
 {
     if ( !tfset(tg_enabled) && self->playerclass != PC_ENGINEER )
