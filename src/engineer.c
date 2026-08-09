@@ -1118,6 +1118,22 @@ static gedict_t *Engineer_FindSentryForRotation(  )
     return nearest;
 }
 
+static void Engineer_SentryRotateSwingDone(  )
+{
+}
+
+static void Engineer_PlaySentryRotateSwing(  )
+{
+    /* Visual feedback only: never call W_FireSpanner here because that would
+     * trace and apply a second repair, upgrade, reload, dismantle, or hit. */
+    if ( g_globalvars.time < self->attack_finished || self->s.v.weaponframe
+         || W_IsReloading( self ) || ( self->s.v.tfstate & TFSTATE_AIMING ) )
+        return;
+
+    sound( self, CHAN_WEAPON, "weapons/ax1.wav", 1, ATTN_NORM );
+    player_naxe( 119, 1, Engineer_SentryRotateSwingDone );
+}
+
 void 	Engineer_RotateSG(  )
 {
     int angle;
@@ -1142,11 +1158,14 @@ void 	Engineer_RotateSG(  )
     {
         gun->waitmin = anglemod( ( int ) ( self->s.v.angles[1] - 50 ) );
         gun->waitmax = anglemod( ( int ) ( self->s.v.angles[1] + 50 ) );
-        return;
+    } else
+    {
+        angle = atoi(value);
+        gun->waitmin = anglemod( gun->waitmin + angle );
+        gun->waitmax = anglemod( gun->waitmax + angle );
     }
-    angle = atoi(value);
-    gun->waitmin = anglemod( gun->waitmin + angle );
-    gun->waitmax = anglemod( gun->waitmax + angle );
+
+    Engineer_PlaySentryRotateSwing(  );
 }
 
 void CheckSentry( gedict_t * gunhead )
