@@ -415,6 +415,17 @@ int CheckArea( gedict_t * obj, gedict_t * builder )
     return 1;
 }
 
+static qboolean Engineer_RejectExistingSentry( void )
+{
+    if ( self->has_sentry && !tfset(tg_enabled) && !self->sg_autodestroy )
+    {
+        G_sprint( self, 2,
+                  "You can only have one sentry gun.\nTry dismantling your old one.\n" );
+        return true;
+    }
+    return false;
+}
+
 static void TeamFortress_BuildInternal( int objtobuild, qboolean point_view )
 {
     float btime;
@@ -423,6 +434,9 @@ static void TeamFortress_BuildInternal( int objtobuild, qboolean point_view )
     //      gedict_t *te;
     vec3_t tmp1;
     vec3_t tmp2;
+
+    if ( objtobuild == BUILD_SENTRYGUN && Engineer_RejectExistingSentry() )
+        return;
 
     if ( objtobuild == BUILD_SENTRYGUN && self->has_sentry && !tfset(tg_enabled) )
     {
@@ -579,6 +593,9 @@ static void Engineer_BuildSentryDirect( qboolean point_view )
     if ( !tfset(tg_enabled) && self->playerclass != PC_ENGINEER )
         return;
     if ( tf_data.cease_fire )
+        return;
+
+    if ( Engineer_RejectExistingSentry() )
         return;
 
     if ( !( ( int ) self->s.v.flags & FL_ONGROUND ) )

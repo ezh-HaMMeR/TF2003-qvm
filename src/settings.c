@@ -73,7 +73,8 @@ static const cl_settings_t cl_set[] = {
     {"grensound",  NULL, "Play sound on grenade prime",        "",  CS_T_BOOL,  TF_INTERNAL_GRENSOUND, 0, },
     {"ignoremapflaginfo",  NULL, "Ignore map defined flag info",        "",  CS_T_INT,  FOFS(ignoremapflaginfo), 0, },
     {"useprimetothrow",  NULL, "Trow grenade with prime alias",        "",  CS_T_INT,  FOFS(useprimetothrow), 0, },
-    {"newvote",  NULL, "New vote menu",        "",  CS_T_INT,  FOFS(newvote), 0, }
+    {"newvote",  NULL, "New vote menu",        "",  CS_T_INT,  FOFS(newvote), 0, },
+    {"sg_autodestroy",  NULL, "Automatic sentry replacement",        "",  CS_T_INT,  FOFS(sg_autodestroy), 0, }
 };
 
 #define CL_SET_NUM sizeof(cl_set) / sizeof(cl_set[0])
@@ -207,6 +208,7 @@ void ParseUserInfo() {
   self->ignoremapflaginfo = 0;
   self->useprimetothrow = 0;
   self->newvote = 0;
+  self->sg_autodestroy = 0;
   for (i = 0; i < CL_SET_NUM; i++) {
     if (GetInfokeyString(self, cl_set[i].key, cl_set[i].key2, value, sizeof(value), NULL))
       SetClientSetting(self, cl_set[i].key, value);

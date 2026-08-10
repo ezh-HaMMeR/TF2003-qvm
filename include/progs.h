@@ -342,6 +342,7 @@ typedef struct gedict_s {
 	int 		ignoremapflaginfo;
 	int 		useprimetothrow;
 	int             newvote;
+	int             sg_autodestroy;
 //player settings end
 	int             tf_id;
 	int             teamkills;
