@@ -362,8 +362,6 @@ typedef struct gedict_s {
 
 	int	 	k_voted;
 	float		last_vote_time;
-	int             vote_menu_page;
-	int             vote_menu_slots[7];
 
 //BotFields
         int            old_button0,old_button1,old_button2,old_keys;

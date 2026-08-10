@@ -8,19 +8,10 @@
  *  (at your option) any later version.
  */
 
-// vote.q: mapchange voting functions and optional centerprint vote menus
+// vote.q: voting functions and the optional active-vote centerprint
 #include "g_local.h"
 
-#define VOTE_CHANGEMAP       0
-#define VOTE_ADMIN           1
-#define VOTE_TIMELIMIT       2
-#define VOTE_MAP             3
-#define VOTE_KICK            4
-
-#define VOTE_MENU_PAGE_SIZE  7
-#define VOTE_MENU_MAX_MAPS   128
 #define VOTE_MAP_NAME_SIZE   32
-#define VOTE_MAP_LIST_SIZE   16384
 
 int Vote_ChangeMap_Init( void );
 void Vote_ChangeMap_Run( void );
@@ -57,10 +48,6 @@ static char vote_initiator[32];
 static char vote_description[64];
 static float vote_end_time;
 
-static qboolean vote_maps_loaded;
-static int vote_map_count;
-static char vote_maps[VOTE_MENU_MAX_MAPS][VOTE_MAP_NAME_SIZE];
-
 void NextLevel( void );
 
 static void Vote_SanitizeText( const char *source, char *dest, int dest_size )
@@ -74,7 +61,9 @@ static void Vote_SanitizeText( const char *source, char *dest, int dest_size )
     for ( i = 0; i < dest_size - 1 && source && source[i]; i++ )
     {
         ch = (unsigned char)source[i];
-        dest[i] = ( ch >= 32 && ch <= 126 ) ? (char)ch : '?';
+        /* Quake names use the full 8-bit character set.  Centerprint is data,
+         * not stufftext, so preserve those glyphs and strip only line breaks. */
+        dest[i] = ( ch == '\n' || ch == '\r' ) ? ' ' : (char)ch;
     }
     dest[i] = 0;
 }
@@ -130,8 +119,7 @@ static void Vote_CloseMenus( void )
 
     for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
     {
-        if ( player->current_menu < VOTE_MENU_MAIN
-             || player->current_menu > VOTE_MENU_ACTIVE )
+        if ( player->current_menu != VOTE_MENU_ACTIVE )
             continue;
 
         if ( !player->StatusBarSize )
@@ -448,29 +436,6 @@ void Vote_Kick_Run( void )
     self = saved_self;
 }
 
-static qboolean Vote_CanStart( void )
-{
-    elect_percentage = GetSVInfokeyInt( "electpercentage", NULL, 50 );
-    if ( !elect_percentage )
-    {
-        G_sprint( self, 3, "Votes disabled\n" );
-        return false;
-    }
-    if ( elect_percentage < 5 || elect_percentage > 95 )
-        elect_percentage = 50;
-    if ( current_vote != -1 )
-    {
-        G_sprint( self, 3, "Vote %s in progress\n", votes[current_vote].command );
-        return false;
-    }
-    if ( g_globalvars.time < self->last_vote_time )
-    {
-        G_sprint( self, 3, "You cannot vote at this time.\n" );
-        return false;
-    }
-    return true;
-}
-
 static void Vote_CommitStart( int index )
 {
     current_vote = index;
@@ -581,359 +546,59 @@ void Vote_Cmd( void )
     G_sprint( self, 3, "Unknown vote.\n" );
 }
 
-void Vote_Menu_Cmd( void )
+static void Vote_FormatMenuNumber( int value, char *buffer, int buffer_size )
 {
-    if ( !self->newvote )
-    {
-        G_sprint( self, 2,
-                 "The new vote menu is disabled. Use setinfo newvote 1 to enable it.\n" );
-        return;
-    }
-
-    self->vote_menu_page = 0;
-    self->current_menu = current_vote == -1 ? VOTE_MENU_MAIN : VOTE_MENU_ACTIVE;
-    self->menu_count = MENU_REFRESH_RATE;
-}
-
-void Vote_Menu_Main( menunum_t menu )
-{
-    if ( !self->newvote )
-    {
-        ResetMenu();
-        return;
-    }
-    if ( current_vote != -1 )
-    {
-        self->current_menu = VOTE_MENU_ACTIVE;
-        Vote_Menu_Active( VOTE_MENU_ACTIVE );
-        return;
-    }
-
-    CenterPrint( self,
-        "Vote Menu\n"
-        "--------------------------\n"
-        "[1] Change map\n"
-        "[2] Kick player\n"
-        "[3] Elect admin\n"
-        "[4] Change timelimit\n"
-        "[5] Select map\n"
-        "[0] Close\n"
-        "--------------------------\n" );
-}
-
-static void Vote_Menu_StartSimple( int index )
-{
-    if ( !Vote_CanStart() )
-        return;
-
-    current_vote = index;
-    k_vote = 0;
-    if ( votes[index].VoteInit() )
-        Vote_CommitStart( index );
-    else
-        current_vote = -1;
-}
-
-void Vote_Menu_Main_Input( int inp )
-{
-    switch ( inp )
-    {
-    case 1:
-        Vote_Menu_StartSimple( VOTE_CHANGEMAP );
-        break;
-    case 2:
-        self->vote_menu_page = 0;
-        self->current_menu = VOTE_MENU_PLAYERS;
-        self->menu_count = MENU_REFRESH_RATE;
-        break;
-    case 3:
-        Vote_Menu_StartSimple( VOTE_ADMIN );
-        break;
-    case 4:
-        self->current_menu = VOTE_MENU_TIMELIMIT;
-        self->menu_count = MENU_REFRESH_RATE;
-        break;
-    case 5:
-        self->vote_menu_page = 0;
-        self->current_menu = VOTE_MENU_MAPS;
-        self->menu_count = MENU_REFRESH_RATE;
-        break;
-    case 10:
-        ResetMenu();
-        break;
-    }
-}
-
-static void Vote_AppendMenuLine( char *buffer, int buffer_size, const char *line )
-{
-    int used;
-
-    used = strlen( buffer );
-    if ( used >= buffer_size - 1 )
-        return;
-    _snprintf( buffer + used, buffer_size - used, "%s", line );
-}
-
-void Vote_Menu_Players( menunum_t menu )
-{
-    gedict_t *player;
-    char body[640];
-    char line[96];
-    char name[32];
-    int skip;
-    int eligible = 0;
-    int shown = 0;
-    int userid;
+    char reverse[12];
+    int count = 0;
     int i;
 
-    if ( current_vote != -1 )
-    {
-        self->current_menu = VOTE_MENU_ACTIVE;
-        Vote_Menu_Active( VOTE_MENU_ACTIVE );
+    if ( buffer_size < 1 )
         return;
-    }
+    if ( value < 0 )
+        value = 0;
 
-    body[0] = 0;
-    for ( i = 0; i < VOTE_MENU_PAGE_SIZE; i++ )
-        self->vote_menu_slots[i] = -1;
-    skip = self->vote_menu_page * VOTE_MENU_PAGE_SIZE;
-
-    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    do
     {
-        if ( player == self || player->isBot || !player->s.v.netname[0] )
-            continue;
-        if ( eligible++ < skip )
-            continue;
-        if ( shown >= VOTE_MENU_PAGE_SIZE )
-            continue;
-
-        userid = GetInfokeyInt( player, "*userid", NULL, -1 );
-        if ( userid < 0 )
-            continue;
-        Vote_SanitizeText( player->s.v.netname, name, sizeof( name ) );
-        self->vote_menu_slots[shown] = userid;
-        _snprintf( line, sizeof( line ), "[%d] %s\n", shown + 1, name );
-        Vote_AppendMenuLine( body, sizeof( body ), line );
-        shown++;
+        reverse[count++] = (char)( 0x92 + value % 10 );
+        value /= 10;
     }
+    while ( value && count < (int)sizeof( reverse ) );
 
-    if ( !shown )
-        Vote_AppendMenuLine( body, sizeof( body ), "No players available\n" );
-    if ( self->vote_menu_page > 0 )
-        Vote_AppendMenuLine( body, sizeof( body ), "[8] Previous page\n" );
-    if ( eligible > skip + VOTE_MENU_PAGE_SIZE )
-        Vote_AppendMenuLine( body, sizeof( body ), "[9] Next page\n" );
-    Vote_AppendMenuLine( body, sizeof( body ), "[0] Back\n" );
-
-    CenterPrint( self, "Kick Player\n--------------------------\n%s--------------------------\n", body );
+    if ( count >= buffer_size )
+        count = buffer_size - 1;
+    for ( i = 0; i < count; i++ )
+        buffer[i] = reverse[count - i - 1];
+    buffer[count] = 0;
 }
 
-void Vote_Menu_Players_Input( int inp )
+static void Vote_ColorObjective( const char *source, char *buffer, int buffer_size )
 {
-    gedict_t *player;
-    gedict_t *target;
-    int eligible;
-
-    if ( inp >= 1 && inp <= VOTE_MENU_PAGE_SIZE )
-    {
-        target = Vote_FindPlayerByUserid( self->vote_menu_slots[inp - 1] );
-        if ( !Vote_CanStart() )
-            return;
-        current_vote = VOTE_KICK;
-        k_vote = 0;
-        if ( Vote_SetKickTarget( target ) )
-            Vote_CommitStart( VOTE_KICK );
-        else
-            current_vote = -1;
-        return;
-    }
-    if ( inp == 8 && self->vote_menu_page > 0 )
-    {
-        self->vote_menu_page--;
-        self->menu_count = MENU_REFRESH_RATE;
-    }
-    else if ( inp == 9 )
-    {
-        eligible = 0;
-        for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
-        {
-            if ( player != self && !player->isBot && player->s.v.netname[0] )
-                eligible++;
-        }
-        if ( ( self->vote_menu_page + 1 ) * VOTE_MENU_PAGE_SIZE < eligible )
-        {
-            self->vote_menu_page++;
-            self->menu_count = MENU_REFRESH_RATE;
-        }
-    }
-    else if ( inp == 10 )
-    {
-        self->current_menu = VOTE_MENU_MAIN;
-        self->menu_count = MENU_REFRESH_RATE;
-    }
-}
-
-void Vote_Menu_Timelimit( menunum_t menu )
-{
-    if ( current_vote != -1 )
-    {
-        self->current_menu = VOTE_MENU_ACTIVE;
-        Vote_Menu_Active( VOTE_MENU_ACTIVE );
-        return;
-    }
-    CenterPrint( self,
-        "Change Timelimit\n"
-        "--------------------------\n"
-        "[1] 5 minutes\n"
-        "[2] 10 minutes\n"
-        "[3] 15 minutes\n"
-        "[4] 20 minutes\n"
-        "[5] 30 minutes\n"
-        "[6] 45 minutes\n"
-        "[7] 60 minutes\n"
-        "[0] Back\n"
-        "--------------------------\n" );
-}
-
-void Vote_Menu_Timelimit_Input( int inp )
-{
-    static const int values[VOTE_MENU_PAGE_SIZE] = {5, 10, 15, 20, 30, 45, 60};
-
-    if ( inp >= 1 && inp <= VOTE_MENU_PAGE_SIZE )
-    {
-        if ( !Vote_CanStart() )
-            return;
-        current_vote = VOTE_TIMELIMIT;
-        k_vote = 0;
-        if ( Vote_SetTimelimit( values[inp - 1] ) )
-            Vote_CommitStart( VOTE_TIMELIMIT );
-        else
-            current_vote = -1;
-        return;
-    }
-    if ( inp == 10 )
-    {
-        self->current_menu = VOTE_MENU_MAIN;
-        self->menu_count = MENU_REFRESH_RATE;
-    }
-}
-
-static void Vote_LoadMapList( void )
-{
-    char list[VOTE_MAP_LIST_SIZE];
-    char *name;
-    char *end;
-    int listed;
-
-    if ( vote_maps_loaded )
-        return;
-    vote_maps_loaded = true;
-    vote_map_count = 0;
-    memset( list, 0, sizeof( list ) );
-    listed = trap_FS_GetFileList( "maps", ".bsp", list, sizeof( list ), 0 );
-    if ( listed < 1 )
-        return;
-
-    name = list;
-    end = list + sizeof( list );
-    while ( name < end && *name && vote_map_count < VOTE_MENU_MAX_MAPS )
-    {
-        if ( Vote_IsSafeMapName( name ) )
-        {
-            Q_strncpyz( vote_maps[vote_map_count], name, VOTE_MAP_NAME_SIZE );
-            vote_map_count++;
-        }
-        name += strlen( name ) + 1;
-    }
-}
-
-void Vote_Menu_Maps( menunum_t menu )
-{
-    char body[640];
-    char line[96];
-    int start;
-    int end;
+    unsigned char ch;
     int i;
 
-    if ( current_vote != -1 )
-    {
-        self->current_menu = VOTE_MENU_ACTIVE;
-        Vote_Menu_Active( VOTE_MENU_ACTIVE );
+    if ( buffer_size < 1 )
         return;
-    }
-
-    Vote_LoadMapList();
-    start = self->vote_menu_page * VOTE_MENU_PAGE_SIZE;
-    if ( start >= vote_map_count && self->vote_menu_page > 0 )
+    for ( i = 0; source && source[i] && i < buffer_size - 1; i++ )
     {
-        self->vote_menu_page = 0;
-        start = 0;
-    }
-    end = start + VOTE_MENU_PAGE_SIZE;
-    if ( end > vote_map_count )
-        end = vote_map_count;
-
-    body[0] = 0;
-    for ( i = start; i < end; i++ )
-    {
-        _snprintf( line, sizeof( line ), "[%d] %s\n", i - start + 1, vote_maps[i] );
-        Vote_AppendMenuLine( body, sizeof( body ), line );
-    }
-    if ( !vote_map_count )
-        Vote_AppendMenuLine( body, sizeof( body ), "No maps available\n" );
-    if ( self->vote_menu_page > 0 )
-        Vote_AppendMenuLine( body, sizeof( body ), "[8] Previous page\n" );
-    if ( end < vote_map_count )
-        Vote_AppendMenuLine( body, sizeof( body ), "[9] Next page\n" );
-    Vote_AppendMenuLine( body, sizeof( body ), "[0] Back\n" );
-
-    CenterPrint( self, "Select Map\n--------------------------\n%s--------------------------\n", body );
-}
-
-void Vote_Menu_Maps_Input( int inp )
-{
-    int index;
-
-    Vote_LoadMapList();
-    if ( inp >= 1 && inp <= VOTE_MENU_PAGE_SIZE )
-    {
-        index = self->vote_menu_page * VOTE_MENU_PAGE_SIZE + inp - 1;
-        if ( index < 0 || index >= vote_map_count )
-            return;
-        if ( !Vote_CanStart() )
-            return;
-        current_vote = VOTE_MAP;
-        k_vote = 0;
-        if ( Vote_SetMap( vote_maps[index] ) )
-            Vote_CommitStart( VOTE_MAP );
+        ch = (unsigned char)source[i];
+        if ( ch >= '0' && ch <= '9' )
+            buffer[i] = (char)( 0x92 + ch - '0' );
+        else if ( ch > ' ' && ch < 127 )
+            buffer[i] = (char)( ch | 0x80 );
         else
-            current_vote = -1;
-        return;
+            buffer[i] = (char)ch;
     }
-    if ( inp == 8 && self->vote_menu_page > 0 )
-    {
-        self->vote_menu_page--;
-        self->menu_count = MENU_REFRESH_RATE;
-    }
-    else if ( inp == 9
-              && ( self->vote_menu_page + 1 ) * VOTE_MENU_PAGE_SIZE < vote_map_count )
-    {
-        self->vote_menu_page++;
-        self->menu_count = MENU_REFRESH_RATE;
-    }
-    else if ( inp == 10 )
-    {
-        self->current_menu = VOTE_MENU_MAIN;
-        self->menu_count = MENU_REFRESH_RATE;
-    }
+    buffer[i] = 0;
 }
 
 void Vote_Menu_Active( menunum_t menu )
 {
-    char progress[MAX_CLIENTS + 1];
+    char colored_description[64];
+    char current_votes[12];
+    char required_votes[12];
+    char time_left[12];
     int required;
     int seconds;
-    int i;
 
     if ( !self->newvote || current_vote == -1 )
     {
@@ -942,24 +607,24 @@ void Vote_Menu_Active( menunum_t menu )
     }
 
     required = Vote_RequiredVotes();
-    for ( i = 0; i < required; i++ )
-        progress[i] = i < k_vote ? '#' : '-';
-    progress[required] = 0;
-
     seconds = (int)( vote_end_time - g_globalvars.time + 0.999 );
     if ( seconds < 0 )
         seconds = 0;
 
+    Vote_ColorObjective( vote_description, colored_description,
+                         sizeof( colored_description ) );
+    Vote_FormatMenuNumber( k_vote, current_votes, sizeof( current_votes ) );
+    Vote_FormatMenuNumber( required, required_votes, sizeof( required_votes ) );
+    Vote_FormatMenuNumber( seconds, time_left, sizeof( time_left ) );
+
     CenterPrint( self,
         "%s votes for %s\n"
-        "--------------------------\n"
-        "[1] Yes\n"
-        "[2] No\n"
-        "[0] Close\n"
-        "--------------------------\n"
-        "Votes: [%s] %d/%d\n"
-        "Time left: %d sec\n",
-        vote_initiator, vote_description, progress, k_vote, required, seconds );
+        _M1 " Yes                       \n"
+        _M2 " No                        \n"
+        _M0 " Close                     \n"
+        "Votes: %s/%s\n"
+        "Time left: %s sec\n",
+        vote_initiator, colored_description, current_votes, required_votes, time_left );
 }
 
 void Vote_Menu_Active_Input( int inp )
