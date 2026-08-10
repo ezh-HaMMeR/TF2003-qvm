@@ -619,9 +619,11 @@ void Vote_Menu_Active( menunum_t menu )
 
     CenterPrint( self,
         "%s votes for %s\n"
-        _M1 " Yes                       \n"
-        _M2 " No                        \n"
-        _M0 " Close                     \n"
+        "--------------------\n"
+        "     " _M1 " Yes        \n"
+        "     " _M2 " No         \n"
+        "     " _M0 " Close      \n"
+        "--------------------\n"
         "Votes: %s/%s\n"
         "Time left: %s sec\n",
         vote_initiator, colored_description, current_votes, required_votes, time_left );
