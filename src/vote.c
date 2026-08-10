@@ -2,368 +2,972 @@
  *  QWProgs-TF2003
  *  Copyright (C) 2004  [sd] angel
  *
- *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *
- *  $Id: vote.c,v 1.8 2006-11-21 16:41:57 AngelD Exp $
  */
-   
-// vote.q: mapchange voting functions
+
+// vote.q: mapchange voting functions and optional centerprint vote menus
 #include "g_local.h"
 
-int Vote_ChangeMap_Init();
-void Vote_ChangeMap_Run();
+#define VOTE_CHANGEMAP       0
+#define VOTE_ADMIN           1
+#define VOTE_TIMELIMIT       2
+#define VOTE_MAP             3
+#define VOTE_KICK            4
 
-int Vote_Admin_Init();
-void Vote_Admin_Run();
-int Vote_Timelimit_Init();
-void Vote_Timelimit_Run();
-int Vote_Map_Init();
-void Vote_Map_Run();
+#define VOTE_MENU_PAGE_SIZE  7
+#define VOTE_MENU_MAX_MAPS   128
+#define VOTE_MAP_NAME_SIZE   32
+#define VOTE_MAP_LIST_SIZE   16384
+
+int Vote_ChangeMap_Init( void );
+void Vote_ChangeMap_Run( void );
+int Vote_Admin_Init( void );
+void Vote_Admin_Run( void );
+int Vote_Timelimit_Init( void );
+void Vote_Timelimit_Run( void );
+int Vote_Map_Init( void );
+void Vote_Map_Run( void );
+int Vote_Kick_Init( void );
+void Vote_Kick_Run( void );
+
+const vote_t votes[] =
+{
+    {"changemap", Vote_ChangeMap_Init, Vote_ChangeMap_Run, 60, 3},
+    {"admin", Vote_Admin_Init, Vote_Admin_Run, 60, 3},
+    {"timelimit", Vote_Timelimit_Init, Vote_Timelimit_Run, 60, 3},
+    {"map", Vote_Map_Init, Vote_Map_Run, 60, 3},
+    {"kick", Vote_Kick_Init, Vote_Kick_Run, 60, 3},
+    {NULL}
+};
+
+static int k_vote;
+int current_vote = -1;
+
 static float elect_percentage;
 static int elect_level;
-static gedict_t* elect_player;
+static gedict_t *elect_player;
+static int vote_timelimit;
+static char vote_mapname[VOTE_MAP_NAME_SIZE];
+static int vote_kick_userid = -1;
+static char vote_kick_name[32];
+static char vote_initiator[32];
+static char vote_description[64];
+static float vote_end_time;
 
+static qboolean vote_maps_loaded;
+static int vote_map_count;
+static char vote_maps[VOTE_MENU_MAX_MAPS][VOTE_MAP_NAME_SIZE];
 
-int CheckString(char *str);
-const vote_t votes[]=
+void NextLevel( void );
+
+static void Vote_SanitizeText( const char *source, char *dest, int dest_size )
 {
-	{"changemap", Vote_ChangeMap_Init, Vote_ChangeMap_Run, 60, 3},
-	{"admin", Vote_Admin_Init, Vote_Admin_Run, 60, 3},
-	{"timelimit", Vote_Timelimit_Init, Vote_Timelimit_Run, 60, 3},
-	{"map", Vote_Map_Init, Vote_Map_Run, 60, 3},
-	{NULL}
-};
-static int		k_vote = 0;
-int 		current_vote = -1;
+    int i;
+    unsigned char ch;
 
+    if ( dest_size < 1 )
+        return;
 
-void NextLevel();
-
-
-int CountPlayers()
-{
-	gedict_t	*p=world;
-	int 		num = 0;
-
-	while((p = trap_find(p, FOFS(s.v.classname), "player"))) 
-		if(p->s.v.netname[0] && !p->isBot) 
-			num++;
-
-	return num;
+    for ( i = 0; i < dest_size - 1 && source && source[i]; i++ )
+    {
+        ch = (unsigned char)source[i];
+        dest[i] = ( ch >= 32 && ch <= 126 ) ? (char)ch : '?';
+    }
+    dest[i] = 0;
 }
 
-void _clearVote()
+static void Vote_SetDetails( const char *description )
 {
-	gedict_t	*p = world;
+    Vote_SanitizeText( self->s.v.netname, vote_initiator, sizeof( vote_initiator ) );
+    Vote_SanitizeText( description, vote_description, sizeof( vote_description ) );
+}
+
+static gedict_t *Vote_FindPlayerByUserid( int userid )
+{
+    gedict_t *player;
+
+    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    {
+        if ( player->isBot || !player->s.v.netname[0] )
+            continue;
+        if ( GetInfokeyInt( player, "*userid", NULL, -1 ) == userid )
+            return player;
+    }
+    return world;
+}
+
+int CountPlayers( void )
+{
+    gedict_t *player;
+    int num = 0;
+
+    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    {
+        if ( player->s.v.netname[0] && !player->isBot )
+            num++;
+    }
+    return num;
+}
+
+static int Vote_RequiredVotes( void )
+{
+    int required;
+
+    required = (int)( CountPlayers() * elect_percentage / 100 ) + 1;
+    if ( required < 1 )
+        required = 1;
+    if ( required > MAX_CLIENTS )
+        required = MAX_CLIENTS;
+    return required;
+}
+
+static void Vote_CloseMenus( void )
+{
+    gedict_t *player;
+
+    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    {
+        if ( player->current_menu < VOTE_MENU_MAIN
+             || player->current_menu > VOTE_MENU_ACTIVE )
+            continue;
+
+        if ( !player->StatusBarSize )
+            CenterPrint( player, "\n" );
+        else
+            player->StatusRefreshTime = g_globalvars.time + 0.1;
+        player->menu_count = MENU_REFRESH_RATE;
+        player->current_menu = MENU_DEFAULT;
+    }
+}
+
+static void Vote_OpenActiveMenus( void )
+{
+    gedict_t *player;
+
+    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    {
+        if ( !player->newvote || player->isBot )
+            continue;
+        player->current_menu = VOTE_MENU_ACTIVE;
+        player->menu_count = MENU_REFRESH_RATE;
+    }
+}
+
+void _clearVote( void )
+{
+    gedict_t *player;
+    gedict_t *guard;
+
     k_vote = 0;
     current_vote = -1;
-    while((p = trap_find(p, FOFS(s.v.classname), "player"))) 
-    {
-        p->k_voted = 0;
-    }
+    vote_end_time = 0;
+    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+        player->k_voted = 0;
 
-    p = trap_find(world, FOFS(s.v.classname), "voteguard");
-    if(p) {
-        p->s.v.classname  = "";
-        dremove(p);
+    Vote_CloseMenus();
+
+    guard = trap_find( world, FOFS( s.v.classname ), "voteguard" );
+    if ( guard )
+    {
+        guard->s.v.classname = "";
+        dremove( guard );
     }
 }
 
-int _checkVote()
+int _checkVote( void )
 {
-	int f1, needed_votes;
+    int needed_votes;
 
-	f1 = CountPlayers();
-	needed_votes = (int)(f1 * elect_percentage / 100)+1 - k_vote;
-
-	if( needed_votes < 1)
+    needed_votes = Vote_RequiredVotes() - k_vote;
+    if ( needed_votes < 1 )
         return 0;
 
-	if( needed_votes > 1)
-		G_bprint(3, "%d‘ more votes needed\n", needed_votes);
-	else
-		G_bprint(3, "%d‘ more vote needed\n", needed_votes);	
+    if ( needed_votes > 1 )
+        G_bprint( 3, "%d more votes needed\n", needed_votes );
+    else
+        G_bprint( 3, "%d more vote needed\n", needed_votes );
     return needed_votes;
 }
 
-int _addVote()
+int _addVote( void )
 {
-	self->k_voted = 1;
-    if( k_vote > 0 )
-        G_bprint(3, "%s gives his vote\n",self->s.v.netname);
+    self->k_voted = 1;
+    if ( k_vote > 0 )
+        G_bprint( 3, "%s gives his vote\n", self->s.v.netname );
     k_vote++;
 
-	if( _checkVote() < 1)
-	{
+    if ( _checkVote() < 1 )
+    {
         _clearVote();
-		return 1;	
-	}
-
+        return 1;
+    }
     return 0;
 }
 
-void _subVote()
+void _subVote( void )
 {
-	int f1, needed_votes;
+    if ( !k_vote || !self->k_voted )
+        return;
 
-	if(!k_vote || !self->k_voted) return;
-// withdraw one's vote
-    G_bprint(3, "%s withdraws his vote\n",self->s.v.netname);
-	self->k_voted = 0;
-	k_vote--;
-	if(k_vote < 1) {
-		G_bprint(3, "Voting is closed\n");
+    G_bprint( 3, "%s withdraws his vote\n", self->s.v.netname );
+    self->k_voted = 0;
+    k_vote--;
+    if ( k_vote < 1 )
+    {
+        G_bprint( 3, "Voting is closed\n" );
         _clearVote();
-		return;
-	}
+        return;
+    }
     _checkVote();
 }
 
-void VoteThink()
+void VoteThink( void )
 {
-    gedict_t* p=world;
-
-    G_bprint(3, "The voting has timed out.\n");
-    self->s.v.nextthink = -1;
-    k_vote = 0;
-    current_vote = -1;
-    while((p = trap_find(p, FOFS(s.v.classname), "player"))) 
-    {
-        if(p->s.v.netname[0] ) p->k_voted = 0;
-    }
-    dremove(self);
+    G_bprint( 3, "The voting has timed out.\n" );
+    _clearVote();
 }
 
-void _startVote()
+void _startVote( void )
 {
-	gedict_t* voteguard;
+    gedict_t *voteguard;
 
-	voteguard = spawn(); // Check the 1 minute timeout for voting
-	voteguard->s.v.owner = EDICT_TO_PROG(world);
-	voteguard->s.v.classname  = "voteguard";
-	voteguard->s.v.think = (func_t) VoteThink;
-	voteguard->s.v.nextthink = g_globalvars.time + votes[current_vote].timeout;
+    vote_end_time = g_globalvars.time + votes[current_vote].timeout;
+    voteguard = spawn();
+    voteguard->s.v.owner = EDICT_TO_PROG( world );
+    voteguard->s.v.classname = "voteguard";
+    voteguard->s.v.think = (func_t)VoteThink;
+    voteguard->s.v.nextthink = vote_end_time;
 }
 
-int Vote_ChangeMap_Init()
+int Vote_ChangeMap_Init( void )
 {
-	G_bprint(3, "%s votes for mapchange\n",self->s.v.netname);
+    G_bprint( 3, "%s votes for mapchange\n", self->s.v.netname );
+    Vote_SetDetails( "changemap" );
     return 1;
 }
 
-void Vote_ChangeMap_Run()
+void Vote_ChangeMap_Run( void )
 {
-    G_bprint(3, "Map changed by majority vote\n");
+    G_bprint( 3, "Map changed by majority vote\n" );
     NextLevel();
 }
 
-static int vote_timelimit = 0;
-int Vote_Timelimit_Init()
+static int Vote_SetTimelimit( int value )
 {
-    char    value[10];
+    char description[40];
 
-    if(trap_CmdArgc() != 3 ){
-		G_sprint( self, 3, "usage cmd vote timelimit <5-60>\n",self->s.v.netname);
+    if ( value < 5 || value > 60 )
+    {
+        G_sprint( self, 3, "usage cmd vote timelimit <5-60>\n" );
         return 0;
     }
-    trap_CmdArgv( 2, value, sizeof( value ) );
-    vote_timelimit = atoi(value);
-    if( vote_timelimit < 5 || vote_timelimit > 60 ){
-		G_sprint( self, 3, "usage cmd vote timelimit <5-60>\n",self->s.v.netname);
-        return 0;
-    }
-	G_bprint(3, "%s votes for timelimit %d\n",self->s.v.netname, vote_timelimit);
+
+    vote_timelimit = value;
+    _snprintf( description, sizeof( description ), "timelimit %d", vote_timelimit );
+    Vote_SetDetails( description );
+    G_bprint( 3, "%s votes for timelimit %d\n", self->s.v.netname, vote_timelimit );
     return 1;
 }
 
-void Vote_Timelimit_Run()
+int Vote_Timelimit_Init( void )
 {
-    G_bprint(3, "Timelimit changed to %d\n", vote_timelimit);
-	localcmd("timelimit \"%d\"\n",vote_timelimit);
-}
+    char value[10];
 
-static char vote_mapname[20];
-int Vote_Map_Init()
-{
-    char    value[20];
-    char    *in, *out, ch;
-    int		cnt = 0;
-    char ml_buf[32] = {0}; 
-    fileHandle_t handle = 0;
-
-    if(trap_CmdArgc() != 3 ){
-		G_sprint( self, 3, "usage cmd vote map <mapname>\n");
+    if ( trap_CmdArgc() != 3 )
+    {
+        G_sprint( self, 3, "usage cmd vote timelimit <5-60>\n" );
         return 0;
     }
     trap_CmdArgv( 2, value, sizeof( value ) );
-    in = value;
-    out = vote_mapname;
-    while( out < vote_mapname + sizeof( vote_mapname ) - 5 ){
-       ch = *in++; 
-       if( !ch ){
-           *out++ = ch;
-           break;
-       }
-       if( ( ch >= '0' && ch <= '9' ) ||
-               ( ch >= 'a' && ch <= 'z' ) ||
-               ( ch >= 'A' && ch <= 'Z' ) || ch == '_' )
-           *out++ = ch;
+    return Vote_SetTimelimit( atoi( value ) );
+}
+
+void Vote_Timelimit_Run( void )
+{
+    G_bprint( 3, "Timelimit changed to %d\n", vote_timelimit );
+    localcmd( "timelimit \"%d\"\n", vote_timelimit );
+}
+
+static qboolean Vote_IsSafeMapName( const char *name )
+{
+    int i;
+    char ch;
+
+    if ( !name || !name[0] )
+        return false;
+    for ( i = 0; name[i]; i++ )
+    {
+        ch = name[i];
+        if ( i >= VOTE_MAP_NAME_SIZE - 1 )
+            return false;
+        if ( !( ( ch >= '0' && ch <= '9' )
+                || ( ch >= 'a' && ch <= 'z' )
+                || ( ch >= 'A' && ch <= 'Z' ) || ch == '_' ) )
+            return false;
+    }
+    return true;
+}
+
+static int Vote_SetMap( const char *name )
+{
+    char path[64];
+    char description[64];
+    fileHandle_t handle = 0;
+    int length;
+
+    if ( !Vote_IsSafeMapName( name ) )
+    {
+        G_sprint( self, 3, "usage cmd vote map <mapname>\n" );
+        return 0;
     }
 
-    strcpy( value, "maps/");
-    strcat( value, vote_mapname);
-    strcat( value, ".bsp");
-    cnt = trap_FS_OpenFile(value, &handle, FS_READ_BIN);
-    //cnt = trap_FS_GetFileList( "maps", value,  ml_buf, sizeof(ml_buf));
-    if( cnt < 0 ){
-		G_sprint( self, 3, "map not found\n");
+    _snprintf( path, sizeof( path ), "maps/%s.bsp", name );
+    length = trap_FS_OpenFile( path, &handle, FS_READ_BIN );
+    if ( length < 0 )
+    {
+        G_sprint( self, 3, "map not found\n" );
         return 0;
     }
     trap_FS_CloseFile( handle );
-	G_bprint(3, "%s votes for map %s\n",self->s.v.netname, vote_mapname);
+
+    Q_strncpyz( vote_mapname, name, sizeof( vote_mapname ) );
+    _snprintf( description, sizeof( description ), "map %s", vote_mapname );
+    Vote_SetDetails( description );
+    G_bprint( 3, "%s votes for map %s\n", self->s.v.netname, vote_mapname );
     return 1;
 }
 
-void Vote_Map_Run()
+int Vote_Map_Init( void )
 {
-    G_bprint(3, "Map changed by majority vote\n");
-	localcmd("map \"%s\"\n", vote_mapname);
-}
+    char value[VOTE_MAP_NAME_SIZE];
 
-int Vote_Admin_Init()
-{
-	elect_percentage = GetSVInfokeyInt(  "electpercentage", NULL, 50 );
-	elect_level  = GetSVInfokeyInt(  "electlevel", NULL, 1 );
-	elect_player = self;
-	if(!elect_percentage || !elect_level)
-	{
-		G_sprint( self, 2, "Admin election disabled\n",self->s.v.netname);
-		return 0;
-	}
-
-	if ( self->is_admin >= elect_level ) 
-	{
-		G_sprint(self, 2, "You are already an admin\n");
-		return 0;
-	}
-
-    return 1;
-}
-
-void Vote_Admin_Run()
-{
-  int 		f1, needed_votes;
-
-  G_bprint(2,  "%s "  _g _a _i _n " " _a _d _m _i _n " " _r _i _g _h _t _s "!\n", elect_player->s.v.netname);
-  G_sprint(elect_player, 2, "Type " _c _m _d " " _a _d _m _i _n " for admin commands.\n");
-  elect_level  = GetSVInfokeyInt(  "electlevel", NULL, 1 );
-  elect_player->is_admin = elect_level;
-}
-
-void Vote_Cmd()
-{
-    char    cmd_command[50];
-    int     argc,i;
-    const vote_t*ucmd;
-
-    /*
-    Moze to ma tu byc, nie wiem. Hunter poprosil mnie zebym to usunal
-    if ( tf_data.cb_prematch_time > g_globalvars.time )
+    if ( trap_CmdArgc() != 3 )
     {
+        G_sprint( self, 3, "usage cmd vote map <mapname>\n" );
+        return 0;
+    }
+    trap_CmdArgv( 2, value, sizeof( value ) );
+    return Vote_SetMap( value );
+}
+
+void Vote_Map_Run( void )
+{
+    G_bprint( 3, "Map changed by majority vote\n" );
+    localcmd( "map \"%s\"\n", vote_mapname );
+}
+
+int Vote_Admin_Init( void )
+{
+    elect_percentage = GetSVInfokeyInt( "electpercentage", NULL, 50 );
+    elect_level = GetSVInfokeyInt( "electlevel", NULL, 1 );
+    elect_player = self;
+    if ( !elect_percentage || !elect_level )
+    {
+        G_sprint( self, 2, "Admin election disabled\n" );
+        return 0;
+    }
+    if ( self->is_admin >= elect_level )
+    {
+        G_sprint( self, 2, "You are already an admin\n" );
+        return 0;
+    }
+
+    Vote_SetDetails( "admin" );
+    return 1;
+}
+
+void Vote_Admin_Run( void )
+{
+    G_bprint( 2, "%s " _g _a _i _n " " _a _d _m _i _n " " _r _i _g _h _t _s "!\n",
+              elect_player->s.v.netname );
+    G_sprint( elect_player, 2,
+              "Type " _c _m _d " " _a _d _m _i _n " for admin commands.\n" );
+    elect_level = GetSVInfokeyInt( "electlevel", NULL, 1 );
+    elect_player->is_admin = elect_level;
+}
+
+static int Vote_SetKickTarget( gedict_t *target )
+{
+    char description[64];
+
+    if ( !target || target == world || target == self || target->isBot
+         || !target->s.v.netname[0] )
+    {
+        G_sprint( self, 3, "Invalid kick target\n" );
+        return 0;
+    }
+
+    vote_kick_userid = GetInfokeyInt( target, "*userid", NULL, -1 );
+    if ( vote_kick_userid < 0 )
+    {
+        G_sprint( self, 3, "Invalid kick target\n" );
+        return 0;
+    }
+
+    Vote_SanitizeText( target->s.v.netname, vote_kick_name, sizeof( vote_kick_name ) );
+    _snprintf( description, sizeof( description ), "kick %s", vote_kick_name );
+    Vote_SetDetails( description );
+    G_bprint( 3, "%s votes to kick %s\n", self->s.v.netname, target->s.v.netname );
+    return 1;
+}
+
+int Vote_Kick_Init( void )
+{
+    char value[16];
+    gedict_t *target;
+
+    if ( trap_CmdArgc() != 3 )
+    {
+        G_sprint( self, 3, "usage cmd vote kick <userid>\n" );
+        return 0;
+    }
+    trap_CmdArgv( 2, value, sizeof( value ) );
+    target = Vote_FindPlayerByUserid( atoi( value ) );
+    return Vote_SetKickTarget( target );
+}
+
+void Vote_Kick_Run( void )
+{
+    gedict_t *target;
+    gedict_t *saved_self;
+
+    target = Vote_FindPlayerByUserid( vote_kick_userid );
+    if ( target == world )
+    {
+        G_bprint( 3, "Kick vote cancelled: player is no longer connected\n" );
         return;
-    }*/
+    }
+
+    G_bprint( 3, "%s was kicked by majority vote\n", target->s.v.netname );
+    saved_self = self;
+    self = target;
+    KickCheater( target );
+    self = saved_self;
+}
+
+static qboolean Vote_CanStart( void )
+{
+    elect_percentage = GetSVInfokeyInt( "electpercentage", NULL, 50 );
+    if ( !elect_percentage )
+    {
+        G_sprint( self, 3, "Votes disabled\n" );
+        return false;
+    }
+    if ( elect_percentage < 5 || elect_percentage > 95 )
+        elect_percentage = 50;
+    if ( current_vote != -1 )
+    {
+        G_sprint( self, 3, "Vote %s in progress\n", votes[current_vote].command );
+        return false;
+    }
+    if ( g_globalvars.time < self->last_vote_time )
+    {
+        G_sprint( self, 3, "You cannot vote at this time.\n" );
+        return false;
+    }
+    return true;
+}
+
+static void Vote_CommitStart( int index )
+{
+    current_vote = index;
+    k_vote = 0;
+    self->last_vote_time = g_globalvars.time + votes[index].pause * 60;
+    if ( _addVote() )
+    {
+        votes[index].VoteRun();
+        return;
+    }
+
+    G_bprint( 2, _c _m _d " " _v _o _t _e " " _y _e _s );
+    G_bprint( 2, " in console to approve\n" );
+    _startVote();
+    Vote_OpenActiveMenus();
+}
+
+static void Vote_StartCommand( int index )
+{
+    current_vote = index;
+    k_vote = 0;
+    if ( votes[index].VoteInit() )
+        Vote_CommitStart( index );
+    else
+        current_vote = -1;
+}
+
+static void Vote_CastYes( void )
+{
+    int index;
+
+    if ( current_vote < 0 )
+        return;
+    if ( self->k_voted )
+    {
+        G_sprint( self, 3, "--- your vote is still good ---\n" );
+        return;
+    }
+
+    index = current_vote;
+    if ( _addVote() )
+        votes[index].VoteRun();
+}
+
+static void Vote_CastNo( void )
+{
+    if ( self->k_voted )
+        _subVote();
+    G_sprint( self, 3, "--- your vote: no ---\n" );
+}
+
+void Vote_Cmd( void )
+{
+    char cmd_command[50];
+    int argc;
+    int i;
+    const vote_t *ucmd;
 
     argc = trap_CmdArgc();
-
-    if( argc < 2 )
+    if ( argc < 2 )
     {
-        G_sprint( self, 3, "Avaliable votes:\n");
-        for ( ucmd = votes ; ucmd->command  ; ucmd++ )
-        {
-            G_sprint( self, 3, "%s\n",ucmd->command);
-        }
+        G_sprint( self, 3, "Available votes:\n" );
+        for ( ucmd = votes; ucmd->command; ucmd++ )
+            G_sprint( self, 3, "%s\n", ucmd->command );
         return;
     }
 
     trap_CmdArgv( 1, cmd_command, sizeof( cmd_command ) );
-
-    elect_percentage = GetSVInfokeyInt(  "electpercentage", NULL, 50 );
-	if(!elect_percentage)
-	{
-		G_sprint( self, 3, "Votes disabled\n");
-		return;
-	}
-	if( elect_percentage < 5 || elect_percentage > 95)
-		elect_percentage = 50;
-
-    if( current_vote != -1 )
+    elect_percentage = GetSVInfokeyInt( "electpercentage", NULL, 50 );
+    if ( !elect_percentage )
     {
-        if(!strcmp(cmd_command,"yes"))
-        {
-            if(self->k_voted) {
-                G_sprint(self, 3, "--- your vote is still good ---\n");
-                return;
-            }
-            i = current_vote;
-            if( _addVote() )
-                votes[i].VoteRun();
-            return;
-        }
-
-        if(!strcmp(cmd_command,"no"))
-        {
-            if(self->k_voted) {
-                _subVote();
-            }
-            G_sprint(self, 3, "--- your vote: no ---\n");
-            //votes[current_vote].VoteNo();
-            return;
-        }
-        G_sprint( self, 3, "Vote %s in progress\n",votes[current_vote].command);
+        G_sprint( self, 3, "Votes disabled\n" );
         return;
     }
-    if( g_globalvars.time < self->last_vote_time )
+    if ( elect_percentage < 5 || elect_percentage > 95 )
+        elect_percentage = 50;
+
+    if ( current_vote != -1 )
     {
-        G_sprint( self, 3, "You cannot vote at this time.\n");
+        if ( !strcmp( cmd_command, "yes" ) )
+        {
+            Vote_CastYes();
+            return;
+        }
+        if ( !strcmp( cmd_command, "no" ) )
+        {
+            Vote_CastNo();
+            return;
+        }
+        G_sprint( self, 3, "Vote %s in progress\n", votes[current_vote].command );
         return;
     }
 
-    for ( ucmd = votes,i=0 ; ucmd->command  ; ucmd++,i++ )
+    if ( g_globalvars.time < self->last_vote_time )
     {
-        if( !strcmp(cmd_command,ucmd->command) )
+        G_sprint( self, 3, "You cannot vote at this time.\n" );
+        return;
+    }
+
+    for ( ucmd = votes, i = 0; ucmd->command; ucmd++, i++ )
+    {
+        if ( !strcmp( cmd_command, ucmd->command ) )
         {
-            current_vote = i;
-            k_vote = 0;
-            if( ucmd->VoteInit())
-            {
-                self->last_vote_time = g_globalvars.time + votes[current_vote].pause * 60;
-                if ( _addVote() )
-                {
-                    votes[i].VoteRun();
-                    return;
-                }
-                G_bprint(2, _c _m _d " " _v _o _t _e " " _y _e _s);
-                G_bprint(2, " in console to approve\n");
-                _startVote();
-            }else{
-                current_vote = -1;
-            }
+            Vote_StartCommand( i );
             return;
         }
     }
-    G_sprint( self, 3, "Unknown vote.\n");
+    G_sprint( self, 3, "Unknown vote.\n" );
+}
+
+void Vote_Menu_Cmd( void )
+{
+    if ( !self->newvote )
+    {
+        G_sprint( self, 2,
+                 "The new vote menu is disabled. Use setinfo newvote 1 to enable it.\n" );
+        return;
+    }
+
+    self->vote_menu_page = 0;
+    self->current_menu = current_vote == -1 ? VOTE_MENU_MAIN : VOTE_MENU_ACTIVE;
+    self->menu_count = MENU_REFRESH_RATE;
+}
+
+void Vote_Menu_Main( menunum_t menu )
+{
+    if ( !self->newvote )
+    {
+        ResetMenu();
+        return;
+    }
+    if ( current_vote != -1 )
+    {
+        self->current_menu = VOTE_MENU_ACTIVE;
+        Vote_Menu_Active( VOTE_MENU_ACTIVE );
+        return;
+    }
+
+    CenterPrint( self,
+        "Vote Menu\n"
+        "--------------------------\n"
+        "[1] Change map\n"
+        "[2] Kick player\n"
+        "[3] Elect admin\n"
+        "[4] Change timelimit\n"
+        "[5] Select map\n"
+        "[0] Close\n"
+        "--------------------------\n" );
+}
+
+static void Vote_Menu_StartSimple( int index )
+{
+    if ( !Vote_CanStart() )
+        return;
+
+    current_vote = index;
+    k_vote = 0;
+    if ( votes[index].VoteInit() )
+        Vote_CommitStart( index );
+    else
+        current_vote = -1;
+}
+
+void Vote_Menu_Main_Input( int inp )
+{
+    switch ( inp )
+    {
+    case 1:
+        Vote_Menu_StartSimple( VOTE_CHANGEMAP );
+        break;
+    case 2:
+        self->vote_menu_page = 0;
+        self->current_menu = VOTE_MENU_PLAYERS;
+        self->menu_count = MENU_REFRESH_RATE;
+        break;
+    case 3:
+        Vote_Menu_StartSimple( VOTE_ADMIN );
+        break;
+    case 4:
+        self->current_menu = VOTE_MENU_TIMELIMIT;
+        self->menu_count = MENU_REFRESH_RATE;
+        break;
+    case 5:
+        self->vote_menu_page = 0;
+        self->current_menu = VOTE_MENU_MAPS;
+        self->menu_count = MENU_REFRESH_RATE;
+        break;
+    case 10:
+        ResetMenu();
+        break;
+    }
+}
+
+static void Vote_AppendMenuLine( char *buffer, int buffer_size, const char *line )
+{
+    int used;
+
+    used = strlen( buffer );
+    if ( used >= buffer_size - 1 )
+        return;
+    _snprintf( buffer + used, buffer_size - used, "%s", line );
+}
+
+void Vote_Menu_Players( menunum_t menu )
+{
+    gedict_t *player;
+    char body[640];
+    char line[96];
+    char name[32];
+    int skip;
+    int eligible = 0;
+    int shown = 0;
+    int userid;
+    int i;
+
+    if ( current_vote != -1 )
+    {
+        self->current_menu = VOTE_MENU_ACTIVE;
+        Vote_Menu_Active( VOTE_MENU_ACTIVE );
+        return;
+    }
+
+    body[0] = 0;
+    for ( i = 0; i < VOTE_MENU_PAGE_SIZE; i++ )
+        self->vote_menu_slots[i] = -1;
+    skip = self->vote_menu_page * VOTE_MENU_PAGE_SIZE;
+
+    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    {
+        if ( player == self || player->isBot || !player->s.v.netname[0] )
+            continue;
+        if ( eligible++ < skip )
+            continue;
+        if ( shown >= VOTE_MENU_PAGE_SIZE )
+            continue;
+
+        userid = GetInfokeyInt( player, "*userid", NULL, -1 );
+        if ( userid < 0 )
+            continue;
+        Vote_SanitizeText( player->s.v.netname, name, sizeof( name ) );
+        self->vote_menu_slots[shown] = userid;
+        _snprintf( line, sizeof( line ), "[%d] %s\n", shown + 1, name );
+        Vote_AppendMenuLine( body, sizeof( body ), line );
+        shown++;
+    }
+
+    if ( !shown )
+        Vote_AppendMenuLine( body, sizeof( body ), "No players available\n" );
+    if ( self->vote_menu_page > 0 )
+        Vote_AppendMenuLine( body, sizeof( body ), "[8] Previous page\n" );
+    if ( eligible > skip + VOTE_MENU_PAGE_SIZE )
+        Vote_AppendMenuLine( body, sizeof( body ), "[9] Next page\n" );
+    Vote_AppendMenuLine( body, sizeof( body ), "[0] Back\n" );
+
+    CenterPrint( self, "Kick Player\n--------------------------\n%s--------------------------\n", body );
+}
+
+void Vote_Menu_Players_Input( int inp )
+{
+    gedict_t *player;
+    gedict_t *target;
+    int eligible;
+
+    if ( inp >= 1 && inp <= VOTE_MENU_PAGE_SIZE )
+    {
+        target = Vote_FindPlayerByUserid( self->vote_menu_slots[inp - 1] );
+        if ( !Vote_CanStart() )
+            return;
+        current_vote = VOTE_KICK;
+        k_vote = 0;
+        if ( Vote_SetKickTarget( target ) )
+            Vote_CommitStart( VOTE_KICK );
+        else
+            current_vote = -1;
+        return;
+    }
+    if ( inp == 8 && self->vote_menu_page > 0 )
+    {
+        self->vote_menu_page--;
+        self->menu_count = MENU_REFRESH_RATE;
+    }
+    else if ( inp == 9 )
+    {
+        eligible = 0;
+        for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+        {
+            if ( player != self && !player->isBot && player->s.v.netname[0] )
+                eligible++;
+        }
+        if ( ( self->vote_menu_page + 1 ) * VOTE_MENU_PAGE_SIZE < eligible )
+        {
+            self->vote_menu_page++;
+            self->menu_count = MENU_REFRESH_RATE;
+        }
+    }
+    else if ( inp == 10 )
+    {
+        self->current_menu = VOTE_MENU_MAIN;
+        self->menu_count = MENU_REFRESH_RATE;
+    }
+}
+
+void Vote_Menu_Timelimit( menunum_t menu )
+{
+    if ( current_vote != -1 )
+    {
+        self->current_menu = VOTE_MENU_ACTIVE;
+        Vote_Menu_Active( VOTE_MENU_ACTIVE );
+        return;
+    }
+    CenterPrint( self,
+        "Change Timelimit\n"
+        "--------------------------\n"
+        "[1] 5 minutes\n"
+        "[2] 10 minutes\n"
+        "[3] 15 minutes\n"
+        "[4] 20 minutes\n"
+        "[5] 30 minutes\n"
+        "[6] 45 minutes\n"
+        "[7] 60 minutes\n"
+        "[0] Back\n"
+        "--------------------------\n" );
+}
+
+void Vote_Menu_Timelimit_Input( int inp )
+{
+    static const int values[VOTE_MENU_PAGE_SIZE] = {5, 10, 15, 20, 30, 45, 60};
+
+    if ( inp >= 1 && inp <= VOTE_MENU_PAGE_SIZE )
+    {
+        if ( !Vote_CanStart() )
+            return;
+        current_vote = VOTE_TIMELIMIT;
+        k_vote = 0;
+        if ( Vote_SetTimelimit( values[inp - 1] ) )
+            Vote_CommitStart( VOTE_TIMELIMIT );
+        else
+            current_vote = -1;
+        return;
+    }
+    if ( inp == 10 )
+    {
+        self->current_menu = VOTE_MENU_MAIN;
+        self->menu_count = MENU_REFRESH_RATE;
+    }
+}
+
+static void Vote_LoadMapList( void )
+{
+    char list[VOTE_MAP_LIST_SIZE];
+    char *name;
+    char *end;
+    int listed;
+
+    if ( vote_maps_loaded )
+        return;
+    vote_maps_loaded = true;
+    vote_map_count = 0;
+    memset( list, 0, sizeof( list ) );
+    listed = trap_FS_GetFileList( "maps", ".bsp", list, sizeof( list ), 0 );
+    if ( listed < 1 )
+        return;
+
+    name = list;
+    end = list + sizeof( list );
+    while ( name < end && *name && vote_map_count < VOTE_MENU_MAX_MAPS )
+    {
+        if ( Vote_IsSafeMapName( name ) )
+        {
+            Q_strncpyz( vote_maps[vote_map_count], name, VOTE_MAP_NAME_SIZE );
+            vote_map_count++;
+        }
+        name += strlen( name ) + 1;
+    }
+}
+
+void Vote_Menu_Maps( menunum_t menu )
+{
+    char body[640];
+    char line[96];
+    int start;
+    int end;
+    int i;
+
+    if ( current_vote != -1 )
+    {
+        self->current_menu = VOTE_MENU_ACTIVE;
+        Vote_Menu_Active( VOTE_MENU_ACTIVE );
+        return;
+    }
+
+    Vote_LoadMapList();
+    start = self->vote_menu_page * VOTE_MENU_PAGE_SIZE;
+    if ( start >= vote_map_count && self->vote_menu_page > 0 )
+    {
+        self->vote_menu_page = 0;
+        start = 0;
+    }
+    end = start + VOTE_MENU_PAGE_SIZE;
+    if ( end > vote_map_count )
+        end = vote_map_count;
+
+    body[0] = 0;
+    for ( i = start; i < end; i++ )
+    {
+        _snprintf( line, sizeof( line ), "[%d] %s\n", i - start + 1, vote_maps[i] );
+        Vote_AppendMenuLine( body, sizeof( body ), line );
+    }
+    if ( !vote_map_count )
+        Vote_AppendMenuLine( body, sizeof( body ), "No maps available\n" );
+    if ( self->vote_menu_page > 0 )
+        Vote_AppendMenuLine( body, sizeof( body ), "[8] Previous page\n" );
+    if ( end < vote_map_count )
+        Vote_AppendMenuLine( body, sizeof( body ), "[9] Next page\n" );
+    Vote_AppendMenuLine( body, sizeof( body ), "[0] Back\n" );
+
+    CenterPrint( self, "Select Map\n--------------------------\n%s--------------------------\n", body );
+}
+
+void Vote_Menu_Maps_Input( int inp )
+{
+    int index;
+
+    Vote_LoadMapList();
+    if ( inp >= 1 && inp <= VOTE_MENU_PAGE_SIZE )
+    {
+        index = self->vote_menu_page * VOTE_MENU_PAGE_SIZE + inp - 1;
+        if ( index < 0 || index >= vote_map_count )
+            return;
+        if ( !Vote_CanStart() )
+            return;
+        current_vote = VOTE_MAP;
+        k_vote = 0;
+        if ( Vote_SetMap( vote_maps[index] ) )
+            Vote_CommitStart( VOTE_MAP );
+        else
+            current_vote = -1;
+        return;
+    }
+    if ( inp == 8 && self->vote_menu_page > 0 )
+    {
+        self->vote_menu_page--;
+        self->menu_count = MENU_REFRESH_RATE;
+    }
+    else if ( inp == 9
+              && ( self->vote_menu_page + 1 ) * VOTE_MENU_PAGE_SIZE < vote_map_count )
+    {
+        self->vote_menu_page++;
+        self->menu_count = MENU_REFRESH_RATE;
+    }
+    else if ( inp == 10 )
+    {
+        self->current_menu = VOTE_MENU_MAIN;
+        self->menu_count = MENU_REFRESH_RATE;
+    }
+}
+
+void Vote_Menu_Active( menunum_t menu )
+{
+    char progress[MAX_CLIENTS + 1];
+    int required;
+    int seconds;
+    int i;
+
+    if ( !self->newvote || current_vote == -1 )
+    {
+        ResetMenu();
+        return;
+    }
+
+    required = Vote_RequiredVotes();
+    for ( i = 0; i < required; i++ )
+        progress[i] = i < k_vote ? '#' : '-';
+    progress[required] = 0;
+
+    seconds = (int)( vote_end_time - g_globalvars.time + 0.999 );
+    if ( seconds < 0 )
+        seconds = 0;
+
+    CenterPrint( self,
+        "%s votes for %s\n"
+        "--------------------------\n"
+        "[1] Yes\n"
+        "[2] No\n"
+        "[0] Close\n"
+        "--------------------------\n"
+        "Votes: [%s] %d/%d\n"
+        "Time left: %d sec\n",
+        vote_initiator, vote_description, progress, k_vote, required, seconds );
+}
+
+void Vote_Menu_Active_Input( int inp )
+{
+    if ( inp == 1 )
+        Vote_CastYes();
+    else if ( inp == 2 )
+        Vote_CastNo();
+    else if ( inp == 10 )
+        ResetMenu();
 }

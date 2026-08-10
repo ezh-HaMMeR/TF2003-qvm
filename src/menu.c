@@ -109,6 +109,11 @@ const static menu_t menus[] = {
 	{-1, 0, 0, TG_Cheats_Menu, TG_Cheats_Menu_Input},
 	{-1, 0, 0, TG_SavePosition_Menu, TG_SavePosition_Menu_Input},
 	{-1, 0, 0, TG_SG_Fire_Menu, TG_SG_Fire_Menu_Input},
+	{-1, 0, 0, Vote_Menu_Main, Vote_Menu_Main_Input},
+	{-1, 0, 0, Vote_Menu_Players, Vote_Menu_Players_Input},
+	{-1, 0, 0, Vote_Menu_Timelimit, Vote_Menu_Timelimit_Input},
+	{-1, 0, 0, Vote_Menu_Maps, Vote_Menu_Maps_Input},
+	{-1, 0, 0, Vote_Menu_Active, Vote_Menu_Active_Input},
 
 	{0, 0, 0, NULL, NULL}
 };

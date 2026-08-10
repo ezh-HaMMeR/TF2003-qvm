@@ -43,7 +43,6 @@ void    Test(  );
 void    Bot();
 void    RemoveBot(  );
 void    TG_Cmd(  );
-void    Vote_Cmd(  );
 void    TeamFortress_Cmd_Discard(  );
 void    Engineer_BuildDispenser(  );
 void    Engineer_BuildSentry(  );
@@ -68,6 +67,7 @@ const static cmd_t   cmds[] = {
   {"bot", Bot, CMD_SPECTATOR_ALLOWED},
   {"tg", TG_Cmd, CMD_SPECTATOR_ALLOWED},
   {"vote", Vote_Cmd},
+  {"vote_menu", Vote_Menu_Cmd},
   {"set", Client_Set_Cmd},
   {"admin", Admin_Cmd, CMD_SPECTATOR_ALLOWED},
   {"discard", TeamFortress_Cmd_Discard, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},

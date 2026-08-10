@@ -31,3 +31,16 @@ typedef struct {
 
 extern const vote_t votes[];
 extern int current_vote;
+
+void Vote_Cmd( void );
+void Vote_Menu_Cmd( void );
+void Vote_Menu_Main( menunum_t menu );
+void Vote_Menu_Main_Input( int inp );
+void Vote_Menu_Players( menunum_t menu );
+void Vote_Menu_Players_Input( int inp );
+void Vote_Menu_Timelimit( menunum_t menu );
+void Vote_Menu_Timelimit_Input( int inp );
+void Vote_Menu_Maps( menunum_t menu );
+void Vote_Menu_Maps_Input( int inp );
+void Vote_Menu_Active( menunum_t menu );
+void Vote_Menu_Active_Input( int inp );
