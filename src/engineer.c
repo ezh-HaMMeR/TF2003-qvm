@@ -1159,11 +1159,19 @@ int Engineer_SentryGun_InsertAmmo( gedict_t* gun )
 int Engineer_SentryGun_Dismantle( gedict_t* gun )
 {
     char team_message[96];
+    int sentry_level;
+    int cell_refund;
 
     if( !tfset(tg_enabled)  && (self->playerclass != PC_ENGINEER ))
         return 0;
     G_sprint( self, 2, "You dismantle the Sentry Gun.\n" );
-    self->s.v.ammo_cells = self->s.v.ammo_cells + 130 / 2;
+    sentry_level = (int)gun->s.v.weapon;
+    if ( sentry_level < 1 )
+        sentry_level = 1;
+    else if ( sentry_level > 3 )
+        sentry_level = 3;
+    cell_refund = BUILD_COST_SENTRYGUN * sentry_level / 2;
+    self->s.v.ammo_cells = self->s.v.ammo_cells + cell_refund;
     if ( gun->real_owner != self )
     {
         G_sprint( gun->real_owner, 2, "%s dismantled your Sentry Gun.\n", self->s.v.netname );
