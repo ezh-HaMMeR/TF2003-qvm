@@ -579,6 +579,15 @@ void Engineer_BuildDispenser(  )
 {
     if ( !tfset(tg_enabled) && self->playerclass != PC_ENGINEER )
         return;
+    if ( self->is_detpacking || self->is_feigning )
+        return;
+    /* The direct dispenser command is also its cancel key. It only cancels
+     * a dispenser timer, leaving an in-progress sentry untouched. */
+    if ( self->is_building )
+    {
+        Engineer_CancelBuilding( BUILD_DISPENSER );
+        return;
+    }
     if ( tf_data.cease_fire )
         return;
 

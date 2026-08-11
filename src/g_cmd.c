@@ -70,7 +70,7 @@ const static cmd_t   cmds[] = {
   {"set", Client_Set_Cmd},
   {"admin", Admin_Cmd, CMD_SPECTATOR_ALLOWED},
   {"discard", TeamFortress_Cmd_Discard, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
-  {"builddisp", Engineer_BuildDispenser, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
+  {"builddisp", Engineer_BuildDispenser, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
   {"builtsg", Engineer_BuildSentry, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
   {"builtsg_pw", Engineer_BuildSentryPoint, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
   {"sg_rotate", Engineer_RotateSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
