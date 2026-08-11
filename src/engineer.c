@@ -1402,8 +1402,9 @@ static void Engineer_DirectBuildingAction( sg_direct_action_t action )
 
     if ( Engineer_IsLiveDispenser( building ) )
     {
-        if ( ( action != SG_DIRECT_REPAIR && action != SG_DIRECT_RELOAD )
-             || !Engineer_IsFriendlyBuilding( building ) )
+        if ( action == SG_DIRECT_UPGRADE
+             || ( action != SG_DIRECT_DISMANTLE
+                  && !Engineer_IsFriendlyBuilding( building ) ) )
         {
             G_sprint( self, 2, "This command cannot be used on that dispenser.\n" );
             return;
@@ -1414,11 +1415,17 @@ static void Engineer_DirectBuildingAction( sg_direct_action_t action )
             status = Engineer_Dispenser_InsertResources( self, building );
             if ( !status )
                 G_sprint( self, 2, "The dispenser cannot take any of your resources.\n" );
-        } else
+        } else if ( action == SG_DIRECT_REPAIR )
         {
             status = Engineer_Dispenser_WithdrawResources( self, building );
             if ( !status )
                 G_sprint( self, 2, "The dispenser has no resources you can take.\n" );
+        } else
+        {
+            /* Salvage only what the engineer can carry before removing the
+             * dispenser; the transfer helper also deducts exactly that amount. */
+            Engineer_Dispenser_WithdrawResources( self, building );
+            status = Engineer_Dispenser_Dismantle( building );
         }
     } else
     {
