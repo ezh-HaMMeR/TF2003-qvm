@@ -411,6 +411,7 @@ ARMOR
 void armor_touch(  )
 {
 	float   type = 0, value = 0;
+	float   effective_type, effective_value;
 	int     bit = 0;
 	gedict_t *oldself;
 
@@ -442,30 +443,15 @@ void armor_touch(  )
 		value = 300;
 		bit = IT_ARMOR3;
 	}
-	if ( other->s.v.armortype * other->s.v.armorvalue >= type * value )
-	{
-		if ( other->playerclass == PC_ENGINEER )
-		{
-			if ( other->s.v.ammo_cells >= other->maxammo_cells )
-				return;
-		} else
-			return;
-	}
-	if ( other->armor_allowed * other->maxarmor <= type * value )
-	{
-		if ( other->armor_allowed == other->s.v.armortype )
-		{
-			if ( other->maxarmor == other->s.v.armorvalue )
-			{
-				if ( other->playerclass == PC_ENGINEER )
-				{
-					if ( other->s.v.ammo_cells >= other->maxammo_cells )
-						return;
-				} else
-					return;
-			}
-		}
-	}
+	/* Test the armor the class can actually receive, not the raw item_armorInv
+	 * value. Engineers may still take excess armor as metal while cells are low. */
+	effective_type = type > other->armor_allowed ? other->armor_allowed : type;
+	effective_value = value > other->maxarmor ? other->maxarmor : value;
+	if ( other->s.v.armortype * other->s.v.armorvalue >= effective_type * effective_value
+	     && ( other->playerclass != PC_ENGINEER
+	          || value <= other->maxarmor
+	          || other->s.v.ammo_cells >= other->maxammo_cells ) )
+		return;
 	if ( type > other->armor_allowed )
 	{
 		type = other->armor_allowed;
