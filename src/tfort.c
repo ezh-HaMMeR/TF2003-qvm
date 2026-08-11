@@ -1788,13 +1788,9 @@ void TeamFortress_SetEquipment(  )
 
 	if ( pc == PC_SCOUT )
 	{
-		if ( self->ScannerOn )
-		{
-			self->ScannerOn = 0;
-			ScannerSwitch(  );
-		}
 		if ( self->ScanRange == 0 )
 			self->ScanRange = DEFAULT_AUTOSCAN_RANGE;
+		TeamFortress_RestoreScanner(  );
 	}
 	if ( pc == PC_MEDIC )
 	{

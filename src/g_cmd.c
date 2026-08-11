@@ -85,6 +85,17 @@ const static cmd_t   cmds[] = {
   {"tf_primegren1_pth", TeamFortress_Cmd_PrimeGrenade1PTH, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"tf_primegren2_pth", TeamFortress_Cmd_PrimeGrenade2PTH, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"tf_throwgren", TeamFortress_Cmd_ThrowGrenade, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  /* Scanner preferences may be set during prematch (or while dead) so class
+   * configs do not have to be executed again when the live match starts. */
+  {"tf_scanf", TeamFortress_Cmd_ScanFriendlyToggle, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"tf_scanf_on", TeamFortress_Cmd_ScanFriendlyOn, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"tf_scanf_off", TeamFortress_Cmd_ScanFriendlyOff, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"tf_scane", TeamFortress_Cmd_ScanEnemyToggle, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"tf_scane_on", TeamFortress_Cmd_ScanEnemyOn, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"tf_scane_off", TeamFortress_Cmd_ScanEnemyOff, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"tf_autoscan", TeamFortress_Cmd_AutoscanToggle, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"tf_autoscan_on", TeamFortress_Cmd_AutoscanOn, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"tf_autoscan_off", TeamFortress_Cmd_AutoscanOff, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
   {NULL, NULL, 0}
 };
 

@@ -54,6 +54,19 @@ static void TeamFortress_GrenadeCommandAliases(  )
     TeamFortress_GrenadeButtonAlias( "-grenade2", "-use", NULL );
 }
 
+static void TeamFortress_ScannerCommandAliases(  )
+{
+    TeamFortress_ClientCommandAlias( "scanf", "tf_scanf" );
+    TeamFortress_ClientCommandAlias( "scanf_off", "tf_scanf_off" );
+    TeamFortress_ClientCommandAlias( "scanf_on", "tf_scanf_on" );
+    TeamFortress_ClientCommandAlias( "scane", "tf_scane" );
+    TeamFortress_ClientCommandAlias( "scane_off", "tf_scane_off" );
+    TeamFortress_ClientCommandAlias( "scane_on", "tf_scane_on" );
+    TeamFortress_ClientCommandAlias( "autoscan", "tf_autoscan" );
+    TeamFortress_ClientCommandAlias( "autoscan_on", "tf_autoscan_on" );
+    TeamFortress_ClientCommandAlias( "autoscan_off", "tf_autoscan_off" );
+}
+
 void TeamFortress_MOTD(  )
 {
 
@@ -93,9 +106,10 @@ void TeamFortress_MOTD(  )
         self->motd = 22;
         if ( self->got_aliases == 1 )
         {
-            /* Existing clients still have the old impulse-based grenade
-             * aliases, so refresh this small, transport-critical subset. */
+            /* Existing clients may still have old impulse-based aliases, so
+             * refresh the small subsets whose server-side state must persist. */
             TeamFortress_GrenadeCommandAliases(  );
+            TeamFortress_ScannerCommandAliases(  );
             return;
         }
         G_sprint( self, 2, "binding aliases...\n" );
@@ -129,15 +143,7 @@ void TeamFortress_MOTD(  )
         TeamFortress_Alias( "scan30", TF_SCAN_30, 0 );
         TeamFortress_Alias( "scan50", TF_SCAN_100, 0 );
         TeamFortress_Alias( "scan100", TF_SCAN_100, 0 );
-        TeamFortress_Alias( "scanf", TF_SCAN_FRIENDLY, 0 );
-        TeamFortress_Alias( "scane", TF_SCAN_ENEMY, 0 );
-        TeamFortress_Alias( "autoscan", AUTOSCAN_IMPULSE, 0 );
-        TeamFortress_Alias("scanf_off", TF_SCAN, TF_POST_SCANF_OFF);
-        TeamFortress_Alias("scanf_on" , TF_SCAN, TF_POST_SCANF_ON );
-        TeamFortress_Alias("scane_off", TF_SCAN, TF_POST_SCANE_OFF);
-        TeamFortress_Alias("scane_on" , TF_SCAN, TF_POST_SCANE_ON );
-        TeamFortress_Alias("autoscan_on" ,  TF_SCAN, TF_POST_AUTOSCAN_ON  );
-        TeamFortress_Alias("autoscan_off" , TF_SCAN, TF_POST_AUTOSCAN_OFF );
+        TeamFortress_ScannerCommandAliases(  );
         return;
     }
     if ( self->motd == 35 )

@@ -364,40 +364,92 @@ void ConcussionGrenadeTimer(  )
 void TeamFortress_AutoScan(  )
 {
 	gedict_t *oldself;
+	gedict_t *owner;
 
 	oldself = self;
-	self = PROG_TO_EDICT( oldself->s.v.owner );
+	owner = PROG_TO_EDICT( oldself->s.v.owner );
+	if ( !owner || owner == world || owner->is_removed || owner->has_disconnected
+	     || strneq( owner->s.v.classname, "player" )
+	     || owner->s.v.deadflag || owner->s.v.health <= 0
+	     || owner->playerclass != PC_SCOUT || owner->ScannerOn != 1
+	     || !( owner->tf_items & NIT_SCANNER ) )
+	{
+		dremove( oldself );
+		return;
+	}
+	self = owner;
 	TeamFortress_Scan_Angel( self->ScanRange, 1 );
 	self = oldself;
 	self->s.v.nextthink = g_globalvars.time + TF_AUTOSCAN_TIME;
 }
 
-void ScannerSwitch(  )
+static gedict_t *TeamFortress_FindScannerTimer( gedict_t *player )
 {
 	gedict_t *te;
 
+	for ( te = world; ( te = trap_find( te, FOFS( s.v.netname ), "scanner" ) ); )
+	{
+		if ( !te->is_removed && te->s.v.owner == EDICT_TO_PROG( player ) )
+			return te;
+	}
+	return world;
+}
+
+static void TeamFortress_StopScannerTimer( gedict_t *player )
+{
+	gedict_t *te;
+
+	for ( te = world; ( te = trap_find( te, FOFS( s.v.netname ), "scanner" ) ); )
+	{
+		if ( te->s.v.owner == EDICT_TO_PROG( player ) )
+		{
+			dremove( te );
+			te = world;
+		}
+	}
+}
+
+static void TeamFortress_StartScannerTimer( gedict_t *player )
+{
+	gedict_t *te;
+
+	if ( player->ScannerOn != 1 || player->s.v.deadflag || player->s.v.health <= 0
+	     || player->playerclass != PC_SCOUT
+	     || !( player->tf_items & NIT_SCANNER ) )
+		return;
+	if ( TeamFortress_FindScannerTimer( player ) != world )
+		return;
+
+	te = spawn(  );
+	te->s.v.nextthink = g_globalvars.time + TF_AUTOSCAN_TIME;
+	te->s.v.think = ( func_t ) TeamFortress_AutoScan;
+	te->s.v.owner = EDICT_TO_PROG( player );
+	te->s.v.classname = "timer";
+	te->s.v.netname = "scanner";
+}
+
+void TeamFortress_RestoreScanner(  )
+{
+	/* Prematch cleanup removes timer entities. ScannerOn is the persistent
+	 * preference; recreating the timer here makes the next scout spawn live. */
+	if ( self->ScannerOn == 1 )
+		TeamFortress_StartScannerTimer( self );
+	else
+		TeamFortress_StopScannerTimer( self );
+}
+
+void ScannerSwitch(  )
+{
 	if ( self->ScannerOn != 1 )
 	{
-		te = spawn(  );
-		te->s.v.nextthink = g_globalvars.time + TF_AUTOSCAN_TIME;
-		te->s.v.think = ( func_t ) TeamFortress_AutoScan;
-		te->s.v.owner = EDICT_TO_PROG( self );
-		te->s.v.classname = "timer";
-		te->s.v.netname = "scanner";
-		G_sprint( self, PRINT_HIGH, "Scanner On.\n" );
 		self->ScannerOn = 1;
+		TeamFortress_RestoreScanner(  );
+		G_sprint( self, PRINT_HIGH, "Scanner On.\n" );
 	} else
 	{
-		for ( te = world; ( te = trap_find( te, FOFS( s.v.netname ), "scanner" ) ); )
-		{
-			if ( te->s.v.owner == EDICT_TO_PROG( self ) )
-			{
-				dremove( te );
-				break;
-			}
-		}
-		G_sprint( self, PRINT_HIGH, "Scanner Off.\n" );
 		self->ScannerOn = 0;
+		TeamFortress_RestoreScanner(  );
+		G_sprint( self, PRINT_HIGH, "Scanner Off.\n" );
 	}
 	self->StatusRefreshTime = g_globalvars.time + 0.1;
 }
@@ -512,7 +564,9 @@ void TeamFortress_ScannerSet( int impulse )
 	if ( strneq( self->s.v.classname, "player" ) )
 		return;
 
-	if ( !( self->tf_items & NIT_SCANNER ) )
+	/* A scout class config may arrive just before SetEquipment has installed
+	 * NIT_SCANNER. Save the preference now and activate it on the spawn. */
+	if ( !( self->tf_items & NIT_SCANNER ) && self->playerclass != PC_SCOUT )
 		return;
 
 	// If Impulse is TF_SCAN_ENEMY, toggle Scanning for Enemies
@@ -580,25 +634,65 @@ void TeamFortress_ScannerSet( int impulse )
 	}
 	if ( impulse == TF_POST_AUTOSCAN_ON )
 	{
-		if ( self->ScannerOn != 1 )
-		{
-			ScannerSwitch(  );
-		} else
-		{
-			G_sprint( self, PRINT_HIGH, "Scanner On.\n" );
-		}
+		self->ScannerOn = 1;
+		TeamFortress_RestoreScanner(  );
+		G_sprint( self, PRINT_HIGH, "Scanner On.\n" );
+		self->StatusRefreshTime = g_globalvars.time + 0.1;
 	}
 
 	if ( impulse == TF_POST_AUTOSCAN_OFF )
 	{
-		if ( self->ScannerOn == 1 )
-		{
-			ScannerSwitch(  );
-		} else
-		{
-			G_sprint( self, PRINT_HIGH, "Scanner Off.\n" );
-		}
+		self->ScannerOn = 0;
+		TeamFortress_RestoreScanner(  );
+		G_sprint( self, PRINT_HIGH, "Scanner Off.\n" );
+		self->StatusRefreshTime = g_globalvars.time + 0.1;
 	}
+}
+
+void TeamFortress_Cmd_ScanFriendlyToggle(  )
+{
+	TeamFortress_ScannerSet( TF_SCAN_FRIENDLY );
+}
+
+void TeamFortress_Cmd_ScanFriendlyOn(  )
+{
+	TeamFortress_ScannerSet( TF_POST_SCANF_ON );
+}
+
+void TeamFortress_Cmd_ScanFriendlyOff(  )
+{
+	TeamFortress_ScannerSet( TF_POST_SCANF_OFF );
+}
+
+void TeamFortress_Cmd_ScanEnemyToggle(  )
+{
+	TeamFortress_ScannerSet( TF_SCAN_ENEMY );
+}
+
+void TeamFortress_Cmd_ScanEnemyOn(  )
+{
+	TeamFortress_ScannerSet( TF_POST_SCANE_ON );
+}
+
+void TeamFortress_Cmd_ScanEnemyOff(  )
+{
+	TeamFortress_ScannerSet( TF_POST_SCANE_OFF );
+}
+
+void TeamFortress_Cmd_AutoscanToggle(  )
+{
+	if ( self->playerclass == PC_SCOUT )
+		ScannerSwitch(  );
+}
+
+void TeamFortress_Cmd_AutoscanOn(  )
+{
+	TeamFortress_ScannerSet( TF_POST_AUTOSCAN_ON );
+}
+
+void TeamFortress_Cmd_AutoscanOff(  )
+{
+	TeamFortress_ScannerSet( TF_POST_AUTOSCAN_OFF );
 }
 
 qboolean TFScout_CheckScanTarget( gedict_t* ent )
@@ -754,5 +848,3 @@ void ApplySvConc( gedict_t* self )
     self->s.v.v_angle[PITCH] += conc_idle * sin(g_globalvars.time * v_ipitch_cycle) * CONC_MULTIPLAY;
     self->s.v.v_angle[YAW]   += conc_idle * sin(g_globalvars.time * v_iyaw_cycle) * CONC_MULTIPLAY;
 }
-
-

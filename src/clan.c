@@ -136,6 +136,12 @@ void PreMatch_Think(  )
         
         TF_T_Damage( self, world, world, self->s.v.health + 1, TF_TD_IGNOREARMOUR, 0 );
 
+        /* A protected player can survive the prematch reset. Restore the
+         * requested scout autoscan immediately when no respawn will follow. */
+        if ( !self->s.v.deadflag && self->s.v.health > 0
+             && self->playerclass == PC_SCOUT )
+            TeamFortress_RestoreScanner(  );
+
         self = oldself;
     }
 
