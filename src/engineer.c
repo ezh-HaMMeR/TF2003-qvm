@@ -912,6 +912,17 @@ static float Engineer_TransferResource( float *source, float *destination,
     return amount;
 }
 
+static float Engineer_TransferResourceAboveReserve( float *source, float *destination,
+        float amount, float destination_max, int source_reserve )
+{
+    if ( source_reserve < 0 )
+        source_reserve = 0;
+    if ( amount > *source - source_reserve )
+        amount = *source - source_reserve;
+
+    return Engineer_TransferResource( source, destination, amount, destination_max );
+}
+
 static qboolean Engineer_CanWithdrawDispenserCells( gedict_t *player )
 {
     return player->playerclass == PC_HVYWEAP
@@ -930,14 +941,19 @@ int Engineer_Dispenser_InsertAmmo( gedict_t *player, gedict_t *disp )
 {
     float moved = 0;
 
-    moved += Engineer_TransferResource( &player->s.v.ammo_shells,
-            &disp->s.v.ammo_shells, 40, BUILD_DISPENSER_MAX_SHELLS );
-    moved += Engineer_TransferResource( &player->s.v.ammo_nails,
-            &disp->s.v.ammo_nails, 40, BUILD_DISPENSER_MAX_NAILS );
-    moved += Engineer_TransferResource( &player->s.v.ammo_rockets,
-            &disp->s.v.ammo_rockets, 20, BUILD_DISPENSER_MAX_ROCKETS );
-    moved += Engineer_TransferResource( &player->s.v.ammo_cells,
-            &disp->s.v.ammo_cells, 20, BUILD_DISPENSER_MAX_CELLS );
+    /* Per-player reserves apply only while depositing ammo into a dispenser. */
+    moved += Engineer_TransferResourceAboveReserve( &player->s.v.ammo_shells,
+            &disp->s.v.ammo_shells, 40, BUILD_DISPENSER_MAX_SHELLS,
+            player->dispenser_min_shells );
+    moved += Engineer_TransferResourceAboveReserve( &player->s.v.ammo_nails,
+            &disp->s.v.ammo_nails, 40, BUILD_DISPENSER_MAX_NAILS,
+            player->dispenser_min_nails );
+    moved += Engineer_TransferResourceAboveReserve( &player->s.v.ammo_rockets,
+            &disp->s.v.ammo_rockets, 20, BUILD_DISPENSER_MAX_ROCKETS,
+            player->dispenser_min_rockets );
+    moved += Engineer_TransferResourceAboveReserve( &player->s.v.ammo_cells,
+            &disp->s.v.ammo_cells, 20, BUILD_DISPENSER_MAX_CELLS,
+            player->dispenser_min_cells );
     return moved > 0;
 }
 

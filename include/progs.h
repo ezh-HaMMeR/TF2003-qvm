@@ -343,6 +343,10 @@ typedef struct gedict_s {
 	int 		useprimetothrow;
 	int             newvote;
 	int             sg_autodestroy;
+	int             dispenser_min_shells;
+	int             dispenser_min_nails;
+	int             dispenser_min_rockets;
+	int             dispenser_min_cells;
 //player settings end
 	int             tf_id;
 	int             teamkills;

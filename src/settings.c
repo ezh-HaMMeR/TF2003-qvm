@@ -74,7 +74,11 @@ static const cl_settings_t cl_set[] = {
     {"ignoremapflaginfo",  NULL, "Ignore map defined flag info",        "",  CS_T_INT,  FOFS(ignoremapflaginfo), 0, },
     {"useprimetothrow",  NULL, "Trow grenade with prime alias",        "",  CS_T_INT,  FOFS(useprimetothrow), 0, },
     {"newvote",  NULL, "Visual vote panel",        "",  CS_T_INT,  FOFS(newvote), 0, },
-    {"sg_autodestroy",  NULL, "Automatic sentry replacement",        "",  CS_T_INT,  FOFS(sg_autodestroy), 0, }
+    {"sg_autodestroy",  NULL, "Automatic sentry replacement",        "",  CS_T_INT,  FOFS(sg_autodestroy), 0, },
+    {"mns",  NULL, "Shells reserved from dispenser loading",        "",  CS_T_INT,  FOFS(dispenser_min_shells), 0, },
+    {"mnn",  NULL, "Nails reserved from dispenser loading",        "",  CS_T_INT,  FOFS(dispenser_min_nails), 0, },
+    {"mnr",  NULL, "Rockets reserved from dispenser loading",        "",  CS_T_INT,  FOFS(dispenser_min_rockets), 0, },
+    {"mnc",  NULL, "Cells reserved from dispenser loading",        "",  CS_T_INT,  FOFS(dispenser_min_cells), 0, }
 };
 
 #define CL_SET_NUM sizeof(cl_set) / sizeof(cl_set[0])
@@ -209,6 +213,10 @@ void ParseUserInfo() {
   self->useprimetothrow = 0;
   self->newvote = 0;
   self->sg_autodestroy = 0;
+  self->dispenser_min_shells = 0;
+  self->dispenser_min_nails = 0;
+  self->dispenser_min_rockets = 0;
+  self->dispenser_min_cells = 0;
   for (i = 0; i < CL_SET_NUM; i++) {
     if (GetInfokeyString(self, cl_set[i].key, cl_set[i].key2, value, sizeof(value), NULL))
       SetClientSetting(self, cl_set[i].key, value);
