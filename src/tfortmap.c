@@ -1592,11 +1592,14 @@ static int ResupplyGrenadeCapacity( int grenade_type )
 	return 4;
 }
 
-static qboolean IsSimplePlayerResupplyPack( gedict_t *goal )
+static qboolean IsSimplePlayerResupplyPickup( gedict_t *goal )
 {
 	int other_players;
 
-	if ( !streq( goal->mdl, "progs/backpack.mdl" ) )
+	/* Respawn red armor may be represented as an info_tfgoal so it can refill
+	 * several resources. Apply the same no-waste guard to both pickup models. */
+	if ( !streq( goal->mdl, "progs/backpack.mdl" )
+	     && !streq( goal->mdl, "progs/armor.mdl" ) )
 		return false;
 
 	/* A team/radius goal may still benefit somebody when the toucher is full. */
@@ -1681,7 +1684,7 @@ void tfgoal_touch(  )
 		return;
 	if ( self->goal_state == TFGS_ACTIVE )
 		return;
-	if ( IsSimplePlayerResupplyPack( self ) && !PlayerCanGainResupplyPack( other, self ) )
+	if ( IsSimplePlayerResupplyPickup( self ) && !PlayerCanGainResupplyPack( other, self ) )
 		return;
 	if ( CTF_Map == 1 )
 	{
