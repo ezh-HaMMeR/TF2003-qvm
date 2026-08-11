@@ -290,10 +290,44 @@ void EMPGrenadeExplode(  )
 
 //=========================================================================
 // Function handling the Engineer's build impulse
-void TeamFortress_EngineerBuild(  )
+static gedict_t *Engineer_FindBuildTimer( gedict_t *builder )
 {
     gedict_t *te;
 
+    for ( te = world; ( te = trap_find( te, FOFS( s.v.netname ), "build_timer" ) ); )
+    {
+        if ( !te->is_removed && te->s.v.owner == EDICT_TO_PROG( builder ) )
+            return te;
+    }
+    return world;
+}
+
+static qboolean Engineer_CancelBuilding( int required_type )
+{
+    gedict_t *timer;
+
+    if ( !self->is_building )
+        return false;
+
+    timer = Engineer_FindBuildTimer( self );
+    if ( required_type && ( timer == world || timer->s.v.weapon != required_type ) )
+        return false;
+
+    G_sprint( self, 2, "You stop building.\n" );
+    self->s.v.tfstate &= ~TFSTATE_CANT_MOVE;
+    TeamFortress_SetSpeed( self );
+    if ( timer != world )
+        dremove( timer );
+    self->is_building = 0;
+    self->current_weapon = self->s.v.weapon;
+    self->s.v.currentclip = GetClipSize( self );
+    self->StatusRefreshTime = g_globalvars.time + 0.1;
+    W_SetCurrentAmmo(  );
+    return true;
+}
+
+void TeamFortress_EngineerBuild(  )
+{
     /*    if ( !( ( int ) self->s.v.flags & FL_ONGROUND ) )
           {
           CenterPrint( self, "You can't build in the air!\n\n" );
@@ -314,25 +348,7 @@ void TeamFortress_EngineerBuild(  )
         self->menu_count = MENU_REFRESH_RATE;
     } else
     {
-        //	if ( self->is_building == 1 )
-        //	{
-        G_sprint( self, 2, "You stop building.\n" );
-        self->s.v.tfstate = self->s.v.tfstate - ( self->s.v.tfstate & TFSTATE_CANT_MOVE );
-        TeamFortress_SetSpeed( self );
-        // Remove the timer
-        for ( te = world; (te = trap_find( te, FOFS( s.v.netname ), "build_timer" )); )
-        {
-            if ( te->s.v.owner == EDICT_TO_PROG( self ) )
-            {
-                dremove( te );
-                break;
-            }
-        }
-        self->is_building = 0;
-        self->current_weapon = self->s.v.weapon;
-        self->s.v.currentclip = GetClipSize(self);
-        W_SetCurrentAmmo(  );
-        //	}
+        Engineer_CancelBuilding( 0 );
     }
 }
 
@@ -592,6 +608,15 @@ static void Engineer_BuildSentryDirect( qboolean point_view )
 {
     if ( !tfset(tg_enabled) && self->playerclass != PC_ENGINEER )
         return;
+    if ( self->is_detpacking || self->is_feigning )
+        return;
+    /* Both direct sentry commands act as their own cancel key while a sentry
+     * timer is active. The build cost is still charged only on completion. */
+    if ( self->is_building )
+    {
+        Engineer_CancelBuilding( BUILD_SENTRYGUN );
+        return;
+    }
     if ( tf_data.cease_fire )
         return;
 
