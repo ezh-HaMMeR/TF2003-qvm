@@ -771,6 +771,158 @@ static int ClampTeammateStatusValue( float value )
 	return ( int ) value;
 }
 
+static int TeammateStatusActiveWeapon( gedict_t *player )
+{
+	if ( player->s.v.health <= 0 )
+		return 0;
+
+	return player->current_weapon;
+}
+
+static const char *TeammateStatusWeaponCode( int weapon )
+{
+	switch ( weapon )
+	{
+	case WEAP_BIOWEAPON:
+	case WEAP_MEDIKIT:
+	case WEAP_SPANNER:
+	case WEAP_AXE:
+		return "axe";
+	case WEAP_SNIPER_RIFLE:
+		return "sr";
+	case WEAP_AUTO_RIFLE:
+		return "ar";
+	case WEAP_SHOTGUN:
+		return "sg";
+	case WEAP_SUPER_SHOTGUN:
+		return "ssg";
+	case WEAP_NAILGUN:
+		return "ng";
+	case WEAP_SUPER_NAILGUN:
+		return "sng";
+	case WEAP_GRENADE_LAUNCHER:
+		return "gl";
+	case WEAP_FLAMETHROWER:
+		return "ft";
+	case WEAP_ROCKET_LAUNCHER:
+	case WEAP_INCENDIARY:
+		return "rl";
+	case WEAP_ASSAULT_CANNON:
+		return "mg";
+	case WEAP_LIGHTNING:
+		return "lg";
+	case WEAP_TRANQ:
+		return "tg";
+	case WEAP_LASER:
+		return "rg";
+	default:
+		return "-";
+	}
+}
+
+static const char *TeammateStatusAmmoCode( int weapon )
+{
+	switch ( weapon )
+	{
+	case WEAP_BIOWEAPON:
+	case WEAP_MEDIKIT:
+		return "medikit";
+	case WEAP_SPANNER:
+	case WEAP_FLAMETHROWER:
+	case WEAP_LIGHTNING:
+		return "cells";
+	case WEAP_SNIPER_RIFLE:
+	case WEAP_AUTO_RIFLE:
+	case WEAP_SHOTGUN:
+	case WEAP_SUPER_SHOTGUN:
+	case WEAP_ASSAULT_CANNON:
+	case WEAP_TRANQ:
+		return "shells";
+	case WEAP_NAILGUN:
+	case WEAP_SUPER_NAILGUN:
+	case WEAP_LASER:
+		return "nails";
+	case WEAP_GRENADE_LAUNCHER:
+	case WEAP_ROCKET_LAUNCHER:
+	case WEAP_INCENDIARY:
+		return "rockets";
+	case WEAP_DETPACK:
+		return "detpack";
+	default:
+		return "none";
+	}
+}
+
+static int TeammateStatusActiveAmmo( gedict_t *player, int weapon )
+{
+	switch ( weapon )
+	{
+	case WEAP_BIOWEAPON:
+	case WEAP_MEDIKIT:
+		return ClampTeammateStatusValue( player->ammo_medikit );
+	case WEAP_SPANNER:
+	case WEAP_FLAMETHROWER:
+	case WEAP_LIGHTNING:
+		return ClampTeammateStatusValue( player->s.v.ammo_cells );
+	case WEAP_SNIPER_RIFLE:
+	case WEAP_AUTO_RIFLE:
+	case WEAP_SHOTGUN:
+	case WEAP_SUPER_SHOTGUN:
+	case WEAP_ASSAULT_CANNON:
+	case WEAP_TRANQ:
+		return ClampTeammateStatusValue( player->s.v.ammo_shells );
+	case WEAP_NAILGUN:
+	case WEAP_SUPER_NAILGUN:
+	case WEAP_LASER:
+		return ClampTeammateStatusValue( player->s.v.ammo_nails );
+	case WEAP_GRENADE_LAUNCHER:
+	case WEAP_ROCKET_LAUNCHER:
+	case WEAP_INCENDIARY:
+		return ClampTeammateStatusValue( player->s.v.ammo_rockets );
+	case WEAP_DETPACK:
+		return ClampTeammateStatusValue( player->ammo_detpack );
+	default:
+		return 0;
+	}
+}
+
+static int TeammateStatusGrenadeType( float type )
+{
+	if ( type < GR_TYPE_NORMAL || type > GR_TYPE_CALTROPS )
+		return GR_TYPE_NONE;
+
+	return ( int ) type;
+}
+
+static const char *TeammateStatusGrenadeCode( int type )
+{
+	switch ( type )
+	{
+	case GR_TYPE_NORMAL:
+		return "Norm";
+	case GR_TYPE_CONCUSSION:
+		return "Conc";
+	case GR_TYPE_NAIL:
+		return "Nail";
+	case GR_TYPE_MIRV:
+		return "Mirv";
+	case GR_TYPE_NAPALM:
+		return "Napalm";
+	case GR_TYPE_FLARE:
+		return "Flare";
+	case GR_TYPE_GAS:
+		return "Gas";
+	case GR_TYPE_EMP:
+		return "Emp";
+	case GR_TYPE_FLASH:
+		return "Flash";
+	case GR_TYPE_CALTROPS:
+		return "Flash";
+	default:
+		return "-";
+	}
+}
+
 void ResetTeammateStatusUpdates(  )
 {
 	next_teammate_status_update = 0;
@@ -781,6 +933,9 @@ void FlushTeammateStatusUpdates(  )
 	gedict_t *recipient;
 	gedict_t *source;
 	int source_slot;
+	int active_weapon;
+	int gren1_type;
+	int gren2_type;
 
 	/* Team status uses reliable stufftext, so update it centrally at most once
 	 * per second instead of multiplying it through every PlayerPreThink. */
@@ -805,8 +960,15 @@ void FlushTeammateStatusUpdates(  )
 
 			/* Client edicts occupy slots 1..MAX_CLIENTS; //tinfo is zero-based. */
 			source_slot = NUM_FOR_EDICT( source ) - 1;
+			active_weapon = TeammateStatusActiveWeapon( source );
+			gren1_type = TeammateStatusGrenadeType( source->s.v.tpgren1 );
+			gren2_type = TeammateStatusGrenadeType( source->s.v.tpgren2 );
+
+			/* Keep the original 12 ezQuake fields intact. TF2003-specific fields
+			 * are fixed, injection-safe tokens appended for newer clients. */
 			stuffcmd( recipient,
-				"//tinfo %d %d %d %d %d %d %d \"\" %d %d %d %d\n",
+				"//tinfo %d %d %d %d %d %d %d \"\" %d %d %d %d "
+				"%d %s %s %d %d %d %d %s %d %d %s %d\n",
 				source_slot,
 				( int ) source->s.v.origin[0],
 				( int ) source->s.v.origin[1],
@@ -817,7 +979,19 @@ void FlushTeammateStatusUpdates(  )
 				ClampTeammateStatusValue( source->s.v.ammo_shells ),
 				ClampTeammateStatusValue( source->s.v.ammo_nails ),
 				ClampTeammateStatusValue( source->s.v.ammo_rockets ),
-				ClampTeammateStatusValue( source->s.v.ammo_cells ) );
+				ClampTeammateStatusValue( source->s.v.ammo_cells ),
+				active_weapon,
+				TeammateStatusWeaponCode( active_weapon ),
+				TeammateStatusAmmoCode( active_weapon ),
+				TeammateStatusActiveAmmo( source, active_weapon ),
+				ClampTeammateStatusValue( source->ammo_medikit ),
+				ClampTeammateStatusValue( source->ammo_detpack ),
+				gren1_type,
+				TeammateStatusGrenadeCode( gren1_type ),
+				ClampTeammateStatusValue( source->s.v.numgren1 ),
+				gren2_type,
+				TeammateStatusGrenadeCode( gren2_type ),
+				ClampTeammateStatusValue( source->s.v.numgren2 ) );
 		}
 	}
 }
