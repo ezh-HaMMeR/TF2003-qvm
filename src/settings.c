@@ -75,10 +75,10 @@ static const cl_settings_t cl_set[] = {
     {"useprimetothrow",  NULL, "Trow grenade with prime alias",        "",  CS_T_INT,  FOFS(useprimetothrow), 0, },
     {"newvote",  NULL, "Visual vote panel",        "",  CS_T_INT,  FOFS(newvote), 0, },
     {"sg_autodestroy",  NULL, "Automatic sentry replacement",        "",  CS_T_INT,  FOFS(sg_autodestroy), 0, },
-    {"mns",  NULL, "Shells reserved from dispenser loading",        "",  CS_T_INT,  FOFS(dispenser_min_shells), 0, },
-    {"mnn",  NULL, "Nails reserved from dispenser loading",        "",  CS_T_INT,  FOFS(dispenser_min_nails), 0, },
-    {"mnr",  NULL, "Rockets reserved from dispenser loading",        "",  CS_T_INT,  FOFS(dispenser_min_rockets), 0, },
-    {"mnc",  NULL, "Cells reserved from dispenser loading",        "",  CS_T_INT,  FOFS(dispenser_min_cells), 0, }
+    {"mns",  NULL, "Shells reserved from building loading",        "",  CS_T_INT,  FOFS(dispenser_min_shells), 0, },
+    {"mnn",  NULL, "Nails reserved from building loading",        "",  CS_T_INT,  FOFS(dispenser_min_nails), 0, },
+    {"mnr",  "mnrs", "Rockets reserved from building loading",        "",  CS_T_INT,  FOFS(dispenser_min_rockets), 0, },
+    {"mnc",  NULL, "Cells reserved from building loading",        "",  CS_T_INT,  FOFS(dispenser_min_cells), 0, }
 };
 
 #define CL_SET_NUM sizeof(cl_set) / sizeof(cl_set[0])

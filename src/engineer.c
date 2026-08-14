@@ -1174,6 +1174,8 @@ int Engineer_SentryGun_Repair( gedict_t* gun )
 int Engineer_SentryGun_InsertAmmo( gedict_t* gun )
 {
     int am = 20 * 2;
+    int loaded = 0;
+    int reserve;
     if( !tfset(tg_enabled)  && (self->playerclass != PC_ENGINEER ))
         return 0;
     if (!( (gun->s.v.ammo_shells < gun->maxammo_shells 
@@ -1182,28 +1184,46 @@ int Engineer_SentryGun_InsertAmmo( gedict_t* gun )
                     && gun->s.v.ammo_rockets < gun->maxammo_rockets
                     && self->s.v.ammo_rockets > 0))) 
         return 0;
-    if ( am > self->s.v.ammo_shells )
+
+    reserve = self->dispenser_min_shells;
+    if ( reserve < 0 )
+        reserve = 0;
+    if ( !tg_data.unlimit_ammo && am > self->s.v.ammo_shells - reserve )
+        am = self->s.v.ammo_shells - reserve;
+    else if ( tg_data.unlimit_ammo && am > self->s.v.ammo_shells )
         am = self->s.v.ammo_shells;
     if ( am > gun->maxammo_shells - gun->s.v.ammo_shells )
         am = gun->maxammo_shells - gun->s.v.ammo_shells;
 
-    if ( !tg_data.unlimit_ammo )
-        self->s.v.ammo_shells = self->s.v.ammo_shells - am;
-
-    gun->s.v.ammo_shells = gun->s.v.ammo_shells + am;
+    if ( am > 0 )
+    {
+        if ( !tg_data.unlimit_ammo )
+            self->s.v.ammo_shells = self->s.v.ammo_shells - am;
+        gun->s.v.ammo_shells = gun->s.v.ammo_shells + am;
+        loaded = 1;
+    }
     if ( (int)gun->s.v.weapon == 3 )
     {
         am = 10 * 2;
-        if ( am > self->s.v.ammo_rockets )
+        reserve = self->dispenser_min_rockets;
+        if ( reserve < 0 )
+            reserve = 0;
+        if ( !tg_data.unlimit_ammo && am > self->s.v.ammo_rockets - reserve )
+            am = self->s.v.ammo_rockets - reserve;
+        else if ( tg_data.unlimit_ammo && am > self->s.v.ammo_rockets )
             am = self->s.v.ammo_rockets;
         if ( am > gun->maxammo_rockets - gun->s.v.ammo_rockets )
             am = gun->maxammo_rockets - gun->s.v.ammo_rockets;
 
-        if ( !tg_data.unlimit_ammo )
-            self->s.v.ammo_rockets = self->s.v.ammo_rockets - am;
-        gun->s.v.ammo_rockets = gun->s.v.ammo_rockets + am;
+        if ( am > 0 )
+        {
+            if ( !tg_data.unlimit_ammo )
+                self->s.v.ammo_rockets = self->s.v.ammo_rockets - am;
+            gun->s.v.ammo_rockets = gun->s.v.ammo_rockets + am;
+            loaded = 1;
+        }
     }
-    return 1;
+    return loaded;
 }
 
 int Engineer_SentryGun_Dismantle( gedict_t* gun )
