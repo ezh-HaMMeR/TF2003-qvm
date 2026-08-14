@@ -298,6 +298,9 @@ void G_InitGame( int levelTime, int randomSeed )
 #endif
     //G_InitMemory();
     memset( g_edicts, 0, sizeof( gedict_t ) * MAX_EDICTS );
+    /* QVM static data survives map changes, so an old vote must be reset
+     * explicitly before clients enter the new level. */
+    Vote_ResetState();
 
 
     world->s.v.model = worldmodel;

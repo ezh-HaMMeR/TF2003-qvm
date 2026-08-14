@@ -365,6 +365,7 @@ typedef struct gedict_s {
 	float		lasttime;
 
 	int	 	k_voted;
+	int             vote_menu_closed;
 	float		last_vote_time;
 
 //BotFields

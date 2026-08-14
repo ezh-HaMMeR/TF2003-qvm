@@ -33,5 +33,8 @@ extern const vote_t votes[];
 extern int current_vote;
 
 void Vote_Cmd( void );
+void Vote_ResetState( void );
+void Vote_ResetClientState( void );
+void Vote_EnsureActiveMenu( void );
 void Vote_Menu_Active( menunum_t menu );
 void Vote_Menu_Active_Input( int inp );

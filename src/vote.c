@@ -50,6 +50,14 @@ static float vote_end_time;
 
 void NextLevel( void );
 
+static qboolean Vote_IsMenuPlayer( gedict_t *player )
+{
+    return player && player != world
+        && !player->is_removed && !player->has_disconnected
+        && !player->isSpectator && !player->isBot
+        && streq( player->s.v.classname, "player" );
+}
+
 static void Vote_SanitizeText( const char *source, char *dest, int dest_size )
 {
     int i;
@@ -116,15 +124,20 @@ static int Vote_RequiredVotes( void )
 static void Vote_CloseMenus( void )
 {
     gedict_t *player;
+    int client_no;
 
-    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
     {
+        player = &g_edicts[client_no];
+        player->vote_menu_closed = 0;
         if ( player->current_menu != VOTE_MENU_ACTIVE )
             continue;
 
-        if ( !player->StatusBarSize )
+        /* Clear immediately: successful map votes change level before a
+         * deferred StatusBar refresh gets a chance to run. */
+        if ( Vote_IsMenuPlayer( player ) )
             CenterPrint( player, "\n" );
-        else
+        if ( player->StatusBarSize )
             player->StatusRefreshTime = g_globalvars.time + 0.1;
         player->menu_count = MENU_REFRESH_RATE;
         player->current_menu = MENU_DEFAULT;
@@ -134,26 +147,71 @@ static void Vote_CloseMenus( void )
 static void Vote_OpenActiveMenus( void )
 {
     gedict_t *player;
+    int client_no;
 
-    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
     {
-        if ( !player->newvote || player->isBot )
+        player = &g_edicts[client_no];
+        player->vote_menu_closed = 0;
+        if ( !Vote_IsMenuPlayer( player ) || !player->newvote )
             continue;
         player->current_menu = VOTE_MENU_ACTIVE;
-        player->menu_count = MENU_REFRESH_RATE;
+        player->menu_count = MENU_REFRESH_RATE + 1;
+        player->menu_displaytime = 0;
     }
+}
+
+void Vote_EnsureActiveMenu( void )
+{
+    if ( current_vote < 0 || !Vote_IsMenuPlayer( self )
+         || !self->newvote || self->vote_menu_closed )
+        return;
+
+    if ( self->current_menu != VOTE_MENU_ACTIVE )
+    {
+        self->current_menu = VOTE_MENU_ACTIVE;
+        self->menu_count = MENU_REFRESH_RATE + 1;
+        self->menu_displaytime = 0;
+    }
+}
+
+void Vote_ResetState( void )
+{
+    k_vote = 0;
+    current_vote = -1;
+    elect_percentage = 0;
+    elect_level = 0;
+    elect_player = world;
+    vote_timelimit = 0;
+    vote_mapname[0] = 0;
+    vote_kick_userid = -1;
+    vote_kick_name[0] = 0;
+    vote_initiator[0] = 0;
+    vote_description[0] = 0;
+    vote_end_time = 0;
+}
+
+void Vote_ResetClientState( void )
+{
+    self->vote_menu_closed = 0;
+    /* Clear any client-side centerprint retained across a level change. */
+    trap_CenterPrint( NUM_FOR_EDICT( self ), "\n" );
 }
 
 void _clearVote( void )
 {
     gedict_t *player;
     gedict_t *guard;
+    int client_no;
 
     k_vote = 0;
     current_vote = -1;
     vote_end_time = 0;
-    for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
+    for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
+    {
+        player = &g_edicts[client_no];
         player->k_voted = 0;
+    }
 
     Vote_CloseMenus();
 
@@ -627,6 +685,11 @@ void Vote_Menu_Active( menunum_t menu )
         "Votes: %s/%s\n"
         "Time left: %s sec\n",
         vote_initiator, colored_description, current_votes, required_votes, time_left );
+
+    /* The regular centerprint StatusBar must not overwrite the vote panel
+     * while the vote is still active. */
+    if ( self->StatusBarSize )
+        self->StatusRefreshTime = vote_end_time + 0.1;
 }
 
 void Vote_Menu_Active_Input( int inp )
@@ -636,5 +699,9 @@ void Vote_Menu_Active_Input( int inp )
     else if ( inp == 2 )
         Vote_CastNo();
     else if ( inp == 10 )
+    {
+        self->vote_menu_closed = 1;
+        CenterPrint( self, "\n" );
         ResetMenu();
+    }
 }

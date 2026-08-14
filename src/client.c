@@ -1721,6 +1721,7 @@ void ClientConnect()
     if ( !self->s.v.netname[0] )
         KickCheater( self );
     ParseUserInfo();
+    Vote_ResetClientState();
     stuffcmd( self, "tf_onconnect\n");
     TeamFortress_ExecMapScript( self );
     self->has_disconnected = 0;

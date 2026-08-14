@@ -118,6 +118,9 @@ int     NUM_menus = sizeof( menus ) / sizeof( menus[0] );
 
 void Player_Menu(  )
 {
+	/* Restore an active vote panel if a join/class menu temporarily replaced
+	 * it.  A player who selected Close is left alone until the next vote. */
+	Vote_EnsureActiveMenu();
 
 	if ( self->menu_count > MENU_REFRESH_RATE )
 		self->menu_count = 0;
