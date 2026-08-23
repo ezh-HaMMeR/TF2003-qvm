@@ -24,6 +24,28 @@
 
 extern int last_id;
 void MatchTimer( qboolean force );
+
+static void BroadcastAttackDefendTeamAssignments( void )
+{
+    gedict_t *player;
+    int client_no;
+
+    for ( client_no = 1; client_no <= MAX_CLIENTS; client_no++ )
+    {
+        player = &g_edicts[client_no];
+        if ( player->is_removed || player->has_disconnected
+             || player->isSpectator
+             || strneq( player->s.v.classname, "player" )
+             || !player->s.v.netname[0] || player->team_no <= 0 )
+            continue;
+
+        /* A normal broadcast is visible to every client, including free
+         * spectators, and is also recorded once in the server demo. */
+        G_bprint( PRINT_HIGH, "%s has joined Team No %d.\n",
+                  player->s.v.netname, player->team_no );
+    }
+}
+
 void PreMatch_Think(  )
 {
     int     time_left;
@@ -88,6 +110,8 @@ void PreMatch_Think(  )
     }
 
     G_bprint( 2, "MATCH BEGINS NOW\n" );
+    if ( tfset(admode) )
+        BroadcastAttackDefendTeamAssignments();
     MatchTimer( true );
     if ( tfset(game_locked) )
         G_bprint( 2, "GAME IS NOW LOCKED\n" );
