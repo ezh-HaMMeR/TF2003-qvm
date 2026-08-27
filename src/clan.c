@@ -144,6 +144,7 @@ void PreMatch_Think(  )
         self->real_frags = 0;
 #if TF2003_DAMAGE_STATS_ENABLED
         self->damage = 0;
+        self->sentry_damage = 0;
 #endif
         self->touches = 0;
         self->caps = 0;

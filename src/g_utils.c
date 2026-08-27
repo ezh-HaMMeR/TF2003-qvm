@@ -1004,6 +1004,7 @@ void SendDamageStatUpdate( gedict_t *player )
 		return;
 
 	sendtfinfo_broadcast( player, TFINFO_DAMAGE, player->damage );
+	sendtfinfo_broadcast( player, TFINFO_SENTRY_DAMAGE, player->sentry_damage );
 	player->damage_update_pending = 0;
 }
 
@@ -1050,6 +1051,7 @@ void sendinittfinfo(gedict_t* ply) {
 		sendtfinfo_single(te, ply, TFINFO_CAPS, te->caps);
 #if TF2003_DAMAGE_STATS_ENABLED
 		sendtfinfo_single(te, ply, TFINFO_DAMAGE, te->damage);
+		sendtfinfo_single(te, ply, TFINFO_SENTRY_DAMAGE, te->sentry_damage);
 #endif
   	}
 }

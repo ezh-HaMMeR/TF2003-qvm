@@ -1771,6 +1771,7 @@ void ClientConnect()
                     self->s.v.tfstate = te->s.v.tfstate;
 #if TF2003_DAMAGE_STATS_ENABLED
                     self->damage = te->damage;
+                    self->sentry_damage = te->sentry_damage;
 #endif
                     self->touches = te->touches;
                     self->caps = te->caps;
@@ -1879,6 +1880,7 @@ void ClientDisconnect()
         te->playerclass = self->playerclass;
 #if TF2003_DAMAGE_STATS_ENABLED
         te->damage = self->damage;
+        te->sentry_damage = self->sentry_damage;
 #endif
         te->touches = self->touches;
         te->caps = self->caps;

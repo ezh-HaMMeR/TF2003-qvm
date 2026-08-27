@@ -362,6 +362,8 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 	int     attacker_is_player;
 	int     allowed_damage_class;
 	int     team_damage;
+	gedict_t *sentry = world;
+	gedict_t *sentry_owner = world;
 
 	if ( !targ->s.v.takedamage )
 		return;
@@ -383,6 +385,13 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 	if ( tf_data.cease_fire )
 		return;
 	attacker_is_player = streq( attacker->s.v.classname, "player" );
+	if ( streq( attacker->s.v.classname, "building_sentrygun" ) )
+		sentry = attacker;
+	else if ( streq( inflictor->s.v.classname, "building_sentrygun" ) )
+		sentry = inflictor;
+	if ( sentry != world && sentry->real_owner && sentry->real_owner != world
+	     && streq( sentry->real_owner->s.v.classname, "player" ) )
+		sentry_owner = sentry->real_owner;
 	no_damage = 0;
 	if (tf_data.cb_prematch_time > g_globalvars.time && tfset(prematch_godmode) && target_is_player) {
 		sound(targ, CHAN_ITEM, "items/protect3.wav", 1, ATTN_NORM);
@@ -598,6 +607,19 @@ void TF_T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker,
 	{
 		targ->s.v.health = targ->s.v.health - take;
 	}
+
+#if TF2003_DAMAGE_STATS_ENABLED
+	if ( sentry_owner != world && !no_damage && targ->team_no != sentry_owner->team_no
+	     && ( target_is_player
+	          || streq( targ->s.v.classname, "building_sentrygun" )
+	          || streq( targ->s.v.classname, "building_dispenser" )
+	          || streq( targ->s.v.classname, "building_teleporter_entrance" )
+	          || streq( targ->s.v.classname, "building_teleporter_exit" ) ) )
+	{
+		sentry_owner->sentry_damage += damage;
+		sentry_owner->damage_update_pending = 1;
+	}
+#endif
 
     if ( allowed_damage_class )
 	{

@@ -242,3 +242,4 @@ void TeamFortress_PrepareForArenaRespawn(  );
 #define TFINFO_TOUCHES 		2
 #define TFINFO_CAPS 		3
 #define TFINFO_DAMAGE 		4
+#define TFINFO_SENTRY_DAMAGE 	5

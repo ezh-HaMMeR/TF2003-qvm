@@ -142,7 +142,7 @@ typedef struct gedict_s {
 	void            ( *th_pain ) ( struct gedict_s *, float );
 
 ///team fortess
-	int damage, touches, caps;
+	int damage, sentry_damage, touches, caps;
 	int damage_update_pending; /* Used when TF2003_DAMAGE_STATS_ENABLED is 1. */
 	int team_no, playerclass;
 	int 		ready;
