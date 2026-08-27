@@ -583,6 +583,13 @@ void Vote_Cmd( void )
             Vote_CastNo();
             return;
         }
+        if ( !strcmp( cmd_command, "close" ) )
+        {
+            self->vote_menu_closed = 1;
+            CenterPrint( self, "\n" );
+            ResetMenu();
+            return;
+        }
         G_sprint( self, 3, "Vote %s in progress\n", votes[current_vote].command );
         return;
     }
