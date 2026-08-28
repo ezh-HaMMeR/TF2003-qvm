@@ -426,7 +426,8 @@ void execute_changelevel()
     //}
     DumpClanScores();
 
-    StopDemoRecord();
+    // Keep recording through the intermission so the final team scoreboard is
+    // present in the MVD. GotoNextMap() stops recording before the map changes.
 }
 
 void changelevel_touch()
