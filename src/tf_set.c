@@ -577,6 +577,14 @@ void   TF_FinalizeSettings( )
         trap_cvar_set_float( "timelimit", timelimit / 60 );
     }
 
+    /* Publish absolute server-time deadlines for ezquake-tf clocks.  These
+     * are ordinary serverinfo keys, so clients that do not know them simply
+     * ignore them.  Milliseconds avoid rounding a short prematch or round. */
+    localcmd( "serverinfo tf_pmend \"%d\"\n",
+              (int)( tf_data.cb_prematch_time * 1000.0 + 0.5 ) );
+    localcmd( "serverinfo tf_matchend \"%d\"\n",
+              timelimit > 0 ? timelimit * 1000 : 0 );
+
     if( tfset_autoteam_time > 0 )
     {
         tfset_toggleflags |= TFLAG_AUTOTEAM;

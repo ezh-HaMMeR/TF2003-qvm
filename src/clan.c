@@ -360,6 +360,11 @@ void MatchTimer( qboolean force )
         return;
     }
     lasttime = g_globalvars.time;
+
+    /* Keep the advertised match deadline current if timelimit is changed
+     * while the map is running. */
+    localcmd( "serverinfo tf_matchend \"%d\"\n",
+              timelimit > 0 ? timelimit * 1000 : 0 );
     if ( tf_data.cb_prematch_time > g_globalvars.time )
     {//prematch
         localcmd("serverinfo status Countdown\n" );      
