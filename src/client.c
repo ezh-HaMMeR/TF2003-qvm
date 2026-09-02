@@ -1072,19 +1072,24 @@ void NextLevel()
 
 void CheckRules()
 {
-    
-    if ( timelimit && g_globalvars.time >= timelimit ) {
+    if ( tfset(admode) && timelimit_ad
+         && g_globalvars.time >= timelimit_ad ) {
+        MatchTimerStopRound();
+        if ( ad_roundnum == 0 )
+            AttackDefendSecondRound();
+        else
+            NextLevel();
+        return;
+    }
+
+    if ( !tfset(admode) && timelimit
+         && g_globalvars.time >= timelimit ) {
         NextLevel();
         return;
     }
 
     if ( fraglimit && self->s.v.frags >= fraglimit )
         NextLevel();
-    
-    if (timelimit_ad && g_globalvars.time >= timelimit_ad) {
-       timelimit_ad = 0;
-       AttackDefendSecondRound();
-    }
 }
 
 //============================================================================

@@ -312,6 +312,7 @@ void G_InitGame( int levelTime, int randomSeed )
     //TF Intialization
     memset( &tf_data, 0, sizeof(tf_data));
     memset( &tg_data, 0, sizeof(tg_data));
+    MatchTimerReset();
     localcmd("serverinfo status Standby\n");
     //test
     /*        num = trap_FS_GetFileList( "SKINS" , ".pcx" , dirlist, sizeof(dirlist));

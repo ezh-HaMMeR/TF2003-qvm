@@ -77,7 +77,16 @@ extern globalvars_t g_globalvars;
 extern gedict_t *world;
 extern gedict_t *self, *other;
 extern gedict_t *newmis;
-extern int      timelimit, timelimit_ad, ad_roundnum, fraglimit, teamplay, deathmatch, framecount, coop, api_ver;
+extern float    timelimit, timelimit_ad;
+extern int      ad_roundnum, fraglimit, teamplay, deathmatch, framecount, coop, api_ver;
+
+void            MatchTimerReset( void );
+void            MatchTimerStartRound( void );
+void            MatchTimerStopRound( void );
+void            MatchTimerSyncCvars( void );
+void            MatchTimerPublishDeadlines( void );
+float           MatchTimerRoundMinutes( void );
+void            AttackDefendSecondRound( void );
 
 #define	EDICT_TO_PROG(e) ((byte *)(e) - (byte *)g_edicts)
 #define PROG_TO_EDICT(e) ((gedict_t *)((byte *)g_edicts + (e)))
@@ -279,6 +288,7 @@ qboolean 	GetSVInfokeyString( const char*key, const char* key2, char*value, int 
 int		    GetSVInfokeyInt   ( const char*key, const char* key2, int defalutval);
 float 		GetSVInfokeyFloat ( const char*key, const char* key2, float defalutval);
 qboolean    GetSVInfokeyBool  ( const char*key, const char *key2, qboolean defaultval);
+qboolean    ParseDurationValue( const char *value, float plain_unit_seconds, float *seconds );
 
 qboolean 	GetInfokeyString( gedict_t*pl, const char*key, const char* key2, char*value, int size, const char*defaultval);
 int		    GetInfokeyInt   ( gedict_t*pl, const char*key, const char* key2, int defalutval);

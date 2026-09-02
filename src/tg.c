@@ -28,6 +28,7 @@ void Detpack_SetClip();
 
 void TG_LoadSettings() {
   char st[10];
+  float seconds;
 
   tg_data.sg_disable_fire = !GetSVInfokeyBool("tg_sg_fire", NULL, true);
 
@@ -61,7 +62,13 @@ void TG_LoadSettings() {
   else
     tg_data.gren_effect = TG_GREN_EFFECT_ON;
 
-  tg_data.gren_time = GetSVInfokeyInt("tg_gren_time", NULL, 0);
+  GetSVInfokeyString("tg_gren_time", NULL, st, sizeof(st), "0");
+  if (ParseDurationValue(st, 1, &seconds))
+    tg_data.gren_time = (int)(seconds + 0.5);
+  else {
+    G_conprintf("Invalid tg_gren_time value '%s'; expected a number or mm:ss\n", st);
+    tg_data.gren_time = 0;
+  }
   tg_data.godmode = GetSVInfokeyBool("tg_god", NULL, false);
   tg_data.disable_reload = GetSVInfokeyBool("tg_disable_reload", NULL, false);
   tg_data.unlimit_ammo = GetSVInfokeyBool("tg_unl_ammo", NULL, false);

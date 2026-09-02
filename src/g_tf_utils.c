@@ -22,6 +22,48 @@
  */
 #include "g_local.h"
 
+qboolean ParseDurationValue( const char *value, float plain_unit_seconds, float *seconds )
+{
+	const char *colon;
+	const char *p;
+	float minutes;
+	int second_part;
+
+	if ( !value || !value[0] || !seconds )
+		return false;
+
+	colon = strchr( value, ':' );
+	if ( !colon )
+	{
+		*seconds = atof( value ) * plain_unit_seconds;
+		return true;
+	}
+
+	/* Colon values use mm:ss.  Minutes may contain any number of digits,
+	 * while seconds are always two digits in the range 00..59. */
+	if ( colon == value || strchr( colon + 1, ':' )
+	     || !colon[1] || !colon[2] || colon[3] )
+		return false;
+
+	minutes = 0;
+	for ( p = value; p < colon; p++ )
+	{
+		if ( *p < '0' || *p > '9' )
+			return false;
+		minutes = minutes * 10 + ( *p - '0' );
+	}
+	if ( colon[1] < '0' || colon[1] > '9'
+	     || colon[2] < '0' || colon[2] > '9' )
+		return false;
+
+	second_part = ( colon[1] - '0' ) * 10 + ( colon[2] - '0' );
+	if ( second_part >= 60 )
+		return false;
+
+	*seconds = minutes * 60 + second_part;
+	return true;
+}
+
 qboolean GetInfokeyString( gedict_t * pl, const char *key, const char *key2, char *value, int size, const char *defaultval )
 {
 	infokey( pl, key, value, size );

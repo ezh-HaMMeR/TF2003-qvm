@@ -24,6 +24,129 @@
 
 extern int last_id;
 void MatchTimer( qboolean force );
+void UpdateCountdown( int time_left );
+
+static float match_round_start_time;
+static float match_round_minutes;
+static qboolean match_round_running;
+static float match_timer_last_status_time;
+
+static float MatchTimerConfiguredMinutes( void )
+{
+    char value[64];
+    float seconds;
+    float minutes;
+
+    if( tfset(admode) && tfset_roundtime > 0 )
+        return tfset_roundtime;
+
+    /* timelimit is a serverinfo cvar.  Reading it through the world infokey
+     * also preserves a colon value on engines without G_CVAR_STRING. */
+    GetSVInfokeyString( "timelimit", NULL, value, sizeof( value ), "0" );
+    if( !ParseDurationValue( value, 60, &seconds ) )
+    {
+        G_conprintf( "Invalid timelimit value '%s'; expected a number or mm:ss\n",
+                     value );
+        seconds = 0;
+        trap_cvar_set_float( "timelimit", 0 );
+    }
+    else if( strchr( value, ':' ) )
+    {
+        /* Keep the engine and older clients on a numeric minute value after
+         * accepting the more precise mm:ss form from the server config. */
+        trap_cvar_set_float( "timelimit", seconds / 60 );
+    }
+    minutes = seconds / 60;
+    if( minutes < 0 )
+        minutes = 0;
+    return minutes;
+}
+
+float MatchTimerRoundMinutes( void )
+{
+    if( match_round_running )
+        return match_round_minutes;
+    return MatchTimerConfiguredMinutes();
+}
+
+void MatchTimerPublishDeadlines( void )
+{
+    float deadline;
+
+    deadline = tfset(admode) ? timelimit_ad : timelimit;
+    localcmd( "serverinfo tf_pmend \"%d\"\n",
+              (int)( tf_data.cb_prematch_time * 1000.0 + 0.5 ) );
+    localcmd( "serverinfo tf_matchend \"%d\"\n",
+              deadline > 0 ? (int)( deadline * 1000.0 + 0.5 ) : 0 );
+}
+
+void MatchTimerReset( void )
+{
+    timelimit = 0;
+    timelimit_ad = 0;
+    ad_roundnum = 0;
+    match_round_start_time = 0;
+    match_round_minutes = 0;
+    match_round_running = false;
+    match_timer_last_status_time = 0;
+}
+
+void MatchTimerStartRound( void )
+{
+    float deadline;
+
+    match_round_start_time = g_globalvars.time;
+    match_round_minutes = MatchTimerConfiguredMinutes();
+    match_round_running = true;
+    deadline = match_round_minutes > 0
+        ? match_round_start_time + match_round_minutes * 60.0
+        : 0;
+
+    if( tfset(admode) )
+    {
+        timelimit = 0;
+        timelimit_ad = deadline;
+    }
+    else
+    {
+        timelimit = deadline;
+        timelimit_ad = 0;
+    }
+    MatchTimerPublishDeadlines();
+}
+
+void MatchTimerStopRound( void )
+{
+    timelimit = 0;
+    timelimit_ad = 0;
+    match_round_running = false;
+    match_round_minutes = 0;
+    MatchTimerPublishDeadlines();
+}
+
+void MatchTimerSyncCvars( void )
+{
+    float minutes;
+    float deadline;
+
+    if( !match_round_running )
+        return;
+
+    minutes = MatchTimerConfiguredMinutes();
+    if( minutes == match_round_minutes )
+        return;
+
+    match_round_minutes = minutes;
+    deadline = minutes > 0
+        ? match_round_start_time + minutes * 60.0
+        : 0;
+    if( tfset(admode) )
+        timelimit_ad = deadline;
+    else
+        timelimit = deadline;
+    MatchTimerPublishDeadlines();
+    MatchTimer( true );
+}
 
 static void BroadcastAttackDefendTeamAssignments( void )
 {
@@ -112,6 +235,7 @@ void PreMatch_Think(  )
     G_bprint( 2, "MATCH BEGINS NOW\n" );
     if ( tfset(admode) )
         BroadcastAttackDefendTeamAssignments();
+    MatchTimerStartRound();
     MatchTimer( true );
     if ( tfset(game_locked) )
         G_bprint( 2, "GAME IS NOW LOCKED\n" );
@@ -349,22 +473,18 @@ void DumpClanScores(  )
 
 void MatchTimer( qboolean force )
 {
-    static float lasttime = 0;
     int     time_left;
 
     if ( !( tfset_toggleflags & TFLAG_FIRSTENTRY ) )
         return;
 
-    if( !force && lasttime && ( ( g_globalvars.time - lasttime ) < 60 ))
+    if( !force && match_timer_last_status_time
+        && ( ( g_globalvars.time - match_timer_last_status_time ) < 60 ))
     {
         return;
     }
-    lasttime = g_globalvars.time;
-
-    /* Keep the advertised match deadline current if timelimit is changed
-     * while the map is running. */
-    localcmd( "serverinfo tf_matchend \"%d\"\n",
-              timelimit > 0 ? timelimit * 1000 : 0 );
+    match_timer_last_status_time = g_globalvars.time;
+    MatchTimerPublishDeadlines();
     if ( tf_data.cb_prematch_time > g_globalvars.time )
     {//prematch
         localcmd("serverinfo status Countdown\n" );      
@@ -373,10 +493,6 @@ void MatchTimer( qboolean force )
 
     if (timelimit_ad) {
         time_left = ceil(timelimit_ad - g_globalvars.time + 0.5);
-        /*if (time_left / 60.0 < tfset_roundtime) {
-            return;
-        }
-        localcmd("serverinfo status \"%d min left\"\n", time_left / 60);*/
         if (time_left > 60) {
             localcmd("serverinfo status \"%d min left\"\n", time_left / 60);
         } else {
@@ -512,7 +628,10 @@ void AttackDefendSecondRound() {
         ent->s.v.nextthink = g_globalvars.time + 1;
     }
 
-    tf_data.cb_prematch_time = g_globalvars.time + 6000;
+    tf_data.cb_prematch_time = g_globalvars.time
+        + ( tfset_prematch_time > 0 ? tfset_prematch_time * 60.0 : 0 );
+    MatchTimerPublishDeadlines();
+    MatchTimer( true );
 
     for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
         oldself = self;
@@ -609,6 +728,7 @@ void AttackDefendSecondRound() {
 void RoundTimerThink() {
     gedict_t* te;
     int minutes, seconds;
+    float round_minutes;
 
     if (tf_data.cb_prematch_time > g_globalvars.time) {
         self->heat = 0;
@@ -622,12 +742,13 @@ void RoundTimerThink() {
     trap_updatetimer((int)self->heat);
     minutes = (int)self->heat / 60;
     seconds = (int)self->heat % 60;
+    round_minutes = MatchTimerRoundMinutes();
     for (te = world; (te = trap_find(te, FOFS(s.v.classname), "player"));) {
         //stuffcmd(te, "set roundtimer \"%d%d:%d%d\";\n", minutes / 10, minutes % 10, seconds / 10, seconds % 10);
         if (seconds == 0) {
-            if (tfset_roundtime - minutes == 1) {
+            if (round_minutes - minutes == 1) {
                 stuffcmd(te, "play announcer/1_minute.wav\n");
-            } else if (tfset_roundtime - minutes == 5) {
+            } else if (round_minutes - minutes == 5) {
                 stuffcmd(te, "play announcer/5_minute.wav\n");
             }
         }
@@ -651,7 +772,7 @@ typedef struct {
 #define ACCESS_DATA(var, idx) var.u.d[(idx)]
 
 void ChangeReadyState(int state) {
-    gedict_t* te, *prematch, *timer;
+    gedict_t* te, *prematch;
     int maxclients, readied_up;
 
     /*
@@ -697,15 +818,11 @@ void ChangeReadyState(int state) {
             if (prematch) {
                 dremove(prematch);
             }
-            if (tfset(admode) && ad_roundnum == 0) {
-                timelimit_ad = g_globalvars.time + tfset_roundtime * 60.0 + 10;
-            } else {
-                timelimit = g_globalvars.time + tfset_roundtime * 60.0 + 10;
-                timelimit_ad = g_globalvars.time + tfset_roundtime * 60.0 + 10;
-                trap_cvar_set_float("timelimit", (float)timelimit / 60.0f);
-            }
-
-            tf_data.cb_prematch_time = g_globalvars.time + 10;
+            /* Ready-up may shorten the configured prematch to ten seconds,
+             * but must never extend a prematch that is already nearer. */
+            if( tf_data.cb_prematch_time > g_globalvars.time + 10 )
+                tf_data.cb_prematch_time = g_globalvars.time + 10;
+            MatchTimerPublishDeadlines();
         }
     }
 }

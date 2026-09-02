@@ -47,6 +47,9 @@ typedef enum set_types_s
 {
     TFS_FLOAT,
     TFS_INT,
+    TFS_TIME_MINUTES,
+    TFS_TIME_SECONDS,
+    TFS_TIME_SECONDS_INT,
     TFS_INT_BITS,
     TFS_BOOL,
     TFS_STRING,

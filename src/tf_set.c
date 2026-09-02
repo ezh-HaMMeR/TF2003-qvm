@@ -126,19 +126,19 @@ static const set_set_t set_flag_drop_mode[] = {
 set_item_t tf_settings[] = {
 /*0 */    { "Settings bits", "", "",  TFS_INT_BITS, 0, sv_settings_bits, NULL, "0" },
 /*1 */    { "Toggle flags", "", "",  TFS_INT_BITS, 0, toggleflags_bits, NULL, "0" },
-/*2 */    { "Autoteam time", "autoteam", "a",  TFS_FLOAT, 0, NULL, NULL, "0"  },
-/*3 */    { "Respawn delay", "respawn_delay", "rd",  TFS_FLOAT, 0, NULL, NULL, "0"  },
-/*4 */    { "Prematch time", "prematch", "pm",  TFS_FLOAT, 0, NULL, NULL, "0"  },
-/*5 */    { "CeaseFire time", "ceasefire_time", "cft",  TFS_FLOAT, 0, NULL, NULL, "0"  },
-/*6 */    { "Autokick time", "autokick_time", "akt",  TFS_INT, 0, NULL, NULL, "0"  },
+/*2 */    { "Autoteam time", "autoteam", "a",  TFS_TIME_SECONDS, 0, NULL, NULL, "0"  },
+/*3 */    { "Respawn delay", "respawn_delay", "rd",  TFS_TIME_SECONDS, 0, NULL, NULL, "0"  },
+/*4 */    { "Prematch time", "prematch", "pm",  TFS_TIME_MINUTES, 0, NULL, NULL, "0"  },
+/*5 */    { "CeaseFire time", "ceasefire_time", "cft",  TFS_TIME_MINUTES, 0, NULL, NULL, "0"  },
+/*6 */    { "Autokick time", "autokick_time", "akt",  TFS_TIME_SECONDS_INT, 0, NULL, NULL, "0"  },
 /*7 */    { "Autokick kills", "autokick_kills", "akk",  TFS_INT, 0, NULL, NULL, "0"  },
-/*8 */    { "Cheat Pause", "cheat_pause", "cp",  TFS_INT, 0, NULL, NULL, "1"  },
+/*8 */    { "Cheat Pause", "cheat_pause", "cp",  TFS_TIME_SECONDS_INT, 0, NULL, NULL, "1"  },
 /*9 */    { "Disable Grenades", "disable_grens", "dg",  TFS_INT_BITS, 0, tf_set_disablegren, NULL, "0"  },
 /*10*/    { "Sentry ppl emulation", "sgppl", "",  TFS_INT, 12, NULL, NULL, "12"  },
 /*11*/    { "Sentry shells fire", "sg_sfire", "",  TFS_INT_SET, SG_SFIRE_NEW, NULL, set_sg_sfire, "0"  },
 /*12*/    { "Sniper fps", "snip_fps", "sf",  TFS_INT, 0, NULL, NULL, "72"  },
 /*13*/    { "Sniper ammo on shot", "snip_ammo", "",  TFS_INT, 0, NULL, NULL, "1"  },
-/*14*/    { "Sniper reload time", "snip_time", "",  TFS_FLOAT, 0, NULL, NULL, "1.5" },
+/*14*/    { "Sniper reload time", "snip_time", "",  TFS_TIME_SECONDS, 0, NULL, NULL, "1.5" },
 /*15*/    { "Gas grenade effects", "new_gas", "",  TFS_INT_BITS, 131, tf_set_gas, NULL, "131"  },
 /*16*/    { "Extended backpack", "gren2box", "g2b",  TFS_INT_BITS, 0, tf_set_gren2box, NULL, "0"  },
 /*17*/    { "Arena Mode", "arena", "",  TFS_INT_SET, 0, NULL, set_arena_mode, "0"  },
@@ -157,7 +157,7 @@ set_item_t tf_settings[] = {
 /*30*/    {"Limit engineer","cr_en", "cr_engineer", TFS_INT, 0, NULL, NULL, "0" },
 /*31*/    {"Limit random",  "cr_ra", "cr_random", TFS_INT, 0, NULL, NULL, "0" },
 /*32*/    {"Flag drop mode",  "fl_dr_md", "fl_drop_mode", TFS_INT_SET, 0, NULL, set_flag_drop_mode, "0" },
-/*33*/    {"Round time",  "roundtime", "", TFS_FLOAT, 0, NULL, NULL, "0" },
+/*33*/    {"A/D round time",  "roundtime", "", TFS_TIME_MINUTES, 0, NULL, NULL, "0" },
 /*  */    { NULL } 
 };
 
@@ -233,8 +233,46 @@ static const char*_tf_get_print_allsetname( const set_set_t* ss )
     return "unknown";
 }
 
+static qboolean _tfset_parse_duration( set_item_t *si, const char *value,
+                                       float plain_unit_seconds,
+                                       qboolean oninit, float *seconds )
+{
+    if( ParseDurationValue( value, plain_unit_seconds, seconds ) )
+        return true;
+
+    _set_print( PRINT_HIGH,
+                "Invalid %s value '%s'; expected a number or mm:ss\n",
+                si->key, value );
+    if( oninit == TFSET_LOCALINFO )
+        return ParseDurationValue( si->default_val, plain_unit_seconds, seconds );
+    return false;
+}
+
+static void _tfset_print_duration( float seconds )
+{
+    int minutes;
+    int whole_seconds;
+    float second_part;
+
+    if( seconds < 0 )
+    {
+        _set_print( PRINT_CHAT, "%.2f\n", seconds );
+        return;
+    }
+
+    minutes = (int)( seconds / 60 );
+    second_part = seconds - minutes * 60;
+    whole_seconds = (int)( second_part + 0.5 );
+    if( fabs( second_part - whole_seconds ) < 0.001 )
+        _set_print( PRINT_CHAT, "%02d:%02d\n", minutes, whole_seconds );
+    else
+        _set_print( PRINT_CHAT, "%02d:%05.2f\n", minutes, second_part );
+}
+
 static void   tf_set_val( set_item_t* si, int idx,  const char*val, qboolean oninit  )
 {
+    float seconds;
+
     if( oninit != TFSET_LOCALINFO ) _set_print( PRINT_HIGH, "%s:%s: ", si->key, si->name );
     switch( si->type ){
         case TFS_INT_BITS:
@@ -273,6 +311,27 @@ static void   tf_set_val( set_item_t* si, int idx,  const char*val, qboolean oni
         case TFS_FLOAT:
             if( val && val[0] ) si->val._float = atof( val );
             if( oninit != TFSET_LOCALINFO ) _set_print( PRINT_CHAT, "%.2f\n", si->val._float );
+            break;
+        case TFS_TIME_MINUTES:
+            if( val && val[0]
+                && _tfset_parse_duration( si, val, 60, oninit, &seconds ) )
+                si->val._float = seconds / 60;
+            if( oninit != TFSET_LOCALINFO )
+                _tfset_print_duration( si->val._float * 60 );
+            break;
+        case TFS_TIME_SECONDS:
+            if( val && val[0]
+                && _tfset_parse_duration( si, val, 1, oninit, &seconds ) )
+                si->val._float = seconds;
+            if( oninit != TFSET_LOCALINFO )
+                _tfset_print_duration( si->val._float );
+            break;
+        case TFS_TIME_SECONDS_INT:
+            if( val && val[0]
+                && _tfset_parse_duration( si, val, 1, oninit, &seconds ) )
+                si->val._int = (int)( seconds + 0.5 );
+            if( oninit != TFSET_LOCALINFO )
+                _tfset_print_duration( si->val._int );
             break;
         case TFS_STRING:
             if( val && val[0] ){
@@ -525,11 +584,10 @@ void   TF_FinalizeSettings( )
     tf_data.cb_prematch_time = g_globalvars.time + fvar * 60;
     if( fvar )
     {
-        tf_data.cb_prematch_time += 5;
         ent = spawn();
         ent->s.v.classname = "prematch";
         ent->s.v.think = ( func_t ) PreMatch_Think;
-        ent->s.v.nextthink = g_globalvars.time + 5;
+        ent->s.v.nextthink = g_globalvars.time;
         ent->heat = 0;
 
         if (tfset(prematch_readymode)) {
@@ -545,10 +603,11 @@ void   TF_FinalizeSettings( )
         {
             tf_data.cb_ceasefire_time = g_globalvars.time + tf_data.cb_ceasefire_time * 60;
 
-            if( tf_data.cb_prematch_time <= tf_data.cb_ceasefire_time + 7  )
+            if( tf_data.cb_ceasefire_time > tf_data.cb_prematch_time - 7 )
             {
-                tf_data.cb_ceasefire_time = tf_data.cb_prematch_time;
-                tf_data.cb_prematch_time += 7;
+                tf_data.cb_ceasefire_time = tf_data.cb_prematch_time - 7;
+                if( tf_data.cb_ceasefire_time < g_globalvars.time )
+                    tf_data.cb_ceasefire_time = g_globalvars.time;
             }
 
             tf_data.cease_fire = 1;
@@ -570,20 +629,12 @@ void   TF_FinalizeSettings( )
         }else
             tf_data.cb_ceasefire_time = 0;
     }
-    if ( timelimit && ( ( timelimit ) < tf_data.cb_prematch_time ) )
-    {
-        timelimit += tf_data.cb_prematch_time;
-
-        trap_cvar_set_float( "timelimit", timelimit / 60 );
-    }
-
-    /* Publish absolute server-time deadlines for ezquake-tf clocks.  These
-     * are ordinary serverinfo keys, so clients that do not know them simply
-     * ignore them.  Milliseconds avoid rounding a short prematch or round. */
-    localcmd( "serverinfo tf_pmend \"%d\"\n",
-              (int)( tf_data.cb_prematch_time * 1000.0 + 0.5 ) );
-    localcmd( "serverinfo tf_matchend \"%d\"\n",
-              timelimit > 0 ? timelimit * 1000 : 0 );
+    /* timelimit is a round duration.  Its absolute deadline is created only
+     * when play starts, so prematch never consumes live round time. */
+    if( fvar )
+        MatchTimerPublishDeadlines();
+    else
+        MatchTimerStartRound();
 
     if( tfset_autoteam_time > 0 )
     {

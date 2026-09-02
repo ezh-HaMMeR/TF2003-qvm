@@ -366,7 +366,8 @@ void SP_worldspawn(  )
 
 }
 
-int     timelimit, timelimit_ad, ad_roundnum, fraglimit, teamplay, deathmatch, framecount, coop;
+float   timelimit, timelimit_ad;
+int     ad_roundnum, fraglimit, teamplay, deathmatch, framecount, coop;
 static  float old_time = 0;
 
 void MatchTimer( qboolean );
@@ -374,7 +375,6 @@ void StartFrame( int time )
 {
 	sv_gravity = trap_cvar( "sv_gravity" );
 	sv_watervis = GetSVInfokeyInt( "watervis", NULL, 0 );
-	timelimit = trap_cvar( "timelimit" ) * 60;
 	fraglimit = trap_cvar( "fraglimit" );
 	teamplay  = trap_cvar( "teamplay" );
 	deathmatch = trap_cvar( "deathmatch" );
@@ -388,5 +388,6 @@ void StartFrame( int time )
 	FlushDamageStatUpdates();
 #endif
 	FlushTeammateStatusUpdates();
+	MatchTimerSyncCvars();
 	MatchTimer( false );
 }
