@@ -916,12 +916,16 @@ void PutClientInServer()
     if ( self->s.v.tfstate & TFSTATE_RANDOMPC )
     {
         int  oldclass = self->playerclass;
-        self->playerclass = 1 + ( int ) ( g_random() * ( 9 ) );
-        while ( !IsLegalClass( self->playerclass )
-                || self->playerclass == oldclass || ClassIsRestricted( self->team_no, self->playerclass ) )
-            self->playerclass = 1 + ( int ) ( g_random() * ( 9 ) );
-        self->s.v.tfstate = TFSTATE_RANDOMPC;
-        TeamFortress_ExecClassScript( self );
+        self->playerclass = TeamFortress_SelectRandomClass( oldclass );
+        if ( self->playerclass )
+        {
+            self->s.v.tfstate = TFSTATE_RANDOMPC;
+            TeamFortress_ExecClassScript( self );
+        } else
+        {
+            self->s.v.tfstate &= ~TFSTATE_RANDOMPC;
+            G_sprint( self, 2, "No legal unrestricted playerclasses are available for your team.\n" );
+        }
         sendtfinfo_broadcast(self, TFINFO_PLAYERCLASS, self->playerclass);
     } else
         self->s.v.tfstate = 0;

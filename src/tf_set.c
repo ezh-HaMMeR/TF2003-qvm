@@ -451,6 +451,10 @@ void   TF_LocalinfoSettings( )
         }
     }
 
+    /* Per-team limits are optional overrides.  Load them after the legacy
+     * cr_* defaults so missing team keys continue to inherit old behavior. */
+    TeamFortress_LoadTeamClassRestrictions();
+
     GetSVInfokeyString( "sg", NULL, value, sizeof( value ), "new" );
     if ( !strcmp( value, "old" ) )
     {

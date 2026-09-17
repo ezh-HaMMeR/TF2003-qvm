@@ -30,6 +30,70 @@ static float   teamadvantage[5];
 int     illegalclasses[5];
 int     civilianteams;
 
+#define CLASS_RESTRICTION_TEAM_COUNT 4
+#define CLASS_RESTRICTION_CLASS_COUNT 10
+
+static int team_class_restrictions[CLASS_RESTRICTION_TEAM_COUNT + 1][CLASS_RESTRICTION_CLASS_COUNT + 1];
+static qboolean team_class_restriction_set[CLASS_RESTRICTION_TEAM_COUNT + 1][CLASS_RESTRICTION_CLASS_COUNT + 1];
+
+static const char *class_restriction_names[CLASS_RESTRICTION_CLASS_COUNT + 1] = {
+	"", "scout", "sniper", "soldier", "demoman", "medic",
+	"hwguy", "pyro", "spy", "engineer", "random"
+};
+
+/* Color aliases always mean TF team numbers, independent of custom team names. */
+static const char *class_restriction_team_colors[CLASS_RESTRICTION_TEAM_COUNT + 1] = {
+	"", "blue", "red", "yellow", "green"
+};
+
+void TeamFortress_LoadTeamClassRestrictions( void )
+{
+	char key[64];
+	char value[32];
+	int team;
+	int pc;
+
+	memset( team_class_restrictions, 0, sizeof( team_class_restrictions ) );
+	memset( team_class_restriction_set, 0, sizeof( team_class_restriction_set ) );
+
+	for ( team = 1; team <= CLASS_RESTRICTION_TEAM_COUNT; team++ )
+	{
+		for ( pc = 1; pc <= CLASS_RESTRICTION_CLASS_COUNT; pc++ )
+		{
+			/* The numeric form is canonical and wins when both aliases exist. */
+			_snprintf( key, sizeof( key ), "cr_%s_team%d",
+			           class_restriction_names[pc], team );
+			key[sizeof( key ) - 1] = 0;
+			if ( GetSVInfokeyString( key, NULL, value, sizeof( value ), NULL ) )
+			{
+				team_class_restrictions[team][pc] = atoi( value );
+				team_class_restriction_set[team][pc] = true;
+				continue;
+			}
+
+			_snprintf( key, sizeof( key ), "cr_%s_%s",
+			           class_restriction_names[pc],
+			           class_restriction_team_colors[team] );
+			key[sizeof( key ) - 1] = 0;
+			if ( GetSVInfokeyString( key, NULL, value, sizeof( value ), NULL ) )
+			{
+				team_class_restrictions[team][pc] = atoi( value );
+				team_class_restriction_set[team][pc] = true;
+			}
+		}
+	}
+}
+
+static int TeamFortress_GetClassRestriction( int tno, int pc )
+{
+	if ( tno > 0 && tno <= CLASS_RESTRICTION_TEAM_COUNT
+	     && pc > 0 && pc <= CLASS_RESTRICTION_CLASS_COUNT
+	     && team_class_restriction_set[tno][pc] )
+		return team_class_restrictions[tno][pc];
+
+	return tfset_classrestricted( pc );
+}
+
 int TeamFortress_TeamPutPlayerInTeam(  )
 {
 	int     i, j, lowest, likely_team;
@@ -817,7 +881,7 @@ int ClassIsRestricted( int tno, int pc )
 	if ( !tno )
 		return 0;
 
-    max = tfset_classrestricted( pc );
+	max = TeamFortress_GetClassRestriction( tno, pc );
 	//max = GetSVInfokeyInt( li_classrestricted[pc-1][0], li_classrestricted[pc-1][1], 0 );
 
 	if ( max > 0 )

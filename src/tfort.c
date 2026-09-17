@@ -391,6 +391,8 @@ void TeamFortress_ChangeClass(  )
 	gedict_t *spot;
 	gedict_t *te;
 	vec3_t  v;
+	int selected_class;
+	qboolean selected_random;
 
 	if ( self->playerclass )
 	{
@@ -458,7 +460,19 @@ void TeamFortress_ChangeClass(  )
 		return;
 	}
 
-	self->playerclass = ( self->s.v.impulse != 1 ) ? ( self->s.v.impulse - TF_CHANGEPC ) : PC_CIVILIAN;
+	selected_class = ( self->s.v.impulse != 1 ) ? ( self->s.v.impulse - TF_CHANGEPC ) : PC_CIVILIAN;
+	selected_random = ( selected_class == PC_RANDOM );
+	if ( selected_random )
+	{
+		selected_class = TeamFortress_SelectRandomClass( PC_UNDEFINED );
+		if ( selected_class == PC_UNDEFINED )
+		{
+			G_sprint( self, 2, "No legal unrestricted playerclasses are available for your team.\n" );
+			return;
+		}
+	}
+
+	self->playerclass = selected_class;
 
 	self->nextpc = 0;
 	self->s.v.takedamage = DAMAGE_AIM;
@@ -471,11 +485,10 @@ void TeamFortress_ChangeClass(  )
     
 
 
-	if ( self->playerclass == PC_RANDOM )
+	if ( selected_random )
 	{
 		G_sprint( self, 2, "Random playerclass.\n" );
 		self->s.v.tfstate |= TFSTATE_RANDOMPC;
-		self->playerclass = 1 + (int)( g_random(  ) * ( 10 - 1 ) );
 	}
 
     TF_SpawnPlayer( self );
@@ -1509,6 +1522,38 @@ int IsLegalClass( int pc )
 	if ( ( illegalclasses[0] & bit ) || ( TeamFortress_TeamGetIllegalClasses( self->team_no ) & bit ) )
 		return 0;
 	return 1;
+}
+
+int TeamFortress_SelectRandomClass( int oldclass )
+{
+	int available[PC_ENGINEER];
+	int count = 0;
+	int pc;
+	int selected;
+
+	/* Build a bounded candidate list instead of retrying indefinitely when
+	 * map or per-team restrictions leave few (or no) legal classes. */
+	for ( pc = PC_SCOUT; pc <= PC_ENGINEER; pc++ )
+	{
+		if ( pc == oldclass )
+			continue;
+		if ( IsLegalClass( pc ) && !ClassIsRestricted( self->team_no, pc ) )
+			available[count++] = pc;
+	}
+
+	/* Preserve the old "new class each respawn" behavior when possible, but
+	 * keep RandomPC usable if the current class is the only allowed one. */
+	if ( !count && oldclass >= PC_SCOUT && oldclass <= PC_ENGINEER
+	     && IsLegalClass( oldclass ) && !ClassIsRestricted( self->team_no, oldclass ) )
+		available[count++] = oldclass;
+
+	if ( !count )
+		return PC_UNDEFINED;
+
+	selected = ( int ) ( g_random() * count );
+	if ( selected >= count )
+		selected = count - 1;
+	return available[selected];
 }
 
 void TeamFortress_SetSpeed( gedict_t * p )
