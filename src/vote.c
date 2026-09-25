@@ -103,7 +103,9 @@ int CountPlayers( void )
 
     for ( player = world; ( player = G_NextPlayer( player ) ) != world; )
     {
-        if ( player->s.v.netname[0] && !player->isBot )
+        /* Use the same eligibility rules as the vote UI so stale,
+         * disconnected and spectator client slots cannot raise the quorum. */
+        if ( Vote_IsMenuPlayer( player ) && player->s.v.netname[0] )
             num++;
     }
     return num;
