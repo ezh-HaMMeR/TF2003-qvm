@@ -1488,6 +1488,15 @@ static qboolean TeamFortress_TryThrowGrenade(  )
 
 	TeamFortress_DisarmGrenadeButton1( self );
 
+	/* Wheel bindings can issue the same throw request many times in one frame.
+	 * Once the authoritative primer has latched it, avoid another entity scan. */
+	primer = self->primed_grenade;
+	if ( IsOwnedActivePrimer( self, primer ) && primer->grenade_throw_requested )
+	{
+		SyncPlayerGrenadeState( self, primer );
+		return true;
+	}
+
 	/* Locate the live primer before consulting or repairing mirrored flags. */
 	primer = FindSingleOwnedActivePrimer( self );
 	SyncPlayerGrenadeState( self, primer );
