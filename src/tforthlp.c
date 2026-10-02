@@ -67,6 +67,27 @@ static void TeamFortress_ScannerCommandAliases(  )
     TeamFortress_ClientCommandAlias( "autoscan_off", "tf_autoscan_off" );
 }
 
+static void TeamFortress_SpyCommandAliases( void )
+{
+    TeamFortress_ClientCommandAlias( "disguise_color", "disguise_color" );
+    TeamFortress_ClientCommandAlias( "disguise_scout", "disguise_scout" );
+    TeamFortress_ClientCommandAlias( "disguise_scout_color", "disguise_scout_color" );
+    TeamFortress_ClientCommandAlias( "disguise_sniper", "disguise_sniper" );
+    TeamFortress_ClientCommandAlias( "disguise_sniper_color", "disguise_sniper_color" );
+    TeamFortress_ClientCommandAlias( "disguise_sold", "disguise_sold" );
+    TeamFortress_ClientCommandAlias( "disguise_sold_color", "disguise_sold_color" );
+    TeamFortress_ClientCommandAlias( "disguise_demo", "disguise_demo" );
+    TeamFortress_ClientCommandAlias( "disguise_demo_color", "disguise_demo_color" );
+    TeamFortress_ClientCommandAlias( "disguise_medic", "disguise_medic" );
+    TeamFortress_ClientCommandAlias( "disguise_medic_color", "disguise_medic_color" );
+    TeamFortress_ClientCommandAlias( "disguise_hwguy", "disguise_hwguy" );
+    TeamFortress_ClientCommandAlias( "disguise_hwguy_color", "disguise_hwguy_color" );
+    TeamFortress_ClientCommandAlias( "disguise_pyro", "disguise_pyro" );
+    TeamFortress_ClientCommandAlias( "disguise_pyro_color", "disguise_pyro_color" );
+    TeamFortress_ClientCommandAlias( "disguise_eng", "disguise_eng" );
+    TeamFortress_ClientCommandAlias( "disguise_eng_color", "disguise_eng_color" );
+}
+
 void TeamFortress_MOTD(  )
 {
 
@@ -110,6 +131,7 @@ void TeamFortress_MOTD(  )
              * refresh the small subsets whose server-side state must persist. */
             TeamFortress_GrenadeCommandAliases(  );
             TeamFortress_ScannerCommandAliases(  );
+            TeamFortress_SpyCommandAliases(  );
             return;
         }
         G_sprint( self, 2, "binding aliases...\n" );
@@ -222,6 +244,7 @@ void TeamFortress_MOTD(  )
     if ( self->motd == 95 )
     {
         TeamFortress_Alias( "disguise", TF_SPY_SPY, 0 );
+        TeamFortress_SpyCommandAliases(  );
         TeamFortress_Alias( "feign", TF_SPY_DIE, 0 );
         TeamFortress_Alias( "sfeign", TF_SPY_SFEIGN_IMPULSE, 0 );
         TeamFortress_Alias( "build", TF_ENGINEER_BUILD, 0 );

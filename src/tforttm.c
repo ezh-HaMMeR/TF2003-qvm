@@ -273,65 +273,31 @@ void TeamFortress_CheckTeamCheats(  )
 
 		tc = GetInfokeyInt( self, "bottomcolor", NULL, 0 );
 
-		if ( self->playerclass == PC_SPY && self->undercover_team )
+		/* Disguise textures do not change the true userinfo team colors. */
+		if ( tc != TeamFortress_TeamGetColor( self->team_no ) - 1 )
 		{
-			if ( TeamFortress_TeamGetColor( self->undercover_team ) - 1 != tc )
-			{
-			        TeamFortress_SetColor( self,
-					  TeamFortress_TeamGetTopColor( self->undercover_team ),
-					  TeamFortress_TeamGetColor( self->undercover_team ) - 1 );
-
-				G_bprint( 1, "%s has been kicked for changing color.\n", self->s.v.netname );
-				G_sprint( self, 2,
-					  "You have been kicked for changing your pants color. Don't do it.\n" );
-				KickCheater( self );
-				return;
-			}
-		} else
+			TeamFortress_SetColor( self,
+				  TeamFortress_TeamGetTopColor( self->team_no ),
+				  TeamFortress_TeamGetColor( self->team_no ) - 1 );
+			G_bprint( 1, "%s has been kicked for changing color.\n", self->s.v.netname );
+			G_sprint( self, 2,
+				  "You have been kicked for changing your pants color. Don't do it.\n" );
+			KickCheater( self );
+			return;
+		}
+		if ( tf_data.topcolor_check )
 		{
-			if ( tc != TeamFortress_TeamGetColor( self->team_no ) - 1 )
+			tc = GetInfokeyInt( self, "topcolor", NULL, 0 );
+			if ( tc != TeamFortress_TeamGetTopColor( self->team_no ) )
 			{
 				TeamFortress_SetColor( self,
 					  TeamFortress_TeamGetTopColor( self->team_no ),
 					  TeamFortress_TeamGetColor( self->team_no ) - 1 );
 				G_bprint( 1, "%s has been kicked for changing color.\n", self->s.v.netname );
 				G_sprint( self, 2,
-					  "You have been kicked for changing your pants color. Don't do it.\n" );
+					  "You have been kicked for changing your top color. Don't do it.\n" );
 				KickCheater( self );
 				return;
-			}
-		}
-		if ( tf_data.topcolor_check )
-		{
-			tc = GetInfokeyInt( self, "topcolor", NULL, 0 );
-			if ( self->playerclass == PC_SPY && self->undercover_team )
-			{
-				if ( TeamFortress_TeamGetTopColor( self->undercover_team ) != tc )
-				{
-				        TeamFortress_SetColor( self, 
-						  TeamFortress_TeamGetTopColor( self->undercover_team ),
-						  TeamFortress_TeamGetColor( self->undercover_team ) - 1 );
-
-					G_bprint( 1, "%s has been kicked for changing color.\n", self->s.v.netname );
-					G_sprint( self, 2,
-						  "You have been kicked for changing your top color. Don't do it.\n" );
-					KickCheater( self );
-					return;
-				}
-			} else
-			{
-				if ( tc != TeamFortress_TeamGetTopColor( self->team_no ) )
-				{
-					TeamFortress_SetColor( self, 
-						  TeamFortress_TeamGetTopColor( self->undercover_team ),
-						  TeamFortress_TeamGetColor( self->undercover_team ) - 1 );
-
-					G_bprint( 1, "%s has been kicked for changing color.\n", self->s.v.netname );
-					G_sprint( self, 2,
-						  "You have been kicked for changing your top color. Don't do it.\n" );
-					KickCheater( self );
-					return;
-				}
 			}
 		}
 		if ( self->playerclass )

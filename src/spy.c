@@ -1007,12 +1007,41 @@ void TeamFortress_SpyCalcName( gedict_t * spy )
 
 //=========================================================================
 // Make the spy who owns this timer undercover, and then remove itself
+static qboolean SpyCommandCanDisguise( gedict_t *spy )
+{
+    if ( spy->playerclass != PC_SPY || spy->isSpectator ||
+         spy->s.v.deadflag || spy->s.v.health <= 0 || !spy->team_no || tfset(invis_only) )
+        return false;
+    if ( ( int ) spy->s.v.effects & ( EF_DIMLIGHT | EF_BRIGHTLIGHT ) )
+    {
+        G_sprint( spy, 2, "You can't go undercover while glowing.\n" );
+        return false;
+    }
+    if ( spy->is_unabletospy == 1 )
+    {
+        G_sprint( spy, 2, "You can't go undercover right now.\n" );
+        return false;
+    }
+    return true;
+}
+
 void TeamFortress_SpyUndercoverThink(  )
 {
     gedict_t *owner = PROG_TO_EDICT( self->s.v.owner );
 
-    if ( owner->playerclass != PC_SPY )
+    /* count marks the direct-command timer; cnt holds its queued color. */
+    if ( self->count == 1 && !SpyCommandCanDisguise( owner ) )
+    {
+        if ( owner->is_undercover == 2 )
+            owner->is_undercover = ( owner->undercover_team || owner->undercover_skin ) ? 1 : 0;
+        dremove( self );
         return;
+    }
+    if ( owner->playerclass != PC_SPY )
+    {
+        dremove( self );
+        return;
+    }
     if ( owner->is_undercover == 2 )
     {
         if ( tfset(invis_only) )
@@ -1045,10 +1074,92 @@ void TeamFortress_SpyUndercoverThink(  )
             if ( !owner->StatusBarSize )
                 G_centerprint( owner, "You are now disguised.\n" );
             owner->is_undercover = 1;
+            if ( self->count == 1 && self->cnt )
+            {
+                /* Reuse the timer only after the skin and its messages finish. */
+                self->s.v.skin = 0;
+                self->s.v.team = self->cnt;
+                self->cnt = 0;
+                self->s.v.nextthink = g_globalvars.time + 4;
+                owner->is_undercover = 2;
+                owner->StatusRefreshTime = g_globalvars.time + 0.1;
+                G_sprint( owner, 2, "Going undercover...\n" );
+                return;
+            }
         }
     }
     owner->StatusRefreshTime = g_globalvars.time + 0.1;
     dremove( self );
+}
+
+void TeamFortress_Cmd_Disguise( void )
+{
+    static const struct { char *name; int skin; } skins[] = {
+        { "disguise_scout", PC_SCOUT }, { "disguise_sniper", PC_SNIPER },
+        { "disguise_sold", PC_SOLDIER }, { "disguise_demo", PC_DEMOMAN },
+        { "disguise_medic", PC_MEDIC }, { "disguise_hwguy", PC_HVYWEAP },
+        { "disguise_pyro", PC_PYRO }, { "disguise_eng", PC_ENGINEER }
+    };
+    char command[64];
+    int i, skin = 0, color = 0, enemy_team = 0;
+    gedict_t *te;
+
+    if ( !SpyCommandCanDisguise( self ) || self->is_undercover == 2 )
+        return;
+    trap_CmdArgv( 0, command, sizeof( command ) );
+    if ( !strcmp( command, "disguise_color" ) )
+        color = 1;
+    else
+    {
+        for ( i = 0; i < sizeof( skins ) / sizeof( skins[0] ); i++ )
+        {
+            int len = strlen( skins[i].name );
+            if ( strncmp( command, skins[i].name, len ) )
+                continue;
+            if ( command[len] && strcmp( command + len, "_color" ) )
+                continue;
+            skin = skins[i].skin;
+            color = command[len] != 0;
+            break;
+        }
+        if ( !skin )
+            return;
+    }
+    if ( color )
+    {
+        /* In two-team games this is the opposite team. On multi-team maps,
+         * choose the first opposing team, excluding allies. */
+        for ( i = 1; i <= number_of_teams; i++ )
+            if ( i != self->team_no && !TeamFortress_isTeamsAllied( self->team_no, i ) )
+            {
+                enemy_team = i;
+                break;
+            }
+        if ( !enemy_team )
+        {
+            G_sprint( self, 2, "No enemy team to disguise as.\n" );
+            return;
+        }
+    }
+    /* Discard canceled timers so a new request cannot revive an old disguise. */
+    for ( te = world; ( te = trap_find( te, FOFS( s.v.classname ), "timer" ) ); )
+        if ( te->s.v.owner == EDICT_TO_PROG( self ) &&
+             te->s.v.think == ( func_t ) TeamFortress_SpyUndercoverThink )
+            dremove( te );
+
+    G_sprint( self, 2, "Going undercover...\n" );
+    self->is_undercover = 2;
+    te = spawn(  );
+    te->s.v.classname = "timer";
+    te->s.v.owner = EDICT_TO_PROG( self );
+    te->s.v.think = ( func_t ) TeamFortress_SpyUndercoverThink;
+    te->s.v.nextthink = g_globalvars.time + 4;
+    te->s.v.skin = skin;
+    te->s.v.team = skin ? 0 : enemy_team;
+    te->cnt = skin ? enemy_team : 0;
+    te->count = 1;
+    if ( skin )
+        TeamFortress_SetSkin( self );
 }
 
 //=========================================================================
@@ -1566,7 +1677,8 @@ void Spy_RemoveDisguise( gedict_t * spy )
             {
                 spy->immune_to_check = g_globalvars.time + tfset_cheat_pause;	//10;
                 spy->undercover_skin = 0;
-                spy->s.v.skin = 0;
+                if ( !spy->s.v.deadflag )
+                    spy->s.v.skin = 0;
             }
             spy->is_undercover = 0;
             self->StatusRefreshTime = g_globalvars.time + 0.1;
@@ -1756,4 +1868,3 @@ void SetGasSkins( gedict_t*pl)
 
     }
 }
-

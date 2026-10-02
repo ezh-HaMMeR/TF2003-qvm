@@ -53,6 +53,8 @@ _cmake/qvm_vs2022/qwprogs.map
 
 Copy `qwprogs.qvm` to the server's `fortress` directory. For MVDSV, enable QVM execution by starting the server with `-progtype 3`.
 
+Starting with `v2026.10.02`, also copy the release archive's **`progs` and `skins` directories** into `fortress`. These resources are required for Spy disguise colors and immutable corpse appearances. Clients need the same resources, either installed locally or downloaded from the server. See [installation and resource preparation](docs/spy-appearance.md) for details, including custom team colors.
+
 ## License
 
 This project is distributed under the [GNU General Public License v2.0](LICENSE).

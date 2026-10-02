@@ -949,6 +949,7 @@ void PutClientInServer()
         TF_zoom( 90 );
     }
     self->s.v.deadflag = DEAD_NO;
+    self->s.v.colormap = NUM_FOR_EDICT( self );
 
     self->pausetime = 0;
 
@@ -983,7 +984,7 @@ void TF_SpawnPlayer( gedict_t * self )
         self->s.v.modelindex = modelindex_null;
         self->current_menu = MENU_DEFAULT;
     }else{
-        self->s.v.modelindex = modelindex_player;
+        setmodel( self, "progs/player.mdl" );
     }
 
     if ( !self->playerclass )

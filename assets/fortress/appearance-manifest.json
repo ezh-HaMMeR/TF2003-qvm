@@ -1,0 +1,192 @@
+{
+  "top_colors": [
+    13,
+    4,
+    12,
+    11
+  ],
+  "bottom_colors": [
+    13,
+    4,
+    12,
+    11
+  ],
+  "files": {
+    "progs/tfbody1.mdl": {
+      "size": 708704,
+      "sha256": "f800caff736e0fdb5a98652a1c5d134eace07cfbbfbd10023b57ac6c7463b8b5"
+    },
+    "progs/tfheadless1.mdl": {
+      "size": 611926,
+      "sha256": "c660dd50912e5bf08e7ccb1716ba9f1bea2d6e421d69ec8ee1a3f555a5778042"
+    },
+    "skins/tf_dc1_1.pcx": {
+      "size": 36205,
+      "sha256": "e1b836bed7e27fc6885589e72f72faf175d235283beb825a2f4719edf0e7efe5"
+    },
+    "skins/tf_dc1_2.pcx": {
+      "size": 29941,
+      "sha256": "dab43b92b0dd989ec21717f33a4195b2ac0546dc8d0d443c161d1ca517f6f539"
+    },
+    "skins/tf_dc1_3.pcx": {
+      "size": 32699,
+      "sha256": "0ae020e38322beeeaf5d45eccd50d730081cadea00eadc2aa23b9c70dfeafcff"
+    },
+    "skins/tf_dc1_4.pcx": {
+      "size": 35771,
+      "sha256": "5d0e7c787308c97c103b7920935fb450315ef93f05691472f78e089924874cde"
+    },
+    "skins/tf_dc1_5.pcx": {
+      "size": 29314,
+      "sha256": "0d69b876c90f0324740e3ef1d498096d70e53834c1920db9f5fd15c8b2bab4ad"
+    },
+    "skins/tf_dc1_6.pcx": {
+      "size": 36488,
+      "sha256": "98008451b1452246bb58a3ea6a6cab49597ad91fcce9b360e29da285e0f2204b"
+    },
+    "skins/tf_dc1_7.pcx": {
+      "size": 32043,
+      "sha256": "9d9de81f81a7f03020800e2a9b228b746ad444acf1247642d70210df55c85dba"
+    },
+    "skins/tf_dc1_8.pcx": {
+      "size": 28437,
+      "sha256": "33830853c84623cb3d1378f1e5380eafc2459e7b84ecdb7f26ac98e4e4a13acf"
+    },
+    "skins/tf_dc1_9.pcx": {
+      "size": 27427,
+      "sha256": "05d7e73daabcd67bc1d46263efd0bfd2da1a1e95e1bb03b201080f703dd9679d"
+    },
+    "progs/tfbody2.mdl": {
+      "size": 708704,
+      "sha256": "776d8d9b6df5cdece4f7b030cb72f3a0866e9145de6befb255888a4d222c8e0d"
+    },
+    "progs/tfheadless2.mdl": {
+      "size": 611926,
+      "sha256": "09287870e9fd575ee885b3895e74dd6eddfe9aada6049bc58c712e9b25499b64"
+    },
+    "skins/tf_dc2_1.pcx": {
+      "size": 31508,
+      "sha256": "915901f88157898a6e2fe9484f81d54f17d74cea3a08700737eb45e55c0306ed"
+    },
+    "skins/tf_dc2_2.pcx": {
+      "size": 28098,
+      "sha256": "6fd000feceb775f6c7aaff5817e9b35e878b9efe358446ec0e1b1fa9a29e2113"
+    },
+    "skins/tf_dc2_3.pcx": {
+      "size": 30563,
+      "sha256": "2a14c6df0545e4123dc083905e026f14db93560fbce2c094603e7872a48e8264"
+    },
+    "skins/tf_dc2_4.pcx": {
+      "size": 31503,
+      "sha256": "c76d28d33ec8626c0604268033ed785acbc46c3057b19b095755bb2760fbef46"
+    },
+    "skins/tf_dc2_5.pcx": {
+      "size": 27811,
+      "sha256": "a53ed09cb869211847540b0fd2237bb804c074bdbd695157c9bd1ce6d92aa8f1"
+    },
+    "skins/tf_dc2_6.pcx": {
+      "size": 33445,
+      "sha256": "1eb8ccac7b303f90d33c3f0c373d7228a1a25531708e1095f26cf22684f69f4a"
+    },
+    "skins/tf_dc2_7.pcx": {
+      "size": 30499,
+      "sha256": "00faa973bb0985ee4960abd105bafab190471c83af54077c8b3a0fbd70a0aae5"
+    },
+    "skins/tf_dc2_8.pcx": {
+      "size": 27211,
+      "sha256": "32a7f829fef8175f416cf10728edaa528bec9e6f4954d74d6338af65c299c908"
+    },
+    "skins/tf_dc2_9.pcx": {
+      "size": 25840,
+      "sha256": "61464e3c54320fe45a69cb468732fae17e8dcdccc9019e9138528616064dd78d"
+    },
+    "progs/tfbody3.mdl": {
+      "size": 708704,
+      "sha256": "225603c25decc80bf5cb82dee8930836a629318ba9682f7421fe3ad85c2ff482"
+    },
+    "progs/tfheadless3.mdl": {
+      "size": 611926,
+      "sha256": "06da66be484a799e890ede84c4c4d0899b3bb189843d3a577abb94853e658986"
+    },
+    "skins/tf_dc3_1.pcx": {
+      "size": 36199,
+      "sha256": "d451e26afe2ba716f8d074cf7e8c37143181a366d5255c60ae2db6d48fdeac87"
+    },
+    "skins/tf_dc3_2.pcx": {
+      "size": 29939,
+      "sha256": "798a8d605ebfd5847fe13d42fcd4545d6f2a2301effb1ab55bb7db25d428dd2a"
+    },
+    "skins/tf_dc3_3.pcx": {
+      "size": 32699,
+      "sha256": "999fa98596c560490777c071594ee4d6e70a263793828cc4853740e3751705c9"
+    },
+    "skins/tf_dc3_4.pcx": {
+      "size": 35769,
+      "sha256": "bc0dc1563c318d7f1acbeed9a45ce07d1d5702643699bee05ae1f0839579de57"
+    },
+    "skins/tf_dc3_5.pcx": {
+      "size": 29314,
+      "sha256": "c274572d07a88091ed2525f8e46e2208e2f43f939fb9ef138222c7a78d86e598"
+    },
+    "skins/tf_dc3_6.pcx": {
+      "size": 36484,
+      "sha256": "1e03d9be0d7579ffc8b3d1c51d52ab6076ee370e6fed5cca93b29f8bbe18a47f"
+    },
+    "skins/tf_dc3_7.pcx": {
+      "size": 32043,
+      "sha256": "22b4ca344de4c246bbdf9d33d452908c6ff6ad2f7c54d989842b3d51f218ee39"
+    },
+    "skins/tf_dc3_8.pcx": {
+      "size": 28437,
+      "sha256": "4f897ad2270ebd69a44170c769da77319f78a57daa31f19838e76fad78b20778"
+    },
+    "skins/tf_dc3_9.pcx": {
+      "size": 27433,
+      "sha256": "bea2bd6f70ce36b4c5b011041418a3959a2cda15fb4e3891f92a72ddf7cc3e8e"
+    },
+    "progs/tfbody4.mdl": {
+      "size": 708704,
+      "sha256": "53a218f855c372b53479b68375960d592d922e3a5b4468bee7df60f2c5ff871b"
+    },
+    "progs/tfheadless4.mdl": {
+      "size": 611926,
+      "sha256": "70f33f92b84648fd5a71d7f496f4b22ce424cd8fea62898ce73560587b5551b8"
+    },
+    "skins/tf_dc4_1.pcx": {
+      "size": 31425,
+      "sha256": "77751c91d356f7d4f7d8f435453509ac5465b84b3960203472b4a89387b14a85"
+    },
+    "skins/tf_dc4_2.pcx": {
+      "size": 28090,
+      "sha256": "b48d891ae82fee7ce784f5cb53ed4294c9531a42436d28c0215bff714e48a05a"
+    },
+    "skins/tf_dc4_3.pcx": {
+      "size": 30563,
+      "sha256": "afb0dcdb377672b7fa566f6b62404f1e15ac6af124dd9e714e15806e18236386"
+    },
+    "skins/tf_dc4_4.pcx": {
+      "size": 31503,
+      "sha256": "15aa2aae9bd3e560bf174a61582e8065553a136d7e9ef11a164d4a05776e180b"
+    },
+    "skins/tf_dc4_5.pcx": {
+      "size": 27811,
+      "sha256": "45b3120641d6c32ccb8e43f3135fbc46fe3c13126fc5e2ff39fbd801478eb547"
+    },
+    "skins/tf_dc4_6.pcx": {
+      "size": 33445,
+      "sha256": "d0d013686217047e3f665c744fbbc7e925ec7f3100a5f6811436e78a904aed29"
+    },
+    "skins/tf_dc4_7.pcx": {
+      "size": 30499,
+      "sha256": "a692bc6154c4d4924ce698b93d2dffbf7f590ddda77e1f8893eed0d6b72e8519"
+    },
+    "skins/tf_dc4_8.pcx": {
+      "size": 27211,
+      "sha256": "41deeb5a6637058bedfaf276a0beb0ef0ee5014cb086954ec424a96bf2ea31e5"
+    },
+    "skins/tf_dc4_9.pcx": {
+      "size": 25840,
+      "sha256": "9370ed837d4be9c7d8eb8145f33626d485f00cedbe93468cae15a995ccecaeb6"
+    }
+  }
+}

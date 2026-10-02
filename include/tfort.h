@@ -37,6 +37,7 @@ void    TeamFortress_SetHealth(  );
 void    TeamFortress_SetSpeed( gedict_t * );
 void    TeamFortress_SetSkin( gedict_t * );
 void    TeamFortress_SetColor( gedict_t * p, int top, int bottom );
+void    TeamFortress_SetCorpseAppearance( gedict_t *body, gedict_t *player, int headless );
 void    TeamFortress_ExecClassScript( gedict_t * );
 void    TeamFortress_ExecMapScript( gedict_t * p );
 int     TeamFortress_TeamPutPlayerInTeam(  );

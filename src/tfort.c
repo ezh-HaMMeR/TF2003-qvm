@@ -1659,6 +1659,7 @@ const char* TeamFortress_GetSkin( gedict_t * p )
 {
 	int     tn;
 	int     pc;
+	static char disguise_skin[20];
 
 	if ( p->playerclass == PC_CIVILIAN || !p->team_no )
 		return "base";
@@ -1670,6 +1671,12 @@ const char* TeamFortress_GetSkin( gedict_t * p )
 			tn = p->undercover_team;
 		if ( p->undercover_skin )
 			pc = p->undercover_skin;
+		if ( p->undercover_team )
+		{
+			/* The texture carries disguise colors; userinfo keeps real team colors. */
+			_snprintf( disguise_skin, sizeof( disguise_skin ), "tf_dc%d_%d", tn, pc );
+			return disguise_skin;
+		}
 	}
 
 	return TeamFortress_GetSkinByTeamClass( tn, pc );
@@ -1677,7 +1684,9 @@ const char* TeamFortress_GetSkin( gedict_t * p )
 
 void TeamFortress_SetSkin( gedict_t * p )
 {
-
+	/* Death has already baked the visible class/color into a corpse model. */
+	if ( p->s.v.deadflag )
+		return;
 	p->immune_to_check = g_globalvars.time + tfset_cheat_pause;	//10;
 	if ( p->playerclass == PC_SPY && p->undercover_skin )
 		p->s.v.skin = p->undercover_skin;
@@ -1702,6 +1711,14 @@ void TeamFortress_SetSkin( gedict_t * p )
 void TeamFortress_SetColor( gedict_t * p, int top, int bottom )
 {
         char tmp[0x20];
+        /* Scoreboards and team sorting consume these userinfo fields. Spy
+         * disguise colors are now baked into the selected disguise skin. */
+        if ( p->playerclass == PC_SPY && p->undercover_team &&
+             p->team_no > 0 && p->team_no <= 4 )
+        {
+                top = TeamFortress_TeamGetTopColor( p->team_no );
+                bottom = TeamFortress_TeamGetColor( p->team_no ) - 1;
+        }
         if( p->isBot )
         {
                 _snprintf(tmp, sizeof(tmp), "%d",top);
@@ -1712,6 +1729,36 @@ void TeamFortress_SetColor( gedict_t * p, int top, int bottom )
         {
                 stuffcmd( p, "color %d %d\n",top,bottom);
         }
+}
+
+void TeamFortress_SetCorpseAppearance( gedict_t *body, gedict_t *player, int headless )
+{
+    static char *body_models[] = { "", "progs/tfbody1.mdl", "progs/tfbody2.mdl",
+                                  "progs/tfbody3.mdl", "progs/tfbody4.mdl" };
+    static char *headless_models[] = { "", "progs/tfheadless1.mdl", "progs/tfheadless2.mdl",
+                                      "progs/tfheadless3.mdl", "progs/tfheadless4.mdl" };
+    vec3_t mins, maxs;
+    int team = player->team_no;
+    int skin = player->playerclass;
+
+    if ( player->playerclass == PC_SPY )
+    {
+        if ( player->undercover_team )
+            team = player->undercover_team;
+        if ( player->undercover_skin )
+            skin = player->undercover_skin;
+    }
+    if ( team < 1 || team > 4 )
+        return;
+    if ( skin < PC_SCOUT || skin > PC_ENGINEER )
+        skin = 0;
+    VectorCopy( body->s.v.mins, mins );
+    VectorCopy( body->s.v.maxs, maxs );
+    setmodel( body, headless ? headless_models[team] : body_models[team] );
+    /* setmodel changes bounds, but death/feign physics must keep their hull. */
+    setsize( body, PASSVEC3( mins ), PASSVEC3( maxs ) );
+    body->s.v.skin = skin;
+    body->s.v.colormap = 0;
 }
 
 static void setArmorType( gedict_t* self )

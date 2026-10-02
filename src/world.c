@@ -59,6 +59,7 @@ void CopyToBodyQue( gedict_t * ent )
 	bodyque[bodyque_head]->s.v.modelindex = ent->s.v.modelindex;
 	bodyque[bodyque_head]->s.v.frame = ent->s.v.frame;
 	bodyque[bodyque_head]->s.v.colormap = ent->s.v.colormap;
+	bodyque[bodyque_head]->s.v.skin = ent->s.v.skin;
 	bodyque[bodyque_head]->s.v.movetype = ent->s.v.movetype;
 	bodyque[bodyque_head]->s.v.flags = 0;
 
@@ -219,6 +220,14 @@ void SP_worldspawn(  )
 
 
 	trap_precache_model( "progs/player.mdl" );
+	trap_precache_model( "progs/tfbody1.mdl" );
+	trap_precache_model( "progs/tfbody2.mdl" );
+	trap_precache_model( "progs/tfbody3.mdl" );
+	trap_precache_model( "progs/tfbody4.mdl" );
+	trap_precache_model( "progs/tfheadless1.mdl" );
+	trap_precache_model( "progs/tfheadless2.mdl" );
+	trap_precache_model( "progs/tfheadless3.mdl" );
+	trap_precache_model( "progs/tfheadless4.mdl" );
 	trap_precache_model( "progs/eyes.mdl" );
 	trap_precache_model( "progs/h_player.mdl" );
 	trap_precache_model( "progs/headless.mdl" );

@@ -950,6 +950,7 @@ void GibPlayer(  )
 		newmis->s.v.colormap = self->s.v.colormap ;
 		//newmis->s.v.colormap = TeamFortress_TeamGetColor(self->team_no);
 		newmis->s.v.skin = self->s.v.skin;
+		TeamFortress_SetCorpseAppearance( newmis, self, 1 );
 		newmis->s.v.think = ( func_t )Headless_Think;
 		newmis->s.v.nextthink = g_globalvars.time + 0.1;
 		if (self->current_weapon <= WEAP_AXE)
@@ -1106,6 +1107,7 @@ void PlayerDie(  )
 	DeathSound(  );
 	self->s.v.angles[0] = 0;
 	self->s.v.angles[2] = 0;
+    TeamFortress_SetCorpseAppearance( self, self, 0 );
     PlayerSetDieFrames(1);
 
 	TeamFortress_SetupRespawn( 0 );

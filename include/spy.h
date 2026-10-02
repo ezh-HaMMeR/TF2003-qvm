@@ -28,6 +28,7 @@ void 	ResetGasSkins( gedict_t * pl );
 void 	Spy_RemoveDisguise( gedict_t * spy );
 void 	TeamFortress_SpyChangeSkin( int class );
 void 	TeamFortress_SpyChangeColor( int teamno );
+void    TeamFortress_Cmd_Disguise( void );
 void    TeamFortress_SpyFeignDeath( int issilent );
 
 void spy_diea1();

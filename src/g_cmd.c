@@ -79,6 +79,23 @@ const static cmd_t   cmds[] = {
   {"sg_reload", Engineer_ReloadSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"sg_dismantle", Engineer_DismantleSG, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"detpack", TeamFortress_Cmd_Detpack, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS },
+  {"disguise_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_scout", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_scout_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_sniper", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_sniper_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_sold", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_sold_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_demo", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_demo_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_medic", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_medic_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_hwguy", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_hwguy_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_pyro", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_pyro_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_eng", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
+  {"disguise_eng_color", TeamFortress_Cmd_Disguise, CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS},
   {"dropitems", DropOrGiveGoalItems, CMD_NOT_PREMATCH | CMD_NOT_DEAD},
   {"tf_primegren1", TeamFortress_Cmd_PrimeGrenade1, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
   {"tf_primegren2", TeamFortress_Cmd_PrimeGrenade2, CMD_NOT_PREMATCH | CMD_NOT_DEAD | CMD_NOT_TEAM | CMD_NOT_CLASS | CMD_NOT_BUILD},
@@ -207,21 +224,11 @@ qboolean ClientUserInfoChanged(  )
     if ( !self->team_no )
       return 0;
     color = atoi( value );
-    if ( self->playerclass == PC_SPY && self->undercover_team )
-    {
-      if ( TeamFortress_TeamGetTopColor( self->undercover_team ) != color )
-      {
-        G_sprint( self, 2, "you cannot change your topcolor setinfo\n" );
-        return 1;
-      }
-  } else
-    {
       if ( TeamFortress_TeamGetTopColor( self->team_no ) != color )
       {
         G_sprint( self, 2, "you cannot change your topcolor setinfo\n" );
         return 1;
       }
-    }
     return 0;
   }
 
@@ -230,21 +237,11 @@ qboolean ClientUserInfoChanged(  )
     if ( !self->team_no )
       return 0;
     color = atoi( value );
-    if ( self->playerclass == PC_SPY && self->undercover_team )
-    {
-      if ( TeamFortress_TeamGetColor( self->undercover_team ) - 1 != color )
-      {
-        G_sprint( self, 2, "you cannot change your bottomcolor setinfo\n" );
-        return 1;
-      }
-  } else
-    {
       if ( TeamFortress_TeamGetColor( self->team_no ) - 1 != color )
       {
         G_sprint( self, 2, "you cannot change your bottomcolor setinfo\n" );
         return 1;
       }
-    }
     return 0;
   }
 
