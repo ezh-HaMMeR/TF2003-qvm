@@ -12,7 +12,7 @@ text = (ROOT / "src/tfort.c").read_text(encoding="utf-8")
 get_skin = text[text.index("const char* TeamFortress_GetSkin( "):text.index("void TeamFortress_SetSkin(")]
 set_skin = text[text.index("void TeamFortress_SetSkin("):text.index("void TeamFortress_SetColor(")]
 appearance = text[text.index("void TeamFortress_SetColor("):text.index("static void setArmorType(")]
-prefix = spy.prefix.replace("int playerclass,isSpectator", "int isBot; float mins[3],maxs[3]; int playerclass,isSpectator")
+prefix = spy.prefix.replace("int playerclass,isSpectator", "int isBot; float invisible_finished; int playerclass,isSpectator")
 prefix = prefix.replace("char *classname;", "float mins[3], maxs[3], origin[3], angles[3], velocity[3], flags, movetype; char *model; char *classname;")
 prefix = prefix.replace("skin,team,nextthink;", "skin,team,nextthink,colormap;")
 prefix = prefix.replace("void TeamFortress_SetSkin(gedict_t *p) {}", "")
@@ -21,6 +21,7 @@ prefix = prefix.replace("int TeamFortress_TeamGetTopColor(int t) {return t;}", "
 prefix = prefix.replace("int TeamFortress_TeamGetColor(int t) {return t;}", "int TeamFortress_TeamGetColor(int t) {return colors[t]+1;}")
 extra = r'''
 typedef float vec3_t[3];
+int modelindex_player=1, modelindex_disguise[5]={0,2,3,4,5};
 #define PC_CIVILIAN 11
 #define _snprintf snprintf
 #define VectorCopy(a,b) memcpy(b,a,sizeof(float)*3)
@@ -50,8 +51,13 @@ int main(void) {
  int team,pc; char expected[64]; gedict_t *p=&entities[1],*body=&entities[2];
  for(team=1;team<=4;team++) for(pc=1;pc<=9;pc++) {
   reset(); p->undercover_team=team; p->undercover_skin=pc;
-  snprintf(expected,sizeof(expected),"tf_dc%d_%d",team,pc);
-  assert(!strcmp(TeamFortress_GetSkin(p),expected));
+  assert(!strcmp(TeamFortress_GetSkin(p),"ordinary_class_skin"));
+  TeamFortress_SetSkin(p);
+  snprintf(expected,sizeof(expected),"progs/tfbody%d.mdl",team);
+  assert(!strcmp(p->s.v.model,expected) && p->s.v.modelindex==modelindex_disguise[team]);
+  assert(p->s.v.skin==pc);
+  assert(!strstr(output,"tf_dc")); /* no new runtime PCX dependency */
+  output[0]=0;
   TeamFortress_SetColor(p,colors[team],colors[team]);
   assert(!strcmp(output,"color 13 13\n")); /* always real blue team */
   setsize(body,-16,-16,-24,16,16,32);
@@ -75,6 +81,20 @@ int main(void) {
  p->s.v.deadflag=0;p->playerclass=PC_MEDIC;p->team_no=1;
  setmodel(p,"progs/player.mdl");p->s.v.colormap=1;TeamFortress_SetSkin(p);
  assert(!strcmp(bodyque[0]->s.v.model,"progs/tfbody2.mdl") && bodyque[0]->s.v.skin==PC_SOLDIER && !bodyque[0]->s.v.colormap);
+ reset();p->undercover_team=2;p->undercover_skin=PC_SOLDIER;
+ p->s.v.modelindex=99;p->invisible_finished=200;TeamFortress_SetSkin(p);
+ assert(p->s.v.modelindex==99); /* ring/Spy invisibility is preserved */
+ p->invisible_finished=0;TeamFortress_SetPlayerAppearance(p);
+ assert(p->s.v.modelindex==modelindex_disguise[2] && p->s.v.skin==PC_SOLDIER);
+ p->undercover_team=0;p->undercover_skin=0;TeamFortress_SetSkin(p);
+ assert(p->s.v.modelindex==modelindex_player && p->s.v.skin==PC_SPY && !strcmp(p->s.v.model,"progs/player.mdl"));
+ reset();run("disguise_sold_color");
+ assert(p->s.v.modelindex==modelindex_player);think(2,104);
+ assert(p->s.v.skin==PC_SOLDIER && p->s.v.modelindex==modelindex_player);
+ think(2,108);assert(p->s.v.skin==PC_SOLDIER && p->s.v.modelindex==modelindex_disguise[2]);
+ assert(!strcmp(p->s.v.model,"progs/tfbody2.mdl") && !strstr(output,"tf_dc"));
+ reset();run("disguise_color");think(2,104);
+ assert(p->s.v.skin==PC_SPY && p->s.v.modelindex==modelindex_disguise[2]);
  puts("PASS: real scoreboard colors for humans/bots; 36 Spy disguises; immutable corpse class/color/hull; headless bodies; dying Spy reset");
  return 0;
 }
@@ -102,3 +122,8 @@ for filename in ["g_cmd.c", "tforttm.c"]:
     code = (ROOT / "src" / filename).read_text(encoding="utf-8")
     assert not re.search(r"TeamFortress_TeamGet(?:Top)?Color\( self->undercover_team \)", code)
 print("PASS: all 44 resource hashes, locked palette ramps, model skin counts and color validation paths")
+client = (ROOT / "src/client.c").read_text(encoding="utf-8")
+powerups = client[client.index("void CheckPowerups()") : client.index("void CheckPowerups()") + 3800]
+assert "TeamFortress_SetPlayerAppearance( self )" in powerups
+assert "self->s.v.modelindex = modelindex_player" not in powerups
+print("PASS: live disguise model selection with no runtime PCX; invisibility, reset and per-frame restoration")

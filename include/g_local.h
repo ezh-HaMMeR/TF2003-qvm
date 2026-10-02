@@ -186,6 +186,7 @@ void            CopyToBodyQue( gedict_t * ent );
 extern int    intermission_running;
 extern float    intermission_exittime;
 extern int     modelindex_eyes, modelindex_player, modelindex_null;
+extern int     modelindex_disguise[5];
 
 void            SetChangeParms();
 void            SetNewParms();

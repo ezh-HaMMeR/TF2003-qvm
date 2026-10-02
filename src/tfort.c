@@ -1659,7 +1659,6 @@ const char* TeamFortress_GetSkin( gedict_t * p )
 {
 	int     tn;
 	int     pc;
-	static char disguise_skin[20];
 
 	if ( p->playerclass == PC_CIVILIAN || !p->team_no )
 		return "base";
@@ -1671,15 +1670,24 @@ const char* TeamFortress_GetSkin( gedict_t * p )
 			tn = p->undercover_team;
 		if ( p->undercover_skin )
 			pc = p->undercover_skin;
-		if ( p->undercover_team )
-		{
-			/* The texture carries disguise colors; userinfo keeps real team colors. */
-			_snprintf( disguise_skin, sizeof( disguise_skin ), "tf_dc%d_%d", tn, pc );
-			return disguise_skin;
-		}
 	}
 
 	return TeamFortress_GetSkinByTeamClass( tn, pc );
+}
+
+void TeamFortress_SetPlayerAppearance( gedict_t *p )
+{
+    static char *models[] = { "progs/player.mdl", "progs/tfbody1.mdl",
+                             "progs/tfbody2.mdl", "progs/tfbody3.mdl", "progs/tfbody4.mdl" };
+    int team = 0;
+
+    if ( p->playerclass == PC_SPY && p->undercover_team >= 1 && p->undercover_team <= 4 )
+        team = p->undercover_team;
+    /* Model downloads finish during signon. A new PCX skin named during play
+     * is not automatically downloaded by ordinary QW clients. Use embedded
+     * class/color textures, independent of missing skins and noskins. */
+    p->s.v.model = models[team];
+    p->s.v.modelindex = team ? modelindex_disguise[team] : modelindex_player;
 }
 
 void TeamFortress_SetSkin( gedict_t * p )
@@ -1692,6 +1700,8 @@ void TeamFortress_SetSkin( gedict_t * p )
 		p->s.v.skin = p->undercover_skin;
 	else
 		p->s.v.skin = p->playerclass;
+    if ( !p->invisible_finished && !( tfset(invis_only) && p->is_undercover == 1 ) )
+        TeamFortress_SetPlayerAppearance( p );
 	if( p->isBot )
 	{
 	        if ( p->s.v.skin )

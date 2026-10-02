@@ -35,6 +35,7 @@ const vec3_t  VEC_HULL2_MIN = { -32, -32, -24 };
 const vec3_t  VEC_HULL2_MAX = { 32, 32, 64 };
 
 int     modelindex_eyes, modelindex_player, modelindex_null;
+int     modelindex_disguise[5];
 int     last_id;
 float   rj;
 
@@ -974,6 +975,15 @@ void TF_SpawnPlayer( gedict_t * self )
         setmodel( self, "progs/eyes.mdl" );
         modelindex_eyes = self->s.v.modelindex;
 
+        setmodel( self, "progs/tfbody1.mdl" );
+        modelindex_disguise[1] = self->s.v.modelindex;
+        setmodel( self, "progs/tfbody2.mdl" );
+        modelindex_disguise[2] = self->s.v.modelindex;
+        setmodel( self, "progs/tfbody3.mdl" );
+        modelindex_disguise[3] = self->s.v.modelindex;
+        setmodel( self, "progs/tfbody4.mdl" );
+        modelindex_disguise[4] = self->s.v.modelindex;
+
         setmodel( self, "progs/player.mdl" );
         modelindex_player = self->s.v.modelindex;
         not_inited_modelindex = 0;
@@ -1505,7 +1515,7 @@ void CheckPowerups()
                 self->s.v.frame = 0;
                 self->s.v.modelindex = modelindex_eyes;
             } else
-                self->s.v.modelindex = modelindex_player;
+                TeamFortress_SetPlayerAppearance( self );
         }
     }
     if ( self->invincible_finished )

@@ -889,7 +889,7 @@ void TeamFortress_SpyFeignDeath( int issilent )
         self->is_feigning = 1;
         Attack_Finished( 0.8 );
         self->invisible_finished = 0;
-        self->s.v.modelindex = modelindex_player;
+        TeamFortress_SetPlayerAppearance( self );
         self->s.v.weapon = self->current_weapon;
         self->current_weapon = 0;
         self->s.v.currentclip = GetClipSize(self);
