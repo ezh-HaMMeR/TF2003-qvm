@@ -125,6 +125,8 @@ def build(gamedir, outdir, tops):
     sources.insert(0, original[0])
     head_header, hw, hh, head_skins, head_geometry = split_mdl(read_asset(gamedir, "progs/headless.mdl"))
     assert len(head_skins) == 10 and (hw, hh) == (width, height)
+    gib_header, gw, gh, gib_skins, gib_geometry = split_mdl(read_asset(gamedir, "progs/h_player.mdl"))
+    assert len(gib_skins) == 10
     outputs = {}
     for team, (top, bottom) in enumerate(zip(tops, COLORS), 1):
         baked = [bake(p, palette, top, bottom) for p in sources]
@@ -133,6 +135,10 @@ def build(gamedir, outdir, tops):
                                     for p in head_skins) + head_geometry
         outputs[f"progs/tfbody{team}.mdl"] = body
         outputs[f"progs/tfheadless{team}.mdl"] = head
+        gib = gib_header + b"".join(struct.pack("<i", 0) + bake(p, palette, top, bottom)
+                                  for p in gib_skins) + gib_geometry
+        outputs[f"progs/tfhead{team}.mdl"] = gib
+        assert split_mdl(gib)[4] == gib_geometry
         assert split_mdl(body)[4] == geometry and split_mdl(head)[4] == head_geometry
         for pc, (w, h, pixels) in enumerate(pcx_sources, 1):
             colored = bake(pixels, palette, top, bottom)

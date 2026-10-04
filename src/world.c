@@ -229,6 +229,10 @@ void SP_worldspawn(  )
 	trap_precache_model( "progs/tfheadless3.mdl" );
 	trap_precache_model( "progs/tfheadless4.mdl" );
 	trap_precache_model( "progs/eyes.mdl" );
+	trap_precache_model( "progs/tfhead1.mdl" );
+	trap_precache_model( "progs/tfhead2.mdl" );
+	trap_precache_model( "progs/tfhead3.mdl" );
+	trap_precache_model( "progs/tfhead4.mdl" );
 	trap_precache_model( "progs/h_player.mdl" );
 	trap_precache_model( "progs/headless.mdl" );
 	trap_precache_model( "progs/gib1.mdl" );

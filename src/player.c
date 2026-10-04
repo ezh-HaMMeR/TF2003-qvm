@@ -890,6 +890,7 @@ void ThrowHead( char *gibname, float dm )
 {
 	setmodel( self, gibname );
 	self->s.v.skin = 0;
+	TeamFortress_SetCorpseAppearance(self, self, 2);
 	self->s.v.frame = 0;
 	self->s.v.nextthink = -1;
 	self->s.v.movetype = MOVETYPE_BOUNCE;
@@ -906,6 +907,7 @@ void ThrowHead( char *gibname, float dm )
 void HeadShotThrowHead( char *gibname )
 {
 	setmodel( self, gibname );
+	TeamFortress_SetCorpseAppearance(self, self, 2);
 	self->s.v.frame = 0;
 	self->s.v.nextthink = -1;
 	self->s.v.movetype = MOVETYPE_BOUNCE;

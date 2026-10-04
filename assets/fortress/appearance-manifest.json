@@ -20,6 +20,10 @@
       "size": 611926,
       "sha256": "c660dd50912e5bf08e7ccb1716ba9f1bea2d6e421d69ec8ee1a3f555a5778042"
     },
+    "progs/tfhead1.mdl": {
+      "size": 36127,
+      "sha256": "a617ec7a54d60b558cb39c94d464ae8fd104be0f2debaa13a0f9ed57b4396663"
+    },
     "skins/tf_dc1_1.pcx": {
       "size": 36205,
       "sha256": "e1b836bed7e27fc6885589e72f72faf175d235283beb825a2f4719edf0e7efe5"
@@ -63,6 +67,10 @@
     "progs/tfheadless2.mdl": {
       "size": 611926,
       "sha256": "09287870e9fd575ee885b3895e74dd6eddfe9aada6049bc58c712e9b25499b64"
+    },
+    "progs/tfhead2.mdl": {
+      "size": 36127,
+      "sha256": "c93fa4369aee0d6f33e44a446425abf5fe5c0e8d1860c3ac30fa027766de2234"
     },
     "skins/tf_dc2_1.pcx": {
       "size": 31508,
@@ -108,6 +116,10 @@
       "size": 611926,
       "sha256": "06da66be484a799e890ede84c4c4d0899b3bb189843d3a577abb94853e658986"
     },
+    "progs/tfhead3.mdl": {
+      "size": 36127,
+      "sha256": "d19d50484a5419cd10bac67f8fbfa779e704c611a60da55dc2cc3efdbff1bbc1"
+    },
     "skins/tf_dc3_1.pcx": {
       "size": 36199,
       "sha256": "d451e26afe2ba716f8d074cf7e8c37143181a366d5255c60ae2db6d48fdeac87"
@@ -151,6 +163,10 @@
     "progs/tfheadless4.mdl": {
       "size": 611926,
       "sha256": "70f33f92b84648fd5a71d7f496f4b22ce424cd8fea62898ce73560587b5551b8"
+    },
+    "progs/tfhead4.mdl": {
+      "size": 36127,
+      "sha256": "ef495243b7b20da35dfe6555771d068e6e34bc1a7bc4083a54d2e8e3b7854a16"
     },
     "skins/tf_dc4_1.pcx": {
       "size": 31425,

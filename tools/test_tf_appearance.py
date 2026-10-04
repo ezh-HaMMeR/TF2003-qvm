@@ -65,6 +65,9 @@ int main(void) {
   snprintf(expected,sizeof(expected),"progs/tfbody%d.mdl",team);
   assert(!strcmp(body->s.v.model,expected) && body->s.v.skin==pc && !body->s.v.colormap);
   assert(body->s.v.mins[2]==-24 && body->s.v.maxs[2]==32);
+  TeamFortress_SetCorpseAppearance(body,p,2);
+  snprintf(expected,sizeof(expected),"progs/tfhead%d.mdl",team);
+  assert(!strcmp(body->s.v.model,expected) && body->s.v.skin==pc && !body->s.v.colormap);
   p->undercover_team=0;p->undercover_skin=0;p->playerclass=PC_MEDIC;
   TeamFortress_SetSkin(p); /* owner respawns, then changes class/colors */
   assert(!strcmp(body->s.v.model,expected) && body->s.v.skin==pc && !body->s.v.colormap);
@@ -73,6 +76,7 @@ int main(void) {
  TeamFortress_SetColor(p,4,4);assert(!strcmp(output,"topcolor=13\nbottomcolor=13\n"));
  reset(); p->playerclass=PC_SOLDIER;p->team_no=2;
  TeamFortress_SetCorpseAppearance(body,p,0);assert(body->s.v.skin==PC_SOLDIER && !strcmp(body->s.v.model,"progs/tfbody2.mdl"));
+ TeamFortress_SetCorpseAppearance(body,p,2);assert(body->s.v.skin==PC_SOLDIER && !strcmp(body->s.v.model,"progs/tfhead2.mdl"));
  TeamFortress_SetCorpseAppearance(body,p,1);assert(body->s.v.skin==PC_SOLDIER && !strcmp(body->s.v.model,"progs/tfheadless2.mdl"));
  reset();p->undercover_team=2;p->undercover_skin=PC_SOLDIER;p->s.v.deadflag=1;
  TeamFortress_SetCorpseAppearance(p,p,0);p->undercover_team=0;p->undercover_skin=0;
@@ -121,9 +125,14 @@ for name, info in manifest["files"].items():
 for filename in ["g_cmd.c", "tforttm.c"]:
     code = (ROOT / "src" / filename).read_text(encoding="utf-8")
     assert not re.search(r"TeamFortress_TeamGet(?:Top)?Color\( self->undercover_team \)", code)
-print("PASS: all 44 resource hashes, locked palette ramps, model skin counts and color validation paths")
+print("PASS: all 48 resource hashes, locked palette ramps, model skin counts and color validation paths")
 client = (ROOT / "src/client.c").read_text(encoding="utf-8")
 powerups = client[client.index("void CheckPowerups()") : client.index("void CheckPowerups()") + 3800]
 assert "TeamFortress_SetPlayerAppearance( self )" in powerups
 assert "self->s.v.modelindex = modelindex_player" not in powerups
 print("PASS: live disguise model selection with no runtime PCX; invisibility, reset and per-frame restoration")
+
+player_source = (ROOT / "src/player.c").read_text()
+for name, end in [("void ThrowHead(", "void HeadShotThrowHead("), ("void HeadShotThrowHead(", "void KillPlayer(")]:
+    assert "TeamFortress_SetCorpseAppearance(self, self, 2)" in player_source[player_source.index(name):player_source.index(end)]
+print("PASS: both detached-head creation paths capture appearance")

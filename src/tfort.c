@@ -1747,6 +1747,8 @@ void TeamFortress_SetCorpseAppearance( gedict_t *body, gedict_t *player, int hea
                                   "progs/tfbody3.mdl", "progs/tfbody4.mdl" };
     static char *headless_models[] = { "", "progs/tfheadless1.mdl", "progs/tfheadless2.mdl",
                                       "progs/tfheadless3.mdl", "progs/tfheadless4.mdl" };
+    static char *head_models[] = { "", "progs/tfhead1.mdl", "progs/tfhead2.mdl",
+                                  "progs/tfhead3.mdl", "progs/tfhead4.mdl" };
     vec3_t mins, maxs;
     int team = player->team_no;
     int skin = player->playerclass;
@@ -1764,7 +1766,8 @@ void TeamFortress_SetCorpseAppearance( gedict_t *body, gedict_t *player, int hea
         skin = 0;
     VectorCopy( body->s.v.mins, mins );
     VectorCopy( body->s.v.maxs, maxs );
-    setmodel( body, headless ? headless_models[team] : body_models[team] );
+    setmodel( body, headless == 2 ? head_models[team] :
+                    headless ? headless_models[team] : body_models[team] );
     /* setmodel changes bounds, but death/feign physics must keep their hull. */
     setsize( body, PASSVEC3( mins ), PASSVEC3( maxs ) );
     body->s.v.skin = skin;
