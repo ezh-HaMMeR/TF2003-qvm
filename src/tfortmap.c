@@ -1724,6 +1724,17 @@ void tfgoal_timer_tick(  )
 	}
 }
 
+/* Carried and returned items must not retain dropped-item physics or timers. */
+static void tfgoalitem_StopPhysics( gedict_t *Item )
+{
+	Item->s.v.movetype = MOVETYPE_NONE;
+	Item->s.v.think = 0;
+	Item->s.v.nextthink = 0;
+	SetVector( Item->s.v.velocity, 0, 0, 0 );
+	Item->s.v.flags = (int) Item->s.v.flags & ~FL_ONGROUND;
+	Item->s.v.groundentity = EDICT_TO_PROG( world );
+}
+
 void item_tfgoal_touch_CTF(  )
 {
     gedict_t *te;
@@ -1748,11 +1759,14 @@ void item_tfgoal_touch_CTF(  )
             CenterPrint( te, "\n\n\nThe " _E _N _E _M _Y " flag was " _R _E _T _U _R _N _E _D "!!" );
         te = trap_find( te, FOFS( s.v.classname ), "player" );
     }
-    self->goal_state = 2;
+    tfgoalitem_StopPhysics( self );
+    self->s.v.owner = EDICT_TO_PROG( world );
+    self->goal_state = TFGS_INACTIVE;
     self->s.v.solid = SOLID_TRIGGER;
     self->s.v.touch = ( func_t ) item_tfgoal_touch;
     VectorCopy( self->s.v.oldorigin, self->s.v.origin );
     setmodel( self, self->mdl );
+    setsize( self, PASSVEC3( self->goal_min ), PASSVEC3( self->goal_max ) );
     setorigin( self, PASSVEC3( self->s.v.origin ) );
     sound( self, 2, "items/itembk2.wav", 1, 1 );
 }
@@ -1809,6 +1823,7 @@ void item_tfgoal_touch(  )
 
 void tfgoalitem_GiveToPlayer( gedict_t * Item, gedict_t * AP, gedict_t * Goal )
 {
+	tfgoalitem_StopPhysics( Item );
 	Item->s.v.owner = EDICT_TO_PROG( AP );
 	if ( Item->mdl )
 		setmodel( Item, "" );
@@ -1918,11 +1933,13 @@ void ReturnItem(  )
 		enemy->s.v.solid = SOLID_BBOX;
 	else
 		enemy->s.v.solid = SOLID_TRIGGER;
-	enemy->s.v.movetype = MOVETYPE_NONE;
+	tfgoalitem_StopPhysics( enemy );
+	enemy->s.v.owner = EDICT_TO_PROG( world );
 	enemy->s.v.touch = ( func_t ) item_tfgoal_touch;
 	VectorCopy( enemy->s.v.oldorigin, enemy->s.v.origin );
 	if ( enemy->mdl )
 		setmodel( enemy, enemy->mdl );
+	setsize( enemy, PASSVEC3( enemy->goal_min ), PASSVEC3( enemy->goal_max ) );
 	setorigin( enemy, PASSVEC3( enemy->s.v.origin ) );
 	sound( enemy, 2, "items/itembk2.wav", 1, 1 );
 	tfgoalitem_checkgoalreturn( enemy );
